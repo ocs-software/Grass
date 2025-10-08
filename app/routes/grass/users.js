@@ -331,7 +331,8 @@ router.post("/delete", async (req, res) => {
         var message = "";
         var templatemodel = "";
         var client = "";
-        var serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
+        // var serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
+        var serverToken = process.env.POSTMARK;
 
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
@@ -414,7 +415,7 @@ router.post("/delete", async (req, res) => {
                                                         // send email to Owner
                                                         message = "A Sub-account you created , has been deleted. Details above.";
                                                         templatemodel = { "username": username, "subject": "Sub-Account Deleted", "account_number": sub_acc, "important_00": "Sub-Account Deleted", "info": [{ "infol": message }] };
-                                                        serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
+                                                        serverToken = process.env.POSTMARK;
                                                         client = new postmark.ServerClient(serverToken);
 
                                                         client.sendEmailWithTemplate({
@@ -618,7 +619,7 @@ router.post("/logon", async (req, res) => {
                             var username = item[0].user_firstname + " " + item[0].user_surname;
                             var userurl = user_token + "~L~";
                             var templatemodel = { "user_email": userurl, "booking": "Verify Account", "username": username, "subject": "Verify Account" };
-                            var serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
+                            var serverToken = process.env.POSTMARK;
                             var client = new postmark.ServerClient(serverToken);
 
                             client.sendEmailWithTemplate({
@@ -851,7 +852,7 @@ router.post("/new", async (req, res) => {
         }
 
         var message = "";
-        var serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
+        var serverToken = process.env.POSTMARK;
         var client = new postmark.ServerClient(serverToken);
         var templatemodel = "";
         var username = user_firstname + " " + user_surname;
