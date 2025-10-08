@@ -14,19 +14,19 @@ module.exports = function (app, db) {
     res.json({ message: "Pin Position API Working" });
   });
 
-  const pinusers = require('./pinusers/users');
+  const pinusers = require('./grass/users');
   app.use("/users", pinusers);
 
-  const pinvenues = require('./pinusers/venues');
+  const pinvenues = require('./grass/venues');
   app.use("/venues", pinvenues);
 
-  const pincourses = require('./pinusers/courses');
+  const pincourses = require('./grass/courses');
   app.use("/courses", pincourses);
 
-  const ppsearch = require('./pinusers/search');
+  const ppsearch = require('./grass/search');
   app.use("/search", ppsearch);
 
-  const pinlogs = require('./pinusers/logs');
+  const pinlogs = require('./grass/logs');
   app.use("/logs", pinlogs);
 
   /*

@@ -5,7 +5,7 @@ module.exports = {
     //const custID = req.params.dbid
     //const tourID = req.params.tourid
 
-    let dbrec = "pin_positions"
+    let dbrec = "grass"
     //if (dbrec.includes(' ')) {
     //  console.log("dbrec with white space:")
     //  console.log(dbrec)

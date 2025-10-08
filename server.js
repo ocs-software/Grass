@@ -45,7 +45,7 @@ MongoClient.connect(db.url, (err, database) => {
 	// require('./app/routes')(app, database, io);
 	require('./app/routes')(app, database);
 	app.listen(port, () => {
-		console.log('Pin Positions API - v1.0');
+		console.log('GRASS- v1.0');
 		console.log('We are live on port ' + port);
 	});
 });

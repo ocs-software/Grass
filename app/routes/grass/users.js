@@ -13,7 +13,7 @@ const message =
     '<html>' +
     '<head>' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' +
-    '<title>PinPosition - Email Verification Successful</title>' +
+    '<title>Grass - Email Verification Successful</title>' +
     '<style>' +
     '@import url("https://fonts.googleapis.com/css?family=Open+Sans");' +
     '</style>' +
@@ -61,7 +61,7 @@ const errmessage =
     '<html>' +
     '<head>' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' +
-    '<title>PinPosition - Email Verification FAILED</title>' +
+    '<title>Grass - Email Verification FAILED</title>' +
     '<style>' +
     '@import url("https://fonts.googleapis.com/css?family=Open+Sans");' +
     '</style>' +
@@ -108,7 +108,7 @@ const tokenmessage =
     '<html>' +
     '<head>' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' +
-    '<title>PinPosition - Email Verification FAILED</title>' +
+    '<title>Grass - Email Verification FAILED</title>' +
     '<style>' +
     '@import url("https://fonts.googleapis.com/css?family=Open+Sans");' +
     '</style>' +
@@ -155,7 +155,7 @@ const missingmessage =
     '<html>' +
     '<head>' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' +
-    '<title>PinPosition - Email Verification FAILED</title>' +
+    '<title>Grass - Email Verification FAILED</title>' +
     '<style>' +
     '@import url("https://fonts.googleapis.com/css?family=Open+Sans");' +
     '</style>' +
@@ -202,7 +202,7 @@ router.post("/check", async (req, res) => {
         const { user_email, token } = req.body;
 
         db = req.db;
-        const thisDb = db.db("pin_positions")
+        const thisDb = db.db("grass")
 
         var errMess = "";
         var owner = "";
@@ -323,7 +323,7 @@ router.post("/delete", async (req, res) => {
         const { user_email, token, sub_account } = req.body;
 
         db = req.db;
-        const thisDb = db.db("pin_positions")
+        const thisDb = db.db("grass")
 
         var errMess = "";
         var ownername = "";
@@ -404,7 +404,7 @@ router.post("/delete", async (req, res) => {
                                                         client = new postmark.ServerClient(serverToken);
 
                                                         client.sendEmailWithTemplate({
-                                                            "From": "admin@pinpos.app",
+                                                            "From": "admin@grass.app",
                                                             "To": sub_acc,
                                                             "TemplateAlias": "Default",
                                                             "TrackOpens": true,
@@ -418,7 +418,7 @@ router.post("/delete", async (req, res) => {
                                                         client = new postmark.ServerClient(serverToken);
 
                                                         client.sendEmailWithTemplate({
-                                                            "From": "admin@pinpos.app",
+                                                            "From": "admin@grass.app",
                                                             "To": user_email,
                                                             "TemplateAlias": "Default",
                                                             "TrackOpens": true,
@@ -469,7 +469,7 @@ router.post("/delete", async (req, res) => {
                                         client = new postmark.ServerClient(serverToken);
 
                                         client.sendEmailWithTemplate({
-                                            "From": "admin@pinpos.app",
+                                            "From": "admin@grass.app",
                                             "To": user_email,
                                             "TemplateAlias": "Default",
                                             "TrackOpens": true,
@@ -585,7 +585,7 @@ router.post("/logon", async (req, res) => {
             //     method: 'uuidv4',
             // });
             let query = { user_email: user_email };
-            const thisDb = db.db("pin_positions")
+            const thisDb = db.db("grass")
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err)
@@ -622,7 +622,7 @@ router.post("/logon", async (req, res) => {
                             var client = new postmark.ServerClient(serverToken);
 
                             client.sendEmailWithTemplate({
-                                "From": "admin@pinpos.app",
+                                "From": "admin@grass.app",
                                 "To": user_email,
                                 "TemplateAlias": "VerifyAccount",
                                 "TrackOpens": true,
@@ -667,7 +667,7 @@ router.post("/logout", async (req, res) => {
         const { user_email, token } = req.body;
 
         db = req.db;
-        const thisDb = db.db("pin_positions")
+        const thisDb = db.db("grass")
 
         var errMess = "";
         if (user_email == null || user_email == "") {
@@ -753,7 +753,7 @@ router.get('/verify/:useremail', (req, res) => {
     const user_details = req.params.useremail;
 
     db = req.db;
-    const thisDb = db.db("pin_positions")
+    const thisDb = db.db("grass")
 
     user_array = user_details.split("~")
     user_token = user_array[0];
@@ -824,7 +824,7 @@ router.post("/new", async (req, res) => {
         response.data = req.body;
 
         db = req.db;
-        const thisDb = db.db("pin_positions")
+        const thisDb = db.db("grass")
 
         var errMess = "";
         if (user_email === null || user_email === "") {
@@ -891,7 +891,7 @@ router.post("/new", async (req, res) => {
                             templatemodel = { "username": username, "subject": "Sub-Account Exists", "account_number": user_email, "important_00": "Sub-Account Exists", "info": [{ "infol": message }] };
 
                             client.sendEmailWithTemplate({
-                                "From": "admin@pinpos.app",
+                                "From": "admin@grass.app",
                                 "To": linked_email,
                                 "TemplateAlias": "Default",
                                 "TrackOpens": true,
@@ -903,7 +903,7 @@ router.post("/new", async (req, res) => {
                             templatemodel = { "user_email": userurl, "booking": "Re-Verify Account", "username": username, "subject": "Re-Verify Account", "info": [{ "infol": message }] };
 
                             client.sendEmailWithTemplate({
-                                "From": "admin@pinpos.app",
+                                "From": "admin@grass.app",
                                 "To": user_email,
                                 "TemplateAlias": "VerifyAccount",
                                 "TrackOpens": true,
@@ -955,7 +955,7 @@ router.post("/new", async (req, res) => {
                                     templatemodel = { "username": username, "subject": "Sub-Account Created", "account_number": user_email, "important_00": "Sub-Account Created", "info": [{ "infol": message }] };
 
                                     client.sendEmailWithTemplate({
-                                        "From": "admin@pinpos.app",
+                                        "From": "admin@grass.app",
                                         "To": linked_email,
                                         "TemplateAlias": "Default",
                                         "TrackOpens": true,
@@ -984,7 +984,7 @@ router.post("/new", async (req, res) => {
                                 }
 
                                 client.sendEmailWithTemplate({
-                                    "From": "admin@pinpos.app",
+                                    "From": "admin@grass.app",
                                     "To": user_email,
                                     "TemplateAlias": "VerifyAccount",
                                     "TrackOpens": true,
@@ -1066,7 +1066,7 @@ router.post("/update", async (req, res) => {
         else {
             // Check if email already exists 
             let query = { user_email: user_email };
-            const thisDb = db.db("pin_positions")
+            const thisDb = db.db("grass")
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err)
