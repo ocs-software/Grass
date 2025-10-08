@@ -11,7 +11,7 @@ module.exports = function (app, db) {
   })
 
   app.get("/", (req, res) => {
-    res.json({ message: "Pin Position API Working" });
+    res.json({ message: "Grass API Working" });
   });
 
   const pinusers = require('./grass/users');
