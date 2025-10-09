@@ -405,7 +405,7 @@ router.post("/delete", async (req, res) => {
                                                         client = new postmark.ServerClient(serverToken);
 
                                                         client.sendEmailWithTemplate({
-                                                            "From": "admin@grass.app",
+                                                            "From": "admin@thegrass.app",
                                                             "To": sub_acc,
                                                             "TemplateAlias": "Default",
                                                             "TrackOpens": true,
@@ -419,7 +419,7 @@ router.post("/delete", async (req, res) => {
                                                         client = new postmark.ServerClient(serverToken);
 
                                                         client.sendEmailWithTemplate({
-                                                            "From": "admin@grass.app",
+                                                            "From": "admin@thegrass.app",
                                                             "To": user_email,
                                                             "TemplateAlias": "Default",
                                                             "TrackOpens": true,
@@ -470,7 +470,7 @@ router.post("/delete", async (req, res) => {
                                         client = new postmark.ServerClient(serverToken);
 
                                         client.sendEmailWithTemplate({
-                                            "From": "admin@grass.app",
+                                            "From": "admin@thegrass.app",
                                             "To": user_email,
                                             "TemplateAlias": "Default",
                                             "TrackOpens": true,
@@ -623,7 +623,7 @@ router.post("/logon", async (req, res) => {
                             var client = new postmark.ServerClient(serverToken);
 
                             client.sendEmailWithTemplate({
-                                "From": "admin@grass.app",
+                                "From": "admin@thegrass.app",
                                 "To": user_email,
                                 "TemplateAlias": "VerifyAccount",
                                 "TrackOpens": true,
@@ -892,7 +892,7 @@ router.post("/new", async (req, res) => {
                             templatemodel = { "username": username, "subject": "Sub-Account Exists", "account_number": user_email, "important_00": "Sub-Account Exists", "info": [{ "infol": message }] };
 
                             client.sendEmailWithTemplate({
-                                "From": "admin@grass.app",
+                                "From": "admin@thegrass.app",
                                 "To": linked_email,
                                 "TemplateAlias": "Default",
                                 "TrackOpens": true,
@@ -904,7 +904,7 @@ router.post("/new", async (req, res) => {
                             templatemodel = { "user_email": userurl, "booking": "Re-Verify Account", "username": username, "subject": "Re-Verify Account", "info": [{ "infol": message }] };
 
                             client.sendEmailWithTemplate({
-                                "From": "admin@grass.app",
+                                "From": "admin@thegrass.app",
                                 "To": user_email,
                                 "TemplateAlias": "VerifyAccount",
                                 "TrackOpens": true,
@@ -956,7 +956,7 @@ router.post("/new", async (req, res) => {
                                     templatemodel = { "username": username, "subject": "Sub-Account Created", "account_number": user_email, "important_00": "Sub-Account Created", "info": [{ "infol": message }] };
 
                                     client.sendEmailWithTemplate({
-                                        "From": "admin@grass.app",
+                                        "From": "admin@thegrass.app",
                                         "To": linked_email,
                                         "TemplateAlias": "Default",
                                         "TrackOpens": true,
@@ -985,7 +985,7 @@ router.post("/new", async (req, res) => {
                                 }
 
                                 client.sendEmailWithTemplate({
-                                    "From": "admin@grass.app",
+                                    "From": "admin@thegrass.app",
                                     "To": user_email,
                                     "TemplateAlias": "VerifyAccount",
                                     "TrackOpens": true,
