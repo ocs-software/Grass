@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
         const queries = req.query.q;
 
         db = req.db;
-        const thisDb = db.db("pin_positions");
+        const thisDb = db.db("grass");
 
         var errMess = "";
 
@@ -140,4 +140,52 @@ router.get("/", async (req, res) => {
 
 });
 
+router.post("/users", async (req, res) => {
+    try {
+        // const queries = req.query.q;
+
+        db = req.db;
+        const thisDb = db.db("grass");
+
+        var errMess = "";
+
+        if (errMess !== "") {
+            let res_json = {
+                status: "FAILED",
+            }
+            res_json.message = errMess;
+            res.send({ res_json });
+        }
+        else {
+            thisDb.collection("users").find().toArray(function (err, item) {
+                if (err) {
+                    console.log(err)
+                    let res_json = { status: "FAILED", };
+                    res_json.message = "Fetching Users Details";
+                    res.send({ res_json });
+                } else {
+                    if (item.length > 0) {
+                        let res_json = { status: "OK", };
+                        res_json.message = "Users Found";
+                        res_json.users = item;
+                        res.send({ res_json })
+                    } else {
+                        let res_json = { status: "FAILED", };
+                        res_json.message = "No Users Found";
+                        res.send({ res_json })
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.log(e)
+        let res_json = {
+            status: "FAILED",
+        }
+        res_json.message = "Error in Users Data.";
+        res.res_json = res_json;
+        res.send({ res_jon });
+    }
+
+});
 module.exports = router;

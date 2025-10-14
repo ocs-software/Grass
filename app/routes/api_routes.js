@@ -17,12 +17,6 @@ module.exports = function (app, db) {
   const pinusers = require('./grass/users');
   app.use("/users", pinusers);
 
-  const pinvenues = require('./grass/venues');
-  app.use("/venues", pinvenues);
-
-  const pincourses = require('./grass/courses');
-  app.use("/courses", pincourses);
-
   const ppsearch = require('./grass/search');
   app.use("/search", ppsearch);
 
@@ -30,6 +24,12 @@ module.exports = function (app, db) {
   app.use("/logs", pinlogs);
 
   /*
+  const pinvenues = require('./grass/venues');
+  app.use("/venues", pinvenues);
+
+  const pincourses = require('./grass/courses');
+  app.use("/courses", pincourses);
+
   const pinlinked = require('./pinusers/linked');
   app.use("/linked", pinlinked);
 
