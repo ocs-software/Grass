@@ -256,35 +256,43 @@ router.post("/check", async (req, res) => {
                                     }
                                 });
                             }
-                            // get any Venues for Owner
-                            query = { owner: owner };
-                            thisDb.collection("venues").find(query).toArray(function (err, details) {
-                                if (err) {
-                                    let res_json = { status: "VERIFIED", }
-                                    res_json.message = "Account Found";
-                                    res_json.user_email = user_email;
-                                    res_json.data = account[0];
-                                    res.res_json = res_json;
-                                    res.send({ res_json });
-                                } else {
-                                    if (details.length > 0) {
-                                        account[0].venues = details;
-                                        let res_json = { status: "VERIFIED", }
-                                        res_json.message = "Account Found";
-                                        res_json.user_email = user_email;
-                                        res_json.data = account[0];
-                                        res.res_json = res_json;
-                                        res.send({ res_json });
-                                    } else {
-                                        let res_json = { status: "VERIFIED", }
-                                        res_json.message = "Account Found";
-                                        res_json.user_email = user_email;
-                                        res_json.data = account[0];
-                                        res.res_json = res_json;
-                                        res.send({ res_json });
-                                    }
-                                }
-                            });
+                            let res_json = { status: "VERIFIED", }
+                            res_json.message = "Account Found";
+                            res_json.user_email = user_email;
+                            res_json.data = account[0];
+                            res.res_json = res_json;
+                            res.send({ res_json });
+                            /*
+                // get any Venues for Owner
+                query = { owner: owner };
+                thisDb.collection("venues").find(query).toArray(function (err, details) {
+                    if (err) {
+                        let res_json = { status: "VERIFIED", }
+                        res_json.message = "Account Found";
+                        res_json.user_email = user_email;
+                        res_json.data = account[0];
+                        res.res_json = res_json;
+                        res.send({ res_json });
+                    } else {
+                        if (details.length > 0) {
+                            account[0].venues = details;
+                            let res_json = { status: "VERIFIED", }
+                            res_json.message = "Account Found";
+                            res_json.user_email = user_email;
+                            res_json.data = account[0];
+                            res.res_json = res_json;
+                            res.send({ res_json });
+                        } else {
+                            let res_json = { status: "VERIFIED", }
+                            res_json.message = "Account Found";
+                            res_json.user_email = user_email;
+                            res_json.data = account[0];
+                            res.res_json = res_json;
+                            res.send({ res_json });
+                        }
+                    }
+                });
+                */
                         } else {
                             let res_json = { status: "CHECKED", }
                             res_json.message = "Invalid Token Sent";
@@ -485,6 +493,7 @@ router.post("/delete", async (req, res) => {
                                                 console.log(err)
                                             } else { }
                                         });
+                                        /*
                                         // Delete Venues
                                         query = { owner: user_email };
                                         thisDb.collection("venues").deleteMany(query, function (err, item) {
@@ -501,6 +510,7 @@ router.post("/delete", async (req, res) => {
                                                 console.log(err)
                                             } else { }
                                         });
+                                    */
                                         query = { user_email: user_email };
                                         thisDb.collection("logs").deleteMany(query, function (err, item) {
                                             if (err) {
