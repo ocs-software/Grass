@@ -367,6 +367,9 @@ router.post("/delete", async (req, res) => {
             res.send({ res_json });
         }
         else {
+            var superToken = false;
+            if (token == process.env.TOKEN)
+                superToken = true;
             let query = { user_email: user_email };
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
@@ -376,7 +379,7 @@ router.post("/delete", async (req, res) => {
                     res.send({ res_json });
                 } else {
                     if (item.length > 0) {
-                        if (item[0].token == token) {
+                        if (item[0].token == token || superToken) {
                             ownername = item[0].user_firstname + " " + item[0].user_surname;
                             // have we been sent a Sub-account to delete
                             if (sub_acc != "") {
@@ -407,32 +410,35 @@ router.post("/delete", async (req, res) => {
                                                         res.res_json = res_json;
                                                         res.send({ res_json });
 
-                                                        // send email to Sub-Account
-                                                        message = "Your account has been deleted.";
-                                                        templatemodel = { "username": username, "subject": "Account Deleted", "account_number": sub_acc, "important_00": "Account Deleted", "info": [{ "infol": message }] };
-                                                        client = new postmark.ServerClient(serverToken);
+                                                        if (!superToken) {
+                                                            // send email to Sub-Account
+                                                            message = "Your account has been deleted.";
+                                                            templatemodel = { "username": username, "subject": "Account Deleted", "account_number": sub_acc, "important_00": "Account Deleted", "info": [{ "infol": message }] };
+                                                            client = new postmark.ServerClient(serverToken);
 
-                                                        client.sendEmailWithTemplate({
-                                                            "From": "admin@thegrass.app",
-                                                            "To": sub_acc,
-                                                            "TemplateAlias": "Default",
-                                                            "TrackOpens": true,
-                                                            "TemplateModel": templatemodel
-                                                        }).then(resp => { });
+                                                            client.sendEmailWithTemplate({
+                                                                "From": "admin@thegrass.app",
+                                                                "To": sub_acc,
+                                                                "TemplateAlias": "Default",
+                                                                "TrackOpens": true,
+                                                                "TemplateModel": templatemodel
+                                                            }).then(resp => { });
 
-                                                        // send email to Owner
-                                                        message = "A Sub-account you created , has been deleted. Details above.";
-                                                        templatemodel = { "username": username, "subject": "Sub-Account Deleted", "account_number": sub_acc, "important_00": "Sub-Account Deleted", "info": [{ "infol": message }] };
-                                                        serverToken = process.env.POSTMARK;
-                                                        client = new postmark.ServerClient(serverToken);
+                                                            // send email to Owner
+                                                            message = "A Sub-account you created , has been deleted. Details above.";
+                                                            templatemodel = { "username": username, "subject": "Sub-Account Deleted", "account_number": sub_acc, "important_00": "Sub-Account Deleted", "info": [{ "infol": message }] };
+                                                            serverToken = process.env.POSTMARK;
+                                                            client = new postmark.ServerClient(serverToken);
 
-                                                        client.sendEmailWithTemplate({
-                                                            "From": "admin@thegrass.app",
-                                                            "To": user_email,
-                                                            "TemplateAlias": "Default",
-                                                            "TrackOpens": true,
-                                                            "TemplateModel": templatemodel
-                                                        }).then(resp => { });
+                                                            client.sendEmailWithTemplate({
+                                                                "From": "admin@thegrass.app",
+                                                                "To": user_email,
+                                                                "TemplateAlias": "Default",
+                                                                "TrackOpens": true,
+                                                                "TemplateModel": templatemodel
+                                                            }).then(resp => { });
+
+                                                        }
 
                                                         // update log
                                                         message = "Sub-account deleted. " + username;
@@ -473,17 +479,20 @@ router.post("/delete", async (req, res) => {
                                         res.res_json = res_json;
                                         res.send({ res_json });
 
-                                        message = "Your Account has been deleted , with any Sub-accounts , Venues or Courses you may of created.";
-                                        templatemodel = { "username": ownername, "subject": "Account Deleted", "account_number": user_email, "important_00": "Account Deleted", "info": [{ "infol": message }] };
-                                        client = new postmark.ServerClient(serverToken);
+                                        if (!superToken) {
+                                            message = "Your Account has been deleted , with any Sub-accounts , Venues or Courses you may of created.";
+                                            templatemodel = { "username": ownername, "subject": "Account Deleted", "account_number": user_email, "important_00": "Account Deleted", "info": [{ "infol": message }] };
+                                            client = new postmark.ServerClient(serverToken);
 
-                                        client.sendEmailWithTemplate({
-                                            "From": "admin@thegrass.app",
-                                            "To": user_email,
-                                            "TemplateAlias": "Default",
-                                            "TrackOpens": true,
-                                            "TemplateModel": templatemodel
-                                        }).then(resp => { });
+                                            client.sendEmailWithTemplate({
+                                                "From": "admin@thegrass.app",
+                                                "To": user_email,
+                                                "TemplateAlias": "Default",
+                                                "TrackOpens": true,
+                                                "TemplateModel": templatemodel
+                                            }).then(resp => { });
+
+                                        }
 
                                         // Delete linked sub-accounts
                                         query = { linked_from: user_email };
@@ -1075,6 +1084,9 @@ router.post("/update", async (req, res) => {
             res.send({ res_json });
         }
         else {
+            var superToken = false;
+            if (token == process.env.TOKEN)
+                superToken = true;
             // Check if email already exists 
             let query = { user_email: user_email };
             const thisDb = db.db("grass")
@@ -1089,7 +1101,7 @@ router.post("/update", async (req, res) => {
                     // and only need to send data from the object at the first index (since there is no other items in this array!)
                     if (item.length > 0) {
                         // if (item[0].verified == "Y" && item[0].token == token) {
-                        if (item[0].token == token) {
+                        if (item[0].token == token || superToken) {
                             let newvalues = {
                                 $set: {
                                     user_firstname: user_firstname,
