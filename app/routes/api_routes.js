@@ -23,7 +23,13 @@ module.exports = function (app, db) {
   const pinlogs = require('./grass/logs');
   app.use("/logs", pinlogs);
 
+  const grasstable = require('./grass/tables');
+  app.use("/table", grasstable);
+
   /*
+  const grassplayer = require('./grass/player');
+  app.use("/table", grassplayer);
+
   const pinvenues = require('./grass/venues');
   app.use("/venues", pinvenues);
 
