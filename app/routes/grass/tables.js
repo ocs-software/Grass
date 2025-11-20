@@ -163,6 +163,7 @@ router.post("/update", async (req, res) => {
                         let res_json = {
                             status: "OK",
                         }
+                        res.send({ res_json });
                     }
                 });
             });
