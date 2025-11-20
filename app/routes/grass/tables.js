@@ -42,9 +42,11 @@ router.post("/update", async (req, res) => {
                     res.send({ res_json });
                 } else {
                     var options = {};
+                    var newvalues = {};
                     if (item.length > 0) {
+                        console.log("Updating")
                         if (code == "21") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     code_21: data,
                                     updated: new Date(Date.now()),
@@ -53,7 +55,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "22") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     code_22: data,
                                     updated: new Date(Date.now()),
@@ -62,7 +64,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "23") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     code_23: data,
                                     updated: new Date(Date.now()),
@@ -71,7 +73,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "24") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     code_24: data,
                                     updated: new Date(Date.now()),
@@ -80,7 +82,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "25") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     code_25: data,
                                     updated: new Date(Date.now()),
@@ -89,8 +91,9 @@ router.post("/update", async (req, res) => {
                             };
                         }
                     } else {
+                        console.log("creating")
                         if (code == "21") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     table_id: 'OPTIONS',
                                     code_21: data,
@@ -101,7 +104,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "22") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     table_id: 'OPTIONS',
                                     code_22: data,
@@ -112,7 +115,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "23") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     table_id: 'OPTIONS',
                                     code_23: data,
@@ -123,7 +126,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "24") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     table_id: 'OPTIONS',
                                     code_24: data,
@@ -134,7 +137,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                         if (code == "25") {
-                            let newvalues = {
+                            newvalues = {
                                 $set: {
                                     table_id: 'OPTIONS',
                                     code_25: data,
@@ -147,6 +150,8 @@ router.post("/update", async (req, res) => {
                     };
                     options = { upsert: true };
                 }
+                console.log(options);
+                console.log(newvalues);
                 thisDb.collection("table").updateOne(query, newvalues, options, function (err, result) {
                     if (err) {
                         return res.status(500).json({
