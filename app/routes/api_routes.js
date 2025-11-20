@@ -11,7 +11,7 @@ module.exports = function (app, db) {
   })
 
   app.get("/", (req, res) => {
-    res.json({ message: "Grass API Working" });
+    res.json({ message: "TheGrass App API Working" });
   });
 
   const pinusers = require('./grass/users');
