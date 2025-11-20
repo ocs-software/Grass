@@ -7,10 +7,14 @@ const axios = require('axios');
 
 router.post("/update", async (req, res) => {
     try {
+        console.log("Hello");
         const { code, data } = req.body;
         response.data = req.body;
 
+        console.log(code);
+        console.log(data);
         db = req.db;
+        const thisDb = db.db("grass")
 
         var errMess = "";
         if (code === null || code === "") {
@@ -30,7 +34,6 @@ router.post("/update", async (req, res) => {
         }
         else {
             let query = { table_id: 'OPTIONS' };
-            const thisDb = db.db("grass")
             thisDb.collection("table").find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err)
