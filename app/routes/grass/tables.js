@@ -11,8 +11,6 @@ router.post("/update", async (req, res) => {
         const { code, data } = req.body;
         response.data = req.body;
 
-        console.log(code);
-        console.log(data);
         db = req.db;
         const thisDb = db.db("grass")
 
@@ -44,7 +42,7 @@ router.post("/update", async (req, res) => {
                     var options = {};
                     var newvalues = {};
                     if (item.length > 0) {
-                        console.log("Updating")
+                        //  console.log("Updating")
                         if (code == "21") {
                             newvalues = {
                                 $set: {
@@ -91,7 +89,7 @@ router.post("/update", async (req, res) => {
                             };
                         }
                     } else {
-                        console.log("creating")
+                        // console.log("creating")
                         if (code == "21") {
                             newvalues = {
                                 $set: {
@@ -150,8 +148,8 @@ router.post("/update", async (req, res) => {
                     };
                     options = { upsert: true };
                 }
-                console.log(options);
-                console.log(newvalues);
+                // console.log(options);
+                // console.log(newvalues);
                 thisDb.collection("table").updateOne(query, newvalues, options, function (err, result) {
                     if (err) {
                         return res.status(500).json({
