@@ -7,8 +7,7 @@ const axios = require('axios');
 
 router.post("/update", async (req, res) => {
     try {
-        console.log("Hello");
-        const { code, data } = req.body;
+        const { code, data, table_id } = req.body;
         response.data = req.body;
 
         db = req.db;
@@ -21,6 +20,9 @@ router.post("/update", async (req, res) => {
         if (data === null || data === "") {
             errMess += " Table Data Missing";
         }
+        if (table_id === null || table_id === "") {
+            table_id = "OPTIONS";
+        }
 
         if (errMess !== "") {
             let res_json = {
@@ -31,7 +33,8 @@ router.post("/update", async (req, res) => {
             res.send({ res_json });
         }
         else {
-            let query = { table_id: 'OPTIONS' };
+            // let query = { table_id: 'OPTIONS' };
+            let query = { table_id: table_id };
             thisDb.collection("table").find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err)
@@ -43,10 +46,10 @@ router.post("/update", async (req, res) => {
                     var newvalues = {};
                     if (item.length > 0) {
                         //  console.log("Updating")
-                        if (code == "21") {
+                        if (code == "99") {
                             newvalues = {
                                 $set: {
-                                    code_21: data,
+                                    as_groups: data,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 }
@@ -55,7 +58,7 @@ router.post("/update", async (req, res) => {
                         if (code == "22") {
                             newvalues = {
                                 $set: {
-                                    code_22: data,
+                                    as_pos: data,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 }
@@ -64,7 +67,7 @@ router.post("/update", async (req, res) => {
                         if (code == "23") {
                             newvalues = {
                                 $set: {
-                                    code_23: data,
+                                    as_lie: data,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 }
@@ -73,7 +76,7 @@ router.post("/update", async (req, res) => {
                         if (code == "24") {
                             newvalues = {
                                 $set: {
-                                    code_24: data,
+                                    as_clubs: data,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 }
@@ -82,7 +85,7 @@ router.post("/update", async (req, res) => {
                         if (code == "25") {
                             newvalues = {
                                 $set: {
-                                    code_25: data,
+                                    as_oos: data,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 }
@@ -90,12 +93,11 @@ router.post("/update", async (req, res) => {
                         }
                     } else {
                         // console.log("creating")
-                        if (code == "21") {
+                        if (code == "99") {
                             newvalues = {
                                 $set: {
-                                    table_id: 'OPTIONS',
-                                    code_21: data,
-                                    created: new Date(Date.now()),
+                                    table_id: table_id,
+                                    as_groups: data,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 }
@@ -104,8 +106,8 @@ router.post("/update", async (req, res) => {
                         if (code == "22") {
                             newvalues = {
                                 $set: {
-                                    table_id: 'OPTIONS',
-                                    code_22: data,
+                                    table_id: table_id,
+                                    as_pos: data,
                                     created: new Date(Date.now()),
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
@@ -115,8 +117,8 @@ router.post("/update", async (req, res) => {
                         if (code == "23") {
                             newvalues = {
                                 $set: {
-                                    table_id: 'OPTIONS',
-                                    code_23: data,
+                                    table_id: table_id,
+                                    as_lie: data,
                                     created: new Date(Date.now()),
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
@@ -126,8 +128,8 @@ router.post("/update", async (req, res) => {
                         if (code == "24") {
                             newvalues = {
                                 $set: {
-                                    table_id: 'OPTIONS',
-                                    code_24: data,
+                                    table_id: table_id,
+                                    as_clubs: data,
                                     created: new Date(Date.now()),
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
@@ -137,8 +139,8 @@ router.post("/update", async (req, res) => {
                         if (code == "25") {
                             newvalues = {
                                 $set: {
-                                    table_id: 'OPTIONS',
-                                    code_25: data,
+                                    table_id: table_id,
+                                    as_oos: data,
                                     created: new Date(Date.now()),
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
