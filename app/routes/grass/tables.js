@@ -23,6 +23,7 @@ router.post("/get", async (req, res) => {
                 status: "FAILED",
             }
             res_json.message = errMess;
+            res_json.table = {};
             res.send({ res_json });
         }
         else {
@@ -32,16 +33,18 @@ router.post("/get", async (req, res) => {
                     console.log(err)
                     let res_json = { status: "FAILED", };
                     res_json.message = "Fetching Table Details";
+                    res_json.table = {};
                     res.send({ res_json });
                 } else {
                     if (item.length > 0) {
                         let res_json = { status: "OK", };
                         res_json.message = "Table Found";
-                        res_json.users = item;
+                        res_json.table = item;
                         res.send({ res_json })
                     } else {
                         let res_json = { status: "FAILED", };
                         res_json.message = "No Table Found";
+                        res_json.table = {};
                         res.send({ res_json })
                     }
                 }
@@ -54,6 +57,7 @@ router.post("/get", async (req, res) => {
         }
         res_json.message = "Error in Table Data.";
         res.res_json = res_json;
+        res_json.table = {};
         res.send({ res_jon });
     }
 
