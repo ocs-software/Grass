@@ -5,6 +5,60 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 
+router.post("/get", async (req, res) => {
+    try {
+        const { table_id } = req.body;
+        response.data = req.body;
+
+        db = req.db;
+        const thisDb = db.db("grass")
+
+        var errMess = "";
+        if (table_id === null || table_id === "") {
+            table_id = "OPTIONS";
+        }
+
+        if (errMess !== "") {
+            let res_json = {
+                status: "FAILED",
+            }
+            res_json.message = errMess;
+            res.send({ res_json });
+        }
+        else {
+            let query = { table_id: table_id };
+            thisDb.collection("table").find(query).toArray(function (err, item) {
+                if (err) {
+                    console.log(err)
+                    let res_json = { status: "FAILED", };
+                    res_json.message = "Fetching Table Details";
+                    res.send({ res_json });
+                } else {
+                    if (item.length > 0) {
+                        let res_json = { status: "OK", };
+                        res_json.message = "Table Found";
+                        res_json.users = item;
+                        res.send({ res_json })
+                    } else {
+                        let res_json = { status: "FAILED", };
+                        res_json.message = "No Table Found";
+                        res.send({ res_json })
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.log(e)
+        let res_json = {
+            status: "FAILED",
+        }
+        res_json.message = "Error in Table Data.";
+        res.res_json = res_json;
+        res.send({ res_jon });
+    }
+
+});
+
 router.post("/update", async (req, res) => {
     try {
         const { code, table_id, data } = req.body;
