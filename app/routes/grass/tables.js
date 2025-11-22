@@ -7,7 +7,7 @@ const axios = require('axios');
 
 router.post("/update", async (req, res) => {
     try {
-        const { code, data, table_id } = req.body;
+        const { code, table_id, data } = req.body;
         response.data = req.body;
 
         db = req.db;
