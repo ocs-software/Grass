@@ -205,11 +205,10 @@ const missingmessage =
 
 router.post('/check', async (req, res) => {
     try {
-        const { user_email, token } = req.body;
-
         db = req.db;
 
         const thisDb = db.db("grass");
+        const { user_email, token } = req.body;
 
         let errMess = '';
         let owner = '';
@@ -1229,7 +1228,7 @@ router.post("/update", async (req, res) => {
         if (errMess !== "") {
             let res_json = {status: "FAILED"};
 
-            res_json.message: errMess;
+            res_json.message = errMess;
 
             res.res_json = res_json;
             res.send({ res_json });
