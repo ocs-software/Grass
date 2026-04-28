@@ -1,12 +1,14 @@
+'use strict';
+
 const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 const mongodb = require("mongodb");
 const postmark = require("postmark");
-let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { generateApiKey } = require('generate-api-key');
 const clientSocket = require('socket.io-client');
+let ObjectID = require('mongodb').ObjectID;
 
 const message =
     '<!DOCTYPE html>' +
@@ -54,7 +56,8 @@ const message =
     '</div>' +
     '</div>' +
     '</body>' +
-    '</html>';
+    '</html>' +
+'';
 
 const errmessage =
     '<!DOCTYPE html>' +
@@ -101,7 +104,8 @@ const errmessage =
     '</div>' +
     '</div>' +
     '</body>' +
-    '</html>';
+    '</html>' +
+'';
 
 const tokenmessage =
     '<!DOCTYPE html>' +
@@ -148,7 +152,8 @@ const tokenmessage =
     '</div>' +
     '</div>' +
     '</body>' +
-    '</html>';
+    '</html>' +
+'';
 
 const missingmessage =
     '<!DOCTYPE html>' +
@@ -195,44 +200,52 @@ const missingmessage =
     '</div>' +
     '</div>' +
     '</body>' +
-    '</html>';
+    '</html>' +
+'';
 
-router.post("/check", async (req, res) => {
+router.post('/check', async (req, res) => {
     try {
         const { user_email, token } = req.body;
 
         db = req.db;
-        const thisDb = db.db("grass")
 
-        var errMess = "";
-        var owner = "";
-        if (user_email === null || user_email === "") {
-            errMess = "Email Missing";
+        const thisDb = db.db("grass");
+
+        let errMess = '';
+        let owner = '';
+
+        if (user_email === null || user_email === '') {
+            errMess = 'Email Missing';
         }
 
-        if (errMess == "") {
+        if (errMess == '') {
             if (!validateEmail(user_email)) {
-                errMess = "Invalid Email Sent";
+                errMess = 'Invalid Email Sent';
             }
         }
 
-        if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
+        if (errMess !== '') {
+            let res_json = {status: 'FAILED'};
+
             res_json.message = errMess;
+
             res.send({ res_json });
         }
         else {
             let query = { user_email: user_email };
+
             // get Account details to check if Owner or Sub Account
-            thisDb.collection("users").find(query).toArray(function (err, account) {
+            thisDb.collection('users').find(query).toArray(function (err, account) {
                 if (err) {
-                    console.log(err)
-                    let res_json = { status: "ERROR", };
+                    console.log(err);
+
+                    let res_json = {status: "ERROR"};
+
                     res_json.message = "Error Reading Account";
+
                     res.send({ res_json });
-                } else {
+                }
+                else {
                     if (account.length > 0) {
                         // console.log("Got Account 2")
                         if (account[0].token == token) {
@@ -241,28 +254,34 @@ router.post("/check", async (req, res) => {
                             account[0].venues = [];
                             // Owner or Sub-account
                             owner = user_email;
+
                             if (account[0].linked_from != "" && account[0].linked_from != null) {
                                 // we are a Sub-account but need to use Owner email to get Venues
                                 owner = account[0].linked_from;
-                            } else {
+                            }
+                            else {
                                 // Owner. Get any sub-accounts
                                 query = { linked_from: owner };
                                 thisDb.collection("users").find(query).toArray(function (err, subs) {
                                     if (err) {
-                                    } else {
+
+                                    }
+                                    else {
                                         if (subs.length > 0) {
                                             account[0].sub_accounts = subs;
                                         }
                                     }
                                 });
                             }
-                            let res_json = { status: "VERIFIED", }
+                            let res_json = {status: "VERIFIED"};
+
                             res_json.message = "Account Found";
                             res_json.user_email = user_email;
                             res_json.data = account[0];
                             res.res_json = res_json;
+
                             res.send({ res_json });
-                            /*
+/*
                 // get any Venues for Owner
                 query = { owner: owner };
                 thisDb.collection("venues").find(query).toArray(function (err, details) {
@@ -292,36 +311,45 @@ router.post("/check", async (req, res) => {
                         }
                     }
                 });
-                */
-                        } else {
-                            let res_json = { status: "CHECKED", }
+*/
+                        }
+                        else {
+                            let res_json = {status: "CHECKED"};
+
                             res_json.message = "Invalid Token Sent";
                             res_json.user_email = user_email;
                             res_json.data = account[0];
                             res.res_json = res_json;
+
                             res.send({ res_json });
                         }
-                    } else {
-                        let res_json = { status: "ERROR", };
+                    }
+                    else {
+                        let res_json = {status: "ERROR"};
+
                         res_json.message = "Account Not Found";
-                        res.send({ res_json })
+
+                        res.send({ res_json });
                     }
                 }
             });
         }
-    } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
-        }
+    }
+    catch (e) {
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
         res_json.message = "Error in Checking Email.";
         // res_json.data = e;
         res.res_json = res_json;
+
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
 
     function validateEmail(email) {
-        var re = /\S+@\S+\.\S+/;
+        const re = /\S+@\S+\.\S+/;
+
         return re.test(email);
     }
 });
@@ -331,24 +359,28 @@ router.post("/delete", async (req, res) => {
         const { user_email, token, sub_account } = req.body;
 
         db = req.db;
+
         const thisDb = db.db("grass")
 
-        var errMess = "";
-        var ownername = "";
-        var username = "";
-        var message = "";
-        var templatemodel = "";
-        var client = "";
-        // var serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
-        var serverToken = process.env.POSTMARK;
+        let errMess = "";
+        let ownername = "";
+        let username = "";
+        let message = "";
+        let templatemodel = "";
+        let client = "";
+        // let serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
+        let serverToken = process.env.POSTMARK;
 
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
         }
+
         if (token === null || token === "") {
             errMess = "Token Missing";
         }
-        var sub_acc = sub_account;
+
+        let sub_acc = sub_account;
+
         if (sub_account == null || sub_account == "undefined") {
             sub_acc = "";
         }
@@ -360,24 +392,31 @@ router.post("/delete", async (req, res) => {
         }
 
         if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
+            let res_json = {status: "FAILED"};
+
             res_json.message = errMess;
+
             res.send({ res_json });
         }
         else {
-            var superToken = false;
+            let superToken = false;
+
             if (token == process.env.TOKEN)
                 superToken = true;
+
             let query = { user_email: user_email };
+
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
-                    console.log(err)
-                    let res_json = { status: "FAILED", };
+                    console.log(err);
+
+                    let res_json = {status: "FAILED"};
+
                     res_json.message = "An error Fetching Email Details has occurred";
+
                     res.send({ res_json });
-                } else {
+                }
+                else {
                     if (item.length > 0) {
                         if (item[0].token == token || superToken) {
                             ownername = item[0].user_firstname + " " + item[0].user_surname;
@@ -387,27 +426,39 @@ router.post("/delete", async (req, res) => {
                                 let query = { user_email: sub_acc };
                                 thisDb.collection("users").find(query).toArray(function (err, sub_accs) {
                                     if (err) {
-                                        let res_json = { status: "FAILED", };
+                                        let res_json = {status: "FAILED"};
+
                                         res_json.message = "Fetching Sub-Account Details";
+
                                         res.send({ res_json });
-                                    } else {
+                                    }
+                                    else {
                                         if (sub_accs.length > 0) {
                                             if (sub_accs[0].linked_from != user_email) {
-                                                let res_json = { status: "FAILED", };
+                                                let res_json = {status: "FAILED"};
+
                                                 res_json.message = "Only the Owner can delete this Sub-Account";
+
                                                 res.send({ res_json });
-                                            } else {
+                                            }
+                                            else {
                                                 username = sub_accs[0].user_firstname + " " + sub_acc[0].user_surname;
                                                 thisDb.collection("users").deleteOne(query, function (err, item) {
                                                     if (err) {
-                                                        console.log(err)
-                                                        let res_json = { status: "FAILED", };
+                                                        console.log(err);
+
+                                                        let res_json = {status: "FAILED"};
+
                                                         res_json.message = "Deleting Sub-Account: " + sub_acc;
+
                                                         res.send({ res_json });
-                                                    } else {
-                                                        let res_json = { status: "OK", }
+                                                    }
+                                                    else {
+                                                        let res_json = {status: "OK"};
+
                                                         res_json.message = "Sub-Account Deleted: " + sub_acc;
                                                         res.res_json = res_json;
+
                                                         res.send({ res_json });
 
                                                         if (!superToken) {
@@ -422,7 +473,7 @@ router.post("/delete", async (req, res) => {
                                                                 "TemplateAlias": "Default",
                                                                 "TrackOpens": true,
                                                                 "TemplateModel": templatemodel
-                                                            }).then(resp => { });
+                                                            });
 
                                                             // send email to Owner
                                                             message = "A Sub-account you created , has been deleted. Details above.";
@@ -436,12 +487,12 @@ router.post("/delete", async (req, res) => {
                                                                 "TemplateAlias": "Default",
                                                                 "TrackOpens": true,
                                                                 "TemplateModel": templatemodel
-                                                            }).then(resp => { });
-
+                                                            });
                                                         }
 
                                                         // update log
                                                         message = "Sub-account deleted. " + username;
+
                                                         let query = {
                                                             user_email: user_email,
                                                             owner: "",
@@ -451,32 +502,43 @@ router.post("/delete", async (req, res) => {
                                                             course_name: "",
                                                             message: message,
                                                             created: new Date(Date.now()),
-                                                            unix_timestamp: Date.now()
+                                                            unix_timestamp: Date.now(),
                                                         };
+
                                                         thisDb.collection("logs").insertOne(query, function (err, result) { });
                                                     }
                                                 });
                                             }
-                                        } else {
-                                            let res_json = { status: "FAILED", };
+                                        }
+                                        else {
+                                            let res_json = {status: "FAILED"};
+
                                             res_json.message = "Sub-Account Details Missing";
+
                                             res.send({ res_json });
                                         }
                                     }
                                 });
-                            } else {
+                            }
+                            else {
                                 // delete owner account
                                 query = { user_email: user_email };
                                 thisDb.collection("users").deleteOne(query, function (err, item) {
                                     if (err) {
-                                        console.log(err)
-                                        let res_json = { status: "FAILED", };
+                                        console.log(err);
+
+                                        let res_json = {status: "FAILED"};
+
                                         res_json.message = "Deleting Account: " + user_email;
+
                                         res.send({ res_json });
-                                    } else {
-                                        let res_json = { status: "OK", }
+                                    }
+                                    else {
+                                        let res_json = {status: "OK"};
+
                                         res_json.message = "Account Deleted: " + user_email;
                                         res.res_json = res_json;
+
                                         res.send({ res_json });
 
                                         if (!superToken) {
@@ -489,20 +551,19 @@ router.post("/delete", async (req, res) => {
                                                 "To": user_email,
                                                 "TemplateAlias": "Default",
                                                 "TrackOpens": true,
-                                                "TemplateModel": templatemodel
-                                            }).then(resp => { });
-
+                                                "TemplateModel": templatemodel,
+                                            });
                                         }
 
                                         // Delete linked sub-accounts
                                         query = { linked_from: user_email };
                                         thisDb.collection("users").deleteMany(query, function (err, item) {
                                             if (err) {
-                                                console.log("Delete Linked/Delete Account Error")
-                                                console.log(err)
-                                            } else { }
+                                                console.log("Delete Linked/Delete Account Error");
+                                                console.log(err);
+                                            }
                                         });
-                                        /*
+/*
                                         // Delete Venues
                                         query = { owner: user_email };
                                         thisDb.collection("venues").deleteMany(query, function (err, item) {
@@ -511,6 +572,7 @@ router.post("/delete", async (req, res) => {
                                                 console.log(err)
                                             } else { }
                                         });
+
                                         // Delete Courses
                                         query = { owner: user_email };
                                         thisDb.collection("courses").deleteMany(query, function (err, item) {
@@ -519,50 +581,59 @@ router.post("/delete", async (req, res) => {
                                                 console.log(err)
                                             } else { }
                                         });
-                                    */
+*/
                                         query = { user_email: user_email };
                                         thisDb.collection("logs").deleteMany(query, function (err, item) {
                                             if (err) {
-                                                console.log("Delete Account Log")
-                                                console.log(err)
-                                            } else { }
+                                                console.log("Delete Account Log");
+                                                console.log(err);
+                                            }
                                         });
+
                                         query = { owner: user_email };
                                         thisDb.collection("logs").deleteMany(query, function (err, item) {
                                             if (err) {
-                                                console.log("Delete Sub-Account Log")
-                                                console.log(err)
-                                            } else { }
+                                                console.log("Delete Sub-Account Log");
+                                                console.log(err);
+                                            }
                                         });
                                     }
                                 });
                             }
-                        } else {
-                            let res_json = { status: "FAILED", };
-                            res_json.message = "Invalid Token Sent. Another Device has Logged on.";
-                            res.send({ res_json })
                         }
-                    } else {
-                        let res_json = { status: "FAILED", };
+                        else {
+                            let res_json = {status: "FAILED"};
+
+                            res_json.message = "Invalid Token Sent. Another Device has Logged on.";
+
+                            res.send({ res_json });
+                        }
+                    }
+                    else {
+                        let res_json = {status: "FAILED"};
+
                         res_json.message = "Account Not Found";
-                        res.send({ res_json })
+
+                        res.send({ res_json });
                     }
                 }
             });
         }
-    } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
-        }
+    }
+    catch (e) {
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
         res_json.message = "Error in Checking Email.";
-        // res_json.data = e;
         res.res_json = res_json;
+
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
 
     function validateEmail(email) {
-        var re = /\S+@\S+\.\S+/;
+        const re = /\S+@\S+\.\S+/;
+
         return re.test(email);
     }
 });
@@ -573,7 +644,8 @@ router.post("/logon", async (req, res) => {
 
         db = req.db;
 
-        var errMess = "";
+        let errMess = "";
+
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
         }
@@ -584,7 +656,8 @@ router.post("/logon", async (req, res) => {
             }
         }
 
-        var user_token = token;
+        let user_token = token;
+
         if (user_token == null) {
             user_token = "";
         }
@@ -594,10 +667,10 @@ router.post("/logon", async (req, res) => {
         }
 
         if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
+            let res_json = {status: "FAILED"};
+
             res_json.message = errMess;
+
             res.send({ res_json });
         }
         else {
@@ -608,38 +681,46 @@ router.post("/logon", async (req, res) => {
             const thisDb = db.db("grass")
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
-                    console.log(err)
-                    let res_json = { status: "FAILED", };
+                    console.log(err);
+
+                    let res_json = {status: "FAILED"};
+
                     res_json.message = "Fetching Logon Details";
+
                     res.send({ res_json });
                 } else {
-                    // zero index of item 'item[0]' below is because we are using 'toArray' function 
+                    // zero index of item 'item[0]' below is because we are using 'toArray' function
                     // and only need to send data from the object at the first index (since there is no other items in this array!)
                     if (item.length > 0) {
                         if (item[0].token == user_token) {
-                            let res_json = { status: "OK", }
+                            let res_json = {status: "OK"};
+
                             res_json.message = "Account Found.";
                             res_json.user_email = user_email;
                             res_json.token = user_token;
                             res_json.data = item;
+
                             res.res_json = res_json;
                             res.send({ res_json });
-                        } else {
+                        }
+                        else {
                             let newvalues = {
                                 $set: {
                                     reg_token: user_token,
                                     updated: new Date(Date.now()),
-                                    unix_timestamp: Date.now()
-                                }
+                                    unix_timestamp: Date.now(),
+                                },
                             };
+
                             thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
                                 if (err) { } else { }
                             });
-                            var username = item[0].user_firstname + " " + item[0].user_surname;
-                            var userurl = user_token + "~L~";
-                            var templatemodel = { "user_email": userurl, "booking": "Verify Account", "username": username, "subject": "Verify Account" };
-                            var serverToken = process.env.POSTMARK;
-                            var client = new postmark.ServerClient(serverToken);
+
+                            const username = item[0].user_firstname + " " + item[0].user_surname;
+                            const userurl = user_token + "~L~";
+                            const templatemodel = { "user_email": userurl, "booking": "Verify Account", "username": username, "subject": "Verify Account" };
+                            const serverToken = process.env.POSTMARK;
+                            const client = new postmark.ServerClient(serverToken);
 
                             client.sendEmailWithTemplate({
                                 "From": "admin@thegrass.app",
@@ -648,48 +729,57 @@ router.post("/logon", async (req, res) => {
                                 "TrackOpens": true,
                                 "TemplateModel": templatemodel
                             }).then(resp => { });
-                            let res_json = { status: "WARNING", }
+
+                            let res_json = {status: "WARNING"};
+
                             res_json.message = "Verified Reset. Verify Email Sent.";
                             res_json.user_email = user_email;
                             res_json.token = user_token;
                             res_json.old_token = item[0].token;
                             res_json.data = item;
+
                             res.res_json = res_json;
                             res.send({ res_json });
                         }
-                    } else {
-                        let res_json = { status: "FAILED", };
+                    }
+                    else {
+                        let res_json = {status: "FAILED"};
+
                         res_json.message = "Account Not Found. Please Register.";
-                        res.send({ res_json })
+
+                        res.send({ res_json });
                     }
                 }
             });
         }
-    } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
-        }
+    }
+    catch (e) {
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
         res_json.message = "Error in Checking Email.";
-        // res_json.data = e;
+
         res.res_json = res_json;
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
 
     function validateEmail(email) {
-        var re = /\S+@\S+\.\S+/;
+        const re = /\S+@\S+\.\S+/;
+
         return re.test(email);
     }
 });
 
 router.post("/logout", async (req, res) => {
     try {
+        db = req.db;
+
+        const thisDb = db.db("grass");
         const { user_email, token } = req.body;
 
-        db = req.db;
-        const thisDb = db.db("grass")
+        let errMess = "";
 
-        var errMess = "";
         if (user_email == null || user_email == "") {
             errMess = "Email Address Missing";
         }
@@ -705,21 +795,26 @@ router.post("/logout", async (req, res) => {
         }
 
         if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
+            let res_json = {status: "FAILED"};
+
             res_json.message = errMess;
+
             res.send({ res_json });
         }
         else {
             let query = { user_email: user_email };
+
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
-                    console.log(err)
-                    let res_json = { status: "FAILED", };
+                    console.log(err);
+
+                    let res_json = {status: "FAILED"};
+
                     res_json.message = "Fetching Account Details";
+
                     res.send({ res_json });
-                } else {
+                }
+                else {
                     if (item.length > 0) {
                         if (item[0].token == token) {
                             let newvalues = {
@@ -728,52 +823,65 @@ router.post("/logout", async (req, res) => {
                                     // token: "",
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
-                                }
+                                },
                             };
                             thisDb.collection("users").updateOne(query, newvalues, function (err, result) { });
+
                             item[0].verified = "N";
                             // item[0].token = "";
-                            let res_json = { status: "WARNING", }
+
+                            let res_json = {status: "WARNING"};
+
                             res_json.message = "Verified Reset. Logged Out.";
                             res_json.user_email = user_email;
                             res_json.data = item;
+
                             res.res_json = res_json;
                             res.send({ res_json });
-                        } else {
-                            let res_json = { status: "FAILED", };
+                        }
+                        else {
+                            let res_json = {status: "FAILED"};
+
                             res_json.message = "Invalid Token Sent. Another Device has Logged on.";
+
                             res.send({ res_json })
                         }
-                    } else {
-                        let res_json = { status: "FAILED", };
+                    }
+                    else {
+                        let res_json = {status: "FAILED"};
+
                         res_json.message = "Account Not Found";
+
                         res.send({ res_json })
                     }
                 }
             });
         }
-    } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
-        }
+    }
+    catch (e) {
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
         res_json.message = "Error in Checking Email.";
         // res_json.data = e;
+
         res.res_json = res_json;
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
 
     function validateEmail(email) {
-        var re = /\S+@\S+\.\S+/;
+        const re = /\S+@\S+\.\S+/;
+
         return re.test(email);
     }
 });
 
 router.get('/verify/:useremail', (req, res) => {
-    const user_details = req.params.useremail;
-
     db = req.db;
-    const thisDb = db.db("grass")
+
+    const thisDb = db.db("grass");
+    const user_details = req.params.useremail;
 
     user_array = user_details.split("~")
     user_token = user_array[0];
@@ -783,20 +891,22 @@ router.get('/verify/:useremail', (req, res) => {
     // type = "L" = Logging in
 
     let query = { reg_token: user_token };
-    var returnstr = '';
+    let returnstr = '';
 
     thisDb.collection("users").find(query).toArray(function (err, item) {
         if (err) {
             console.log(err)
             res.send(missingmessage);
-            returnstr = { status: "FAILED" }
-        } else {
+            returnstr = { status: "FAILED" };
+        }
+        else {
             if (item.length > 0) {
                 // if (item[0].token != user_token) {
                 //     res.send(tokenmessage);
                 //     returnstr = { status: "FAILED" }
                 // } else {
-                var lg_cnt = parseInt(item[0].logon_count) + 1;
+                const lg_cnt = parseInt(item[0].logon_count) + 1;
+
                 let newvalues = {
                     $set: {
                         verified: "Y",
@@ -805,24 +915,28 @@ router.get('/verify/:useremail', (req, res) => {
                         updated: new Date(Date.now()),
                         last_logon: new Date(Date.now()),
                         unix_timestamp: Date.now(),
-                        logon_count: lg_cnt
-                    }
+                        logon_count: lg_cnt,
+                    },
                 };
-                var user_email = item[0].user_email;
+
+                const user_email = item[0].user_email;
+
                 query = { user_email: user_email };
                 thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
                     if (err) {
                         res.send(errmessage);
                         returnstr = { status: "FAILED" }
-                    } else {
+                    }
+                    else {
                         res.send(message);
                         returnstr = { status: "OK" }
                     }
                 });
                 // }
-            } else {
+            }
+            else {
                 res.send(errmessage);
-                returnstr = { status: "FAILED" }
+                returnstr = { status: "FAILED" };
             }
         }
     });
@@ -840,68 +954,83 @@ router.get('/verify/:useremail', (req, res) => {
 
 router.post("/new", async (req, res) => {
     try {
-        const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
+        db = req.db;
         response.data = req.body;
 
-        db = req.db;
+        const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
         const thisDb = db.db("grass")
 
-        var errMess = "";
+        let errMess = "";
+
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
         }
+
         if (errMess == "") {
             if (!validateEmail(user_email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
+
         if (user_firstname == null || user_firstname == "") {
             errMess += " Account Firstname Missing";
         }
+
         if (user_surname == null || user_surname == "") {
             errMess += " Account Surname Missing";
         }
+
         if (user_token == null || user_token == "") {
             errMess += " Token Missing";
         }
 
         var linked_email = linked_from;
+
         if (linked_from == null) {
             linked_email = "";
         }
 
-        var message = "";
-        var serverToken = process.env.POSTMARK;
-        var client = new postmark.ServerClient(serverToken);
-        var templatemodel = "";
-        var username = user_firstname + " " + user_surname;
+        const serverToken = process.env.POSTMARK;
+        const client = new postmark.ServerClient(serverToken);
+        const username = user_firstname + " " + user_surname;
+
+        let message = "";
+        let templatemodel = "";
 
         if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
+            let res_json = {status: "FAILED"};
+
             res_json.message = errMess;
+
             res.res_json = res_json;
             res.send({ res_json });
         }
         else {
-            // Check if email already exists 
+            // Check if email already exists
             let query = { user_email: user_email };
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
-                    console.log(err)
-                    let res_json = { status: "FAILED", };
+                    console.log(err);
+
+                    let res_json = {status: "FAILED"};
+
                     res_json.message = "Checking Account Details Exist";
+
                     res.send({ res_json });
-                } else {
+                }
+                else {
                     if (item.length > 0) {
-                        let res_json = { status: "FAILED", }
+                        let res_json = {status: "FAILED"};
+
                         res_json.message = "Account Already Exists.";
+
                         if (linked_email != "") {
                             res_json.message = "Sub-Account Already Exists.";
                         }
+
                         res_json.user_email = user_email;
                         res_json.token = user_token;
+
                         res.res_json = res_json;
                         res.send({ res_json });
 
@@ -917,8 +1046,10 @@ router.post("/new", async (req, res) => {
                                 "TrackOpens": true,
                                 "TemplateModel": templatemodel
                             }).then(resp => { });
-                        } else {
-                            var userurl = user_token + "~Y~";
+                        }
+                        else {
+                            const userurl = user_token + "~Y~";
+
                             message = "Your email has been used to try to Register a New Account in the App. If this is NOT you , please ignore this Email.";
                             templatemodel = { "user_email": userurl, "booking": "Re-Verify Account", "username": username, "subject": "Re-Verify Account", "info": [{ "infol": message }] };
 
@@ -928,8 +1059,7 @@ router.post("/new", async (req, res) => {
                                 "TemplateAlias": "VerifyAccount",
                                 "TrackOpens": true,
                                 "TemplateModel": templatemodel
-                            }).then(resp => {
-                            });
+                            }).then(resp => { });
                         }
                     } else {
                         // Create New Account Details
@@ -947,6 +1077,7 @@ router.post("/new", async (req, res) => {
                             logon_count: 0,
                             unix_timestamp: Date.now()
                         };
+
                         thisDb.collection("users").insertOne(query, function (err, result) {
                             if (err) {
                                 return res.status(500).json({
@@ -954,13 +1085,14 @@ router.post("/new", async (req, res) => {
                                     message: "Error Creating Account",
                                     error: err
                                 });
-                            } else {
-                                let res_json = {
-                                    status: "OK",
-                                }
+                            }
+                            else {
+                                let res_json = {status: "OK"};
+
                                 res_json.message = "User Created.";
                                 res_json.token = user_token;
                                 res_json.user_email = user_email;
+
                                 res.res_json = res_json;
                                 res.send({ res_json });
 
@@ -1030,11 +1162,12 @@ router.post("/new", async (req, res) => {
             });
         }
     } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
-        }
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
         res_json.message = "Error in Fetching data.";
+
         res.res_json = res_json;
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
@@ -1047,57 +1180,81 @@ router.post("/new", async (req, res) => {
 
 router.post("/update", async (req, res) => {
     try {
-        const { user_email, user_firstname, user_surname, linked_from, token } = req.body;
-        response.data = req.body;
+        const {
+            user_email,
+            user_firstname,
+            user_surname,
+            user_dob,
+            user_residence,
+            count_strokes,
+            show_vspar,
+            handicap_index,
+            linked_from,
+            token,
+        } = req.body;
 
+        response.data = req.body;
         db = req.db;
 
         var errMess = "";
+
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
         }
+
         if (errMess == "") {
             if (!validateEmail(user_email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
+
         if (user_firstname === null || user_firstname === "") {
             errMess += " User Firstname Missing";
         }
+
         if (user_surname === null || user_surname === "") {
             errMess += " User Surname Missing";
         }
+
         var linked_email = linked_from;
+
         if (linked_from == null) {
             linked_email = "";
         }
+
         if (token == null || token == "") {
             errMess += " Invalid Token Sent";
         }
 
         if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
-            res_json.message = errMess;
+            let res_json = {status: "FAILED"};
+
+            res_json.message: errMess;
+
             res.res_json = res_json;
             res.send({ res_json });
         }
         else {
             var superToken = false;
+
             if (token == process.env.TOKEN)
                 superToken = true;
-            // Check if email already exists 
+
+            // Check if email already exists
             let query = { user_email: user_email };
-            const thisDb = db.db("grass")
+            const thisDb = db.db("grass");
+
             thisDb.collection("users").find(query).toArray(function (err, item) {
                 if (err) {
-                    console.log(err)
-                    let res_json = { status: "FAILED", };
+                    console.log(err);
+
+                    let res_json = {status: "FAILED"};
+
                     res_json.message = "An error Checking Email Details Exist";
+
                     res.send({ res_json });
                 } else {
-                    // zero index of item 'item[0]' below is because we are using 'toArray' function 
+                    // zero index of item 'item[0]' below is because we are using 'toArray' function
                     // and only need to send data from the object at the first index (since there is no other items in this array!)
                     if (item.length > 0) {
                         // if (item[0].verified == "Y" && item[0].token == token) {
@@ -1106,26 +1263,34 @@ router.post("/update", async (req, res) => {
                                 $set: {
                                     user_firstname: user_firstname,
                                     user_surname: user_surname,
+                                    user_dob: user_dob,
+                                    user_residence: user_residence,
+                                    count_strokes: count_strokes,
+                                    show_vspar: show_vspar,
+                                    handicap_index: handicap_index,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
-                                }
+                                },
                             };
+
                             thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
                                 if (err) {
                                     return res.status(500).json({
                                         status: "FAILED",
                                         message: "Error Updating User",
-                                        error: err
+                                        error: err,
                                     });
-                                } else {
-                                    let res_json = {
-                                        status: "OK",
-                                    }
+                                }
+                                else {
+                                    let res_json = {status: "OK"};
+
                                     res_json.message = "User Updated.";
                                     res_json.firstname = user_firstname;
                                     res_json.surname = user_surname;
                                     res.res_json = res_json;
+
                                     res.send({ res_json });
+
                                     let query = {
                                         user_email: user_email,
                                         owner: "",
@@ -1137,38 +1302,48 @@ router.post("/update", async (req, res) => {
                                         created: new Date(Date.now()),
                                         unix_timestamp: Date.now()
                                     };
+
                                     thisDb.collection("logs").insertOne(query, function (err, result) { });
                                 }
                             });
-                        } else {
-                            let res_json = { status: "FAILED", }
+                        }
+                        else {
+                            let res_json = {status: "FAILED"};
+
                             res_json.message = "Invalid Token Sent. Another Device has Logged on.";
                             res_json.user_email = user_email;
                             res.res_json = res_json;
+
                             res.send({ res_json });
                         }
-                    } else {
-                        let res_json = { status: "FAILED", }
+                    }
+                    else {
+                        let res_json = {status: "FAILED"};
+
                         res_json.message = "Email Does Not Exist";
                         res_json.user_email = user_email;
                         res.res_json = res_json;
+
                         res.send({ res_json });
                     }
                 }
             });
         }
-    } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
-        }
+    }
+    catch (e) {
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
         res_json.message = "Error in Fetching data.";
         res.res_json = res_json;
+
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
     function validateEmail(email) {
-        var re = /\S+@\S+\.\S+/;
+        const re = /\S+@\S+\.\S+/;
+
         return re.test(email);
     }
 });
