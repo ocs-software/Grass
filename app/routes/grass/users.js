@@ -205,8 +205,7 @@ const missingmessage =
 
 router.post('/check', async (req, res) => {
     try {
-        db = req.db;
-
+        const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, token } = req.body;
 
@@ -355,11 +354,9 @@ router.post('/check', async (req, res) => {
 
 router.post("/delete", async (req, res) => {
     try {
+        const db = req.db;
+        const thisDb = db.db("grass");
         const { user_email, token, sub_account } = req.body;
-
-        db = req.db;
-
-        const thisDb = db.db("grass")
 
         let errMess = "";
         let ownername = "";
@@ -639,9 +636,8 @@ router.post("/delete", async (req, res) => {
 
 router.post("/logon", async (req, res) => {
     try {
+        const db = req.db;
         const { user_email, token } = req.body;
-
-        db = req.db;
 
         let errMess = "";
 
@@ -772,8 +768,7 @@ router.post("/logon", async (req, res) => {
 
 router.post("/logout", async (req, res) => {
     try {
-        db = req.db;
-
+        const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, token } = req.body;
 
@@ -877,8 +872,7 @@ router.post("/logout", async (req, res) => {
 });
 
 router.get('/verify/:useremail', (req, res) => {
-    db = req.db;
-
+    const db = req.db;
     const thisDb = db.db("grass");
     const user_details = req.params.useremail;
 
@@ -953,11 +947,11 @@ router.get('/verify/:useremail', (req, res) => {
 
 router.post("/new", async (req, res) => {
     try {
-        db = req.db;
-        response.data = req.body;
-
+        const db = req.db;
+        const thisDb = db.db("grass");
         const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
-        const thisDb = db.db("grass")
+
+        response.data = req.body;
 
         let errMess = "";
 
@@ -1179,6 +1173,8 @@ router.post("/new", async (req, res) => {
 
 router.post("/update", async (req, res) => {
     try {
+        const db = req.db;
+
         const {
             user_email,
             user_firstname,
@@ -1193,7 +1189,6 @@ router.post("/update", async (req, res) => {
         } = req.body;
 
         response.data = req.body;
-        db = req.db;
 
         var errMess = "";
 
