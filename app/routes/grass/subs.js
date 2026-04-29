@@ -145,7 +145,7 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
 
                     return 200;
                 }
-            });
+            }
         } catch (err) {
             console.log(err);
             return 500;
