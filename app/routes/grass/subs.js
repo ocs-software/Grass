@@ -223,15 +223,6 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
 
     async function updateCustID(email, cust_id, thisDb) {
     // Update/create subscription record for the user.
-    
-        var postStr = '';
-
-        postStr += 'token=' + tg_api_token + '&';
-        postStr += "user_email" + '=' + user.email + '&';
-        postStr += "cust_id" + '=' + user.cust_id + '&';
-        postStr += "plan" + '=' + plan + '&';
-        postStr += "period" + '=' + plan + '&';
-
         let query = { cust_id: user };
         thisDb.collection("users").find(query).toArray(function (err, item) {
             if (err) {
@@ -265,7 +256,6 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
             }
         });
     }
-  }
 });
 
 router.get("/active", async (req, res) => {
