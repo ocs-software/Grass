@@ -18,19 +18,19 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
                 const invoice = event.data.object;
                 const lines = invoice.lines;
                 const plan = {};
-                lines.array.forEach(element => {
-                    if (element.type === "subscription") {
-                        plan.name = element.price.metadata.plan;
-                        plan.interval = element.price.recurring.interval;
-                        plan.stripe_price_id = element.price.id;
-                        break;
+                const line = lines.data.find(
+                    (element) => element.type === "subscription"
+                );
+                if (line) {
+                    plan.name = element.price.metadata.plan;
+                    plan.interval = element.price.recurring.interval;
+                    plan.stripe_price_id = element.price.id;
+                    const period = await getEndDate(invoice.lines.data[0].period.end);
+                    plan.period = period;
+                    if (invoice.lines.data[0].amount > 0) {
+                        const return = await grantAccess(invoice.customer, plan, thisDb);
+                        res.sendStatus(return);
                     }
-                });
-                const period = await getEndDate(invoice.lines.data[0].period.end);
-                plan.period = period;
-                if (invoice.lines.data[0].amount > 0) {
-                    const return = await grantAccess(invoice.customer, plan, thisDb);
-                    res.sendStatus(return);
                 }
 
                 break;
