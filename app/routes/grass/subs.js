@@ -28,8 +28,8 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
                     const period = await getEndDate(invoice.lines.data[0].period.end);
                     plan.period = period;
                     if (invoice.lines.data[0].amount > 0) {
-                        const return = await grantAccess(invoice.customer, plan, thisDb);
-                        res.sendStatus(return);
+                        const ret_code = await grantAccess(invoice.customer, plan, thisDb);
+                        res.sendStatus(ret_code);
                     }
                 }
 
@@ -44,16 +44,16 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
             case "customer.subscription.deleted": {
                 const subscription = event.data.object;
 
-                const return = await revokeAccess(invoice.customer, thisDb);
-                res.sendStatus(return);
+                const ret_code = await revokeAccess(invoice.customer, thisDb);
+                res.sendStatus(ret_code);
                 break;
             }
             case "checkout.session.completed": {
                 const session = event.data.object;
                 const userId = session.client_reference_id;
                 const stripeCustomerId = session.customer;
-                const return = await updateCustID(userId, stripeCustomerId, thisDb);
-                res.sendStatus(return);
+                const ret_code = await updateCustID(userId, stripeCustomerId, thisDb);
+                res.sendStatus(ret_code);
                 break;
             }
             default:
