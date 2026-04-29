@@ -1184,6 +1184,9 @@ router.post("/update", async (req, res) => {
             count_strokes,
             show_vspar,
             handicap_index,
+            unit_measure,
+            unit_speed,
+            unit_temperature,
             linked_from,
             token,
         } = req.body;
@@ -1262,6 +1265,9 @@ router.post("/update", async (req, res) => {
                                     count_strokes: count_strokes,
                                     show_vspar: show_vspar,
                                     handicap_index: handicap_index,
+                                    unit_measure: unit_measure,
+                                    unit_speed: unit_speed,
+                                    unit_temperature: unit_temperature,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 },
