@@ -876,9 +876,9 @@ router.get('/verify/:useremail', (req, res) => {
     const thisDb = db.db("grass");
     const user_details = req.params.useremail;
 
-    user_array = user_details.split("~")
-    user_token = user_array[0];
-    user_type = user_array[1];
+    const user_array = user_details.split("~")
+    const user_token = user_array[0];
+    const user_type = user_array[1];
     // type = "Y" = re-verify (from new)
     // type = "N" = Verify  (from new)
     // type = "L" = Logging in
@@ -1184,6 +1184,11 @@ router.post("/update", async (req, res) => {
             count_strokes,
             show_vspar,
             handicap_index,
+            gender,
+            playing_status,
+            unit_measure,
+            unit_speed,
+            unit_temperature,
             linked_from,
             token,
         } = req.body;
@@ -1262,6 +1267,11 @@ router.post("/update", async (req, res) => {
                                     count_strokes: count_strokes,
                                     show_vspar: show_vspar,
                                     handicap_index: handicap_index,
+                                    gender: gender,
+                                    playing_status: playing_status,
+                                    unit_measure: unit_measure,
+                                    unit_speed: unit_speed,
+                                    unit_temperature: unit_temperature,
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 },
