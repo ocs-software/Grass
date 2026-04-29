@@ -5,63 +5,351 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 
-router.get("/user", async (req, res) => {
+router.get("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+    let event;
+    const db = req.db;
+    const thisDb = db.db("grass");
+
     try {
-        const user = req.query.id;
+        event = JSON.parse(req.body.toString('utf8'))
 
-        db = req.db;
-        const thisDb = db.db("grass");
-
-        var errMess = "";
-
-        if (user == null || user == "") {
-            errMess = "Account Email Not Sent";
-        }
-
-        if (errMess !== "") {
-            let res_json = {
-                status: "FAILED",
-            }
-            res_json.message = errMess;
-            res.send({ res_json });
-        }
-        else {
-            // let query = { user_email: user };
-            let query = { $or: [{ user_email: user }, { owner: user }] };
-            let mysort = { unix_timestamp: 1 };
-            thisDb.collection("logs").find(query).sort(mysort).toArray(function (err, logs) {
-                if (err) {
-                    console.log(err)
-                    let res_json = { status: "FAILED", };
-                    res_json.message = "Fetching Logs For Account";
-                    res_json.user_email = user;
-                    res.send({ res_json });
-                } else {
-                    if (logs.length > 0) {
-                        let res_json = { status: "OK", }
-                        res_json.message = "Logs For Account Found";
-                        res_json.user_email = user;
-                        res_json.logs = logs;
-                        res.res_json = res_json;
-                        res.send({ res_json });
-                    } else {
-                        let res_json = { status: "ERROR", };
-                        res_json.message = "No Log Details Found";
-                        res_json.user_email = course;
-                        res.send({ res_json })
+        switch (event.type) {
+            case "invoice.paid": {
+                const invoice = event.data.object;
+                const lines = invoice.lines;
+                const plan = {};
+                lines.array.forEach(element => {
+                    if (element.type === "subscription") {
+                        plan.name = element.price.metadata.plan;
+                        plan.interval = element.price.recurring.interval;
+                        plan.stripe_price_id = element.price.id;
+                        break;
                     }
+                });
+                const period = await getEndDate(invoice.lines.data[0].period.end);
+                plan.period = period;
+                if (invoice.lines.data[0].amount > 0) {
+                    const return = await grantAccess(invoice.customer, plan, thisDb);
+                    res.sendStatus(return);
+                }
+
+                break;
+            }
+            case "invoice.payment_failed": {
+                const invoice = event.data.object;
+                // should we change subscription to basic?
+                break;
+            }
+
+            case "customer.subscription.deleted": {
+                const subscription = event.data.object;
+
+                const return = await revokeAccess(invoice.customer, thisDb);
+                res.sendStatus(return);
+                break;
+            }
+            case "checkout.session.completed": {
+                const session = event.data.object;
+                const userId = session.client_reference_id;
+                const stripeCustomerId = session.customer;
+                const return = await updateCustID(userId, stripeCustomerId, thisDb);
+                res.sendStatus(return);
+                break;
+            }
+            default:
+                // Ignore everything else
+                break;
+      }
+
+        return res.sendStatus(200);
+    } catch (err) {
+        console.error("Webhook handler failed:", err);
+        return res.sendStatus(500);
+    }
+
+    async function grantAccess(user, plan, thisDb) {
+        // Update/create subscription record.
+        try {
+            const subscriptions = thisDb.collection("subs");
+            let query = { cust_id: user };
+            const items = await thisDb.collection("users").find(query).toArray();
+            if (items.length > 0) {
+                const userId = items[0]["_id"];
+                query = {user_id: userId, status: "Active"};
+                const activeSubscription = await subscriptions.findOne(query);
+
+                // No active subscription yet: create first one
+                if (!activeSubscription) {
+                    const result = await subscriptions.insertOne({
+                        user_id: userId,
+                        plan: plan.stripe_price_id,
+                        plan_name: plan.name,
+                        plan_type: plan.name == "Pro" ? "P" : "E",
+                        status: "Active",
+                        started_at: plan.start,
+                        end_interval: plan.period,
+                        interval: plan.interval,
+                        renewed_at: null,
+                        ended_at: null,
+                        created_at: plan.start,
+                        updated_at: plan.start,
+                    });
+
+                    return 200;
+                } else if (activeSubscription.plan === pan.stripe_price_id) {
+                // Same plan: renewal, update existing active subscription
+                    await subscriptions.updateOne(
+                        { _id: activeSubscription._id },
+                        {
+                        $set: {
+                            end_interval: plan.period,
+                            renewed_at: plan.start
+                        },
+                        $currentDate: {
+                            updated_at: true
+                        }
+                        }
+                    );
+
+                    return 200;
+                } else {
+                    // Different plan: end old subscription, create new one
+                    await subscriptions.updateOne(
+                        { _id: activeSubscription._id },
+                        {
+                            $set: {
+                                status: "Ended",
+                                ended_at: plan.start
+                            },
+                            $currentDate: {
+                                updated_at: true
+                            }
+                        }
+                    );
+
+                    const result = await subscriptions.insertOne({
+                        user_id: userId,
+                        plan: plan.stripe_price_id,
+                        plan_name: plan.name,
+                        plan_type: plan.name == "Pro" ? "P" : "E",
+                        status: "Active",
+                        started_at: plan.start,
+                        end_interval: plan.period,
+                        interval: plan.interval,
+                        previous_subscription_id: activeSubscription._id,
+                        renewed_at: null,
+                        ended_at: null,
+                        created_at: plan.start,
+                        updated_at: plan.start,
+                    });
+
+                    return 200;
                 }
             });
+        } catch (err) {
+            console.log(err);
+            return 500;
         }
-    } catch (e) {
-        console.log(e)
-        let res_json = {
-            status: "FAILED",
+    }
+
+    async function revokeAccess(user, plan, thisDb) {
+        try {
+            const subscriptions = thisDb.collection("subs");
+            let query = { cust_id: user };
+            const items = await thisDb.collection("users").find(query).toArray();
+            if (items.length > 0) {
+                const userId = items[0]["_id"];
+                query = {user_id: userId, status: "Active"};
+                const activeSubscription = await subscriptions.findOne(query);
+                if (activeSubscription) {
+                    // Reset subscription record to "Basic".
+                    if (activeSubscription.plan_name !== "Basic") {
+                        await subscriptions.updateOne(
+                            { _id: activeSubscription._id },
+                            {
+                                $set: {
+                                    status: "Ended",
+                                    ended_at: plan.period
+                                },
+                                $currentDate: {
+                                    updated_at: true
+                                }
+                            }
+                        );
+
+                        const result = await subscriptions.insertOne({
+                            user_id: userId,
+                            plan: null,
+                            plan_name: "Basic",
+                            plan_type: "B",
+                            status: "Active",
+                            started_at: plan.period,
+                            end_interval: "not set",
+                            interval: "not set",
+                            previous_subscription_id: activeSubscription._id,
+                            renewed_at: null,
+                            ended_at: null,
+                            created_at: plan.period,
+                            updated_at: plan.period,
+                        });
+                    } else {
+                        return 200;
+                    }
+                } else {
+                    // create a basic "subscription"
+                        const result = await subscriptions.insertOne({
+                            user_id: userId,
+                            plan: null,
+                            plan_name: "Basic",
+                            plan_type: "B",
+                            status: "Active",
+                            started_at: new Date(),
+                            end_interval: "not set",
+                            interval: "not set",
+                            previous_subscription_id: activeSubscription._id,
+                            renewed_at: null,
+                            ended_at: null,
+                            created_at: new Date(),
+                            updated_at: new Date(),
+                        });
+                    return 200;
+                }
+            }
+        } catch (err) {
+            console.log(err);
+            return 500;
         }
-        res_json.message = "Error in getting logs for Account.";
+    }
+
+    async function updateCustID(email, cust_id, thisDb) {
+    // Update/create subscription record for the user.
+    
+        var postStr = '';
+
+        postStr += 'token=' + tg_api_token + '&';
+        postStr += "user_email" + '=' + user.email + '&';
+        postStr += "cust_id" + '=' + user.cust_id + '&';
+        postStr += "plan" + '=' + plan + '&';
+        postStr += "period" + '=' + plan + '&';
+
+        let query = { cust_id: user };
+        thisDb.collection("users").find(query).toArray(function (err, item) {
+            if (err) {
+                console.log(err);
+                return 500;
+            }
+            else {
+                if (item.length > 0) {
+                    let newvalues = {
+                        $set: {
+                            subs: {
+                                plan: "basic",
+                                interval: "not set",
+                            }
+                        },
+                        $currentDate: {
+                            "subs.updated_at": true
+                        },
+                    };
+                    thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                        if (error) {
+                            console.log(err);
+                            return 500;
+                        } else {
+                            return 200;
+                        }
+                    });
+                } else {
+                    return 500;
+                }
+            }
+        });
+    }
+  }
+});
+
+router.get("/active", async (req, res) => {
+    try {
+        const db = req.db;
+        const thisDb = db.db("grass");
+        const { user_email, token } = req.body;
+
+        let errMess = '';
+
+        if (user_email === null || user_email === '') {
+            errMess = 'Email Missing';
+        }
+
+        if (errMess == '') {
+            if (!validateEmail(user_email)) {
+                errMess = 'Invalid Email Sent';
+            }
+        }
+
+        if (errMess !== '') {
+            let res_json = {status: 'FAILED'};
+
+            res_json.message = errMess;
+
+            res.send({ res_json });
+        } else {
+            let query = { user_email: user_email };
+
+            // get Account details to check
+            const users = await thisDb.collection('users').find(query).toArray();
+
+            if (users.length > 0) {
+                const user = users[0];
+                if (user.token == token) {
+                    query = {user_id: user._id, status: "Active"};
+                    const subs = await thisDb.collection("subs").findOne(query);
+                    if (!subs) {
+                        let res_json = {status: "OK"};
+
+                        res_json.plan = "Basic";
+                        res_json.type = "B";
+                        res.res_json = res_json;
+
+                        res.send({ res_json });
+                    } else {
+                        let res_json = {status: "OK"};
+
+                        res_json.plan = subs.plan_name;
+                        res_json.type = subs.plan_type;
+                        res.res_json = res_json;
+
+                        res.send({ res_json });
+                    }
+                } else {
+                    let res_json = {status: "FAILED"};
+
+                    res_json.message = "Invalid Token Sent. Another Device has Logged on.";
+
+                    res.send({ res_json });
+                }
+            } else {
+                let res_json = {status: "FAILED"};
+
+                res_json.message = "Account Not Found";
+
+                res.send({ res_json });
+            }
+        }
+    } catch (err) {
+        console.log(err);
+
+        let res_json = {status: "FAILED"};
+
+        res_json.message = "Error in getting Subscription Type.";
         res.res_json = res_json;
-        res_json.user_email = user;
-        res.status(400).send({ message: res_json.message, data: e });
+
+        res.status(400).send({ message: "Error in getting Subscription Type.", data: err });
+    }
+
+    function validateEmail(email) {
+        const re = /\S+@\S+\.\S+/;
+
+        return re.test(email);
     }
 });
 module.exports = router;
