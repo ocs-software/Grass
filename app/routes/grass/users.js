@@ -876,9 +876,9 @@ router.get('/verify/:useremail', (req, res) => {
     const thisDb = db.db("grass");
     const user_details = req.params.useremail;
 
-    user_array = user_details.split("~")
-    user_token = user_array[0];
-    user_type = user_array[1];
+    const user_array = user_details.split("~")
+    const user_token = user_array[0];
+    const user_type = user_array[1];
     // type = "Y" = re-verify (from new)
     // type = "N" = Verify  (from new)
     // type = "L" = Logging in
