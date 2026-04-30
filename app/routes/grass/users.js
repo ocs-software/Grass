@@ -1189,6 +1189,7 @@ router.post("/update", async (req, res) => {
             unit_measure,
             unit_speed,
             unit_temperature,
+            golf_bag,
             linked_from,
             token,
         } = req.body;
@@ -1272,6 +1273,7 @@ router.post("/update", async (req, res) => {
                                     unit_measure: unit_measure,
                                     unit_speed: unit_speed,
                                     unit_temperature: unit_temperature,
+                                    golf_bag: JSON.parse(golf_bag),
                                     updated: new Date(Date.now()),
                                     unix_timestamp: Date.now()
                                 },
