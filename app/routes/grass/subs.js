@@ -148,7 +148,7 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
             }
         } catch (err) {
             console.log(err);
-            return 500;
+            return 423;
         }
     }
 
@@ -217,17 +217,17 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
             }
         } catch (err) {
             console.log(err);
-            return 500;
+            return 422;
         }
     }
 
     async function updateCustID(email, cust_id, thisDb) {
     // Update/create subscription record for the user.
-        let query = { cust_id: user };
+        let query = { email: email };
         thisDb.collection("users").find(query).toArray(function (err, item) {
             if (err) {
                 console.log(err);
-                return 500;
+                return 1;
             }
             else {
                 if (item.length > 0) {
@@ -236,7 +236,8 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
                             subs: {
                                 plan: "basic",
                                 interval: "not set",
-                            }
+                            },
+                            cust_id: cust_id
                         },
                         $currentDate: {
                             "subs.updated_at": true
@@ -245,24 +246,25 @@ router.get("/webhook", express.raw({ type: "application/json" }), async (req, re
                     thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
                         if (error) {
                             console.log(err);
-                            return 500;
+                            return 501;
                         } else {
                             return 200;
                         }
                     });
                 } else {
-                    return 500;
+                    console.log("User not found");
+                    return 420;
                 }
             }
         });
     }
 });
 
-router.get("/active", async (req, res) => {
+router.get("/user/active", async (req, res) => {
     try {
         const db = req.db;
         const thisDb = db.db("grass");
-        const { user_email, token } = req.body;
+        const { user_email, token } = req.query;
 
         let errMess = '';
 
@@ -333,13 +335,97 @@ router.get("/active", async (req, res) => {
         res_json.message = "Error in getting Subscription Type.";
         res.res_json = res_json;
 
-        res.status(400).send({ message: "Error in getting Subscription Type.", data: err });
+        res.status(421).send({ message: "Error in getting Subscription Type.", data: err });
     }
 
     function validateEmail(email) {
         const re = /\S+@\S+\.\S+/;
 
         return re.test(email);
+    }
+});
+
+router.get("/search", async (req, res) => {
+    const db = req.db;
+    const thisDb = db.db("grass");
+    const { plan, status, periodEnd } = req.query;
+
+    try {
+        const subscriptions = thisDb.collection("subs");
+
+        const match = {};
+
+        if (plan) {
+            match.plan = plan;
+        }
+
+        if (status) {
+            match.status = status; // active, ended, outstanding
+        }
+
+        if (periodEnd === "future") {
+            match.current_period_end = { $gt: new Date() };
+        }
+
+        const results = await subscriptions
+            .aggregate([
+                { $match: match },
+
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "user_id",
+                        foreignField: "_id",
+                        as: "user"
+                    }
+                },
+
+                {
+                $unwind: {
+                    path: "$user",
+                    preserveNullAndEmptyArrays: true
+                }
+                },
+
+                {
+                    $project: {
+                        _id: 1,
+                        user_id: 1,
+                        plan: 1,
+                        status: 1,
+                        started_at: 1,
+                        renewed_at: 1,
+                        ended_at: 1,
+                        current_period_start: 1,
+                        current_period_end: 1,
+                        created_at: 1,
+                        updated_at: 1,
+
+                        user: {
+                        _id: "$user._id",
+                        name: "$user.name",
+                        email: "$user.email"
+                        }
+                    }
+                },
+
+                { $sort: { updated_at: -1 } }
+            ])
+        .toArray();
+
+        return res.status(200).json({
+            success: true,
+            count: results.length,
+            data: results
+        });
+
+    } catch (err) {
+        console.error("Error searching subscriptions:", err);
+
+        return res.status(502).json({
+        success: false,
+        message: "Error searching subscriptions"
+        });
     }
 });
 module.exports = router;
