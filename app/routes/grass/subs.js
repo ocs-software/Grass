@@ -244,7 +244,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             "subs.updated_at": true
                         },
                     };
-                    thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                    thisDb.collection("users").updateOne(query, newvalues, function (error, result) {
                         if (error) {
                             console.log(err);
                             return 501;
