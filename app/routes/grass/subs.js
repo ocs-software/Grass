@@ -5,7 +5,7 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 
-router.get("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     let event;
     const db = req.db;
     const thisDb = db.db("grass");
