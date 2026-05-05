@@ -193,26 +193,27 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             created_at: plan.period,
                             updated_at: plan.period,
                         });
+                        return 200;
                     } else {
                         return 200;
                     }
                 } else {
                     // create a basic "subscription"
-                        const result = await subscriptions.insertOne({
-                            user_id: userId,
-                            plan: null,
-                            plan_name: "Basic",
-                            plan_type: "B",
-                            status: "Active",
-                            started_at: new Date(),
-                            end_interval: "not set",
-                            interval: "not set",
-                            previous_subscription_id: activeSubscription._id,
-                            renewed_at: null,
-                            ended_at: null,
-                            created_at: new Date(),
-                            updated_at: new Date(),
-                        });
+                    const result = await subscriptions.insertOne({
+                        user_id: userId,
+                        plan: null,
+                        plan_name: "Basic",
+                        plan_type: "B",
+                        status: "Active",
+                        started_at: new Date(),
+                        end_interval: "not set",
+                        interval: "not set",
+                        previous_subscription_id: activeSubscription._id,
+                        renewed_at: null,
+                        ended_at: null,
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                    });
                     return 200;
                 }
             }
@@ -234,21 +235,30 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 if (item.length > 0) {
                     let newvalues = {
                         $set: {
-                            subs: {
-                                plan: "basic",
-                                interval: "not set",
-                            },
                             cust_id: cust_id
-                        },
-                        $currentDate: {
-                            "subs.updated_at": true
                         },
                     };
                     thisDb.collection("users").updateOne(query, newvalues, function (error, result) {
                         if (error) {
-                            console.log(err);
+                            console.log(error);
                             return 501;
                         } else {
+                            const subscriptions = thisDb.collection("subs");
+                            const result = await subscriptions.insertOne({
+                                user_id: userId,
+                                plan: null,
+                                plan_name: "Basic",
+                                plan_type: "B",
+                                status: "Active",
+                                started_at: plan.period,
+                                end_interval: "not set",
+                                interval: "not set",
+                                previous_subscription_id: activeSubscription._id,
+                                renewed_at: null,
+                                ended_at: null,
+                                created_at: plan.period,
+                                updated_at: plan.period,
+                            });
                             return 200;
                         }
                     });
