@@ -244,7 +244,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             return 501;
                         } else {
                             const subscriptions = thisDb.collection("subs");
-                            const result = await subscriptions.insertOne({
+                            subscriptions.insertOne({
                                 user_id: userId,
                                 plan: null,
                                 plan_name: "Basic",
@@ -258,8 +258,14 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                                 ended_at: null,
                                 created_at: plan.period,
                                 updated_at: plan.period,
+                            }, function (er, sub) {
+                                if (er) {
+                                    console.log(er)
+                                    return 506
+                                } else {
+                                    return 200;
+                                }
                             });
-                            return 200;
                         }
                     });
                 } else {
