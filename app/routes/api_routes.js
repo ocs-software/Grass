@@ -27,7 +27,7 @@ module.exports = function (app, db) {
   app.use("/table", grasstable);
 
   const grasssubs = require('./grass/subs');
-  app.use("/subs", grasstable);
+  app.use("/subs", grasssubs);
 
   /*
   const grassplayer = require('./grass/player');
