@@ -1352,4 +1352,145 @@ router.post("/update", async (req, res) => {
     }
 });
 
+router.post("/golfbag", async (req, res) => {
+    try {
+        const db = req.db;
+
+        const {
+            user_email,
+            golf_bag,
+            token,
+        } = req.body;
+
+        response.data = req.body;
+
+        var errMess = "";
+
+        if (user_email === null || user_email === "") {
+            errMess = "Email Address Missing";
+        }
+
+        if (!golf_bag) {
+            errMess = " Golf Bag data missing";
+        }
+
+        if (token == null || token == "") {
+            errMess += " Invalid Token Sent";
+        }
+
+        if (errMess !== "") {
+            let res_json = {status: "FAILED"};
+
+            res_json.message = errMess;
+
+            res.res_json = res_json;
+            res.send({ res_json });
+        }
+        else {
+            var superToken = false;
+
+            if (token == process.env.TOKEN)
+                superToken = true;
+
+            // Check if email already exists
+            let query = { user_email: user_email };
+            const thisDb = db.db("grass");
+
+            thisDb.collection("users").find(query).toArray(function (err, item) {
+                if (err) {
+                    console.log(err);
+
+                    let res_json = {status: "FAILED"};
+
+                    res_json.message = "An error Checking Email Details Exist";
+
+                    res.send({ res_json });
+                } else {
+                    // zero index of item 'item[0]' below is because we are using 'toArray' function
+                    // and only need to send data from the object at the first index (since there is no other items in this array!)
+                    if (item.length > 0) {
+                        // if (item[0].verified == "Y" && item[0].token == token) {
+                        if (item[0].token == token || superToken) {
+                            let newvalues = {
+                                $set: {
+                                    golf_bag: JSON.parse(golf_bag),
+                                    updated: new Date(Date.now()),
+                                    unix_timestamp: Date.now()
+                                },
+                            };
+
+                            thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                                if (err) {
+                                    return res.status(500).json({
+                                        status: "FAILED",
+                                        message: "Error Updating User",
+                                        error: err,
+                                    });
+                                }
+                                else {
+                                    let res_json = {status: "OK"};
+
+                                    res_json.message = "Golf Bag Updated.";
+                                    res_json.golf_bag = golf_bag;
+                                    res.res_json = res_json;
+
+                                    res.send({ res_json });
+
+                                    let query = {
+                                        user_email: user_email,
+                                        owner: "",
+                                        venue: "",
+                                        venue_name: "",
+                                        course: "",
+                                        course_name: "",
+                                        message: "Golf Bag Updated",
+                                        created: new Date(Date.now()),
+                                        unix_timestamp: Date.now()
+                                    };
+
+                                    thisDb.collection("logs").insertOne(query, function (err, result) { });
+                                }
+                            });
+                        }
+                        else {
+                            let res_json = {status: "FAILED"};
+
+                            res_json.message = "Invalid Token Sent. Another Device has Logged on.";
+                            res_json.user_email = user_email;
+                            res.res_json = res_json;
+
+                            res.send({ res_json });
+                        }
+                    }
+                    else {
+                        let res_json = {status: "FAILED"};
+
+                        res_json.message = "Email Does Not Exist";
+                        res_json.user_email = user_email;
+                        res.res_json = res_json;
+
+                        res.send({ res_json });
+                    }
+                }
+            });
+        }
+    }
+    catch (e) {
+        console.log(e);
+
+        let res_json = {status: "FAILED"};
+
+        res_json.message = "Error in Fetching data.";
+        res.res_json = res_json;
+
+        res.status(400).send({ message: "Error in Fetching data.", data: e });
+    }
+
+    function validateEmail(email) {
+        const re = /\S+@\S+\.\S+/;
+
+        return re.test(email);
+    }
+});
+
 module.exports = router;
