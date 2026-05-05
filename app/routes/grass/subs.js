@@ -11,7 +11,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     const thisDb = db.db("grass");
 
     try {
-        event = JSON.parse(req.body.toString('utf8'))
+        // event = JSON.parse(req.body.toString('utf8'))
+        event = req.body
 
         switch (event.type) {
             case "invoice.paid": {
