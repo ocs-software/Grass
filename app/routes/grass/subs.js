@@ -29,6 +29,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     const appConfig = getAppConfig();
                     const stripe = Stripe(appConfig.stripe.skey);
 
+                    console.log("line", line);
                     const priceId = line.price.id;
                     const price = await stripe.prices.retrieve(priceId);
 
