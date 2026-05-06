@@ -22,12 +22,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const line = lines.data.find(
                     (element) => element.parent?.type === "subscription_item_details" || element.type === "subscription"
                 );
-                console.log("lines.data", invoice.lines.data);
-                console.log("line", line);
+
                 if (line) {
-                    plan.name = element.price.metadata.plan;
-                    plan.interval = element.price.recurring.interval;
-                    plan.stripe_price_id = element.price.id;
+                    plan.name = line.price.metadata.plan;
+                    plan.interval = line.price.recurring.interval;
+                    plan.stripe_price_id = line.price.id;
                     const period = await getEndDate(invoice.lines.data[0].period.end);
                     plan.period = period;
                     if (invoice.lines.data[0].amount > 0) {
