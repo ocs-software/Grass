@@ -224,58 +224,35 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     }
 
     async function updateCustID(email, cust_id, thisDb) {
-    // Update/create subscription record for the user.
-        let query = { email: email };
-        thisDb.collection("users").find(query).toArray(function (err, item) {
-            if (err) {
-                console.log(err);
-                return 1;
+        try {
+            const users = thisDb.collection("users");
+
+            const item = await users.find({ email }).toArray();
+
+            if (item.length === 0) {
+            console.log("User not found");
+            return 420;
             }
-            else {
-                if (item.length > 0) {
-                    let newvalues = {
-                        $set: {
-                            cust_id: cust_id
-                        },
-                    };
-                    thisDb.collection("users").updateOne(query, newvalues, function (error, result) {
-                        if (error) {
-                            console.log(error);
-                            return 501;
-                        } else {
-                            /* const subscriptions = thisDb.collection("subs");
-                            const userId = item[0]._id;
-                            subscriptions.insertOne({
-                                user_id: userId,
-                                plan: null,
-                                plan_name: "Basic",
-                                plan_type: "B",
-                                status: "Active",
-                                started_at: new Date(),
-                                end_interval: "not set",
-                                interval: "not set",
-                                previous_subscription_id: activeSubscription._id,
-                                renewed_at: null,
-                                ended_at: null,
-                                created_at: new Date(),
-                                updated_at: new Date(),
-                            }, function (er, sub) {
-                                if (er) {
-                                    console.log(er)
-                                    return 506
-                                } else {
-                                    return 200;
-                                }
-                            }); */
-                            return 200;
-                        }
-                    });
-                } else {
-                    console.log("User not found");
-                    return 420;
+
+            const result = await users.updateOne(
+            { email },
+            {
+                $set: {
+                cust_id: cust_id
                 }
             }
-        });
+            );
+
+            if (result.matchedCount === 0) {
+            return 420;
+            }
+
+            return 200;
+
+        } catch (err) {
+            console.log(err);
+            return 501;
+        }
     }
 });
 
