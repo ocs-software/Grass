@@ -4,6 +4,7 @@ const router = express.Router({ mergeParams: true });
 const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
+const Stripe = require("stripe");
 
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     let event;
@@ -24,12 +25,18 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 );
 
                 if (line) {
-                    plan.name = line.price.metadata.plan;
-                    plan.interval = line.price.recurring.interval;
-                    plan.stripe_price_id = line.price.id;
-                    const period = await getEndDate(invoice.lines.data[0].period.end);
+                    const appConfig = getAppConfig();
+                    const stripe = Stripe(appConfig.stripe.skey);
+
+                    const priceId = line.price.id;
+                    const price = await stripe.prices.retrieve(priceId);
+
+                    plan.name = price.metadata.plan;
+                    plan.interval = price.recurring.interval;
+                    plan.stripe_price_id = priceId;
+                    const period = await getEndDate(line.period.end);
                     plan.period = period;
-                    if (invoice.lines.data[0].amount > 0) {
+                    if (line.amount > 0) {
                         const ret_code = await grantAccess(invoice.customer, plan, thisDb);
                         res.sendStatus(ret_code);
                     }
