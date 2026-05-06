@@ -22,6 +22,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const line = lines.data.find(
                     (element) => element.type === "subscription"
                 );
+                console.log("line", line);
                 if (line) {
                     plan.name = element.price.metadata.plan;
                     plan.interval = element.price.recurring.interval;
