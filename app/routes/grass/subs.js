@@ -243,21 +243,22 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             console.log(error);
                             return 501;
                         } else {
-                            const subscriptions = thisDb.collection("subs");
+                            /* const subscriptions = thisDb.collection("subs");
+                            const userId = item[0]._id;
                             subscriptions.insertOne({
                                 user_id: userId,
                                 plan: null,
                                 plan_name: "Basic",
                                 plan_type: "B",
                                 status: "Active",
-                                started_at: plan.period,
+                                started_at: new Date(),
                                 end_interval: "not set",
                                 interval: "not set",
                                 previous_subscription_id: activeSubscription._id,
                                 renewed_at: null,
                                 ended_at: null,
-                                created_at: plan.period,
-                                updated_at: plan.period,
+                                created_at: new Date(),
+                                updated_at: new Date(),
                             }, function (er, sub) {
                                 if (er) {
                                     console.log(er)
@@ -265,7 +266,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                                 } else {
                                     return 200;
                                 }
-                            });
+                            }); */
+                            return 200;
                         }
                     });
                 } else {
