@@ -35,7 +35,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     plan.name = price.metadata.plan;
                     plan.interval = price.recurring.interval;
                     plan.stripe_price_id = priceId;
-                    const period = await getEndDate(line.period.end);
+                    const period = new Date(line.period.end * 1000);
                     plan.period = period;
                     if (line.amount > 0) {
                         const ret_code = await grantAccess(invoice.customer, plan, thisDb);
