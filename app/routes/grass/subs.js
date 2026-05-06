@@ -20,8 +20,9 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const lines = invoice.lines;
                 const plan = {};
                 const line = lines.data.find(
-                    (element) => element.type === "subscription"
+                    (element) => element.parent?.subscription_item_details?.type === "subscription_item_details" || element.type === "subscription"
                 );
+                console.log("invoice", invoice);
                 console.log("line", line);
                 if (line) {
                     plan.name = element.price.metadata.plan;
