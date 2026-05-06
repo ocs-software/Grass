@@ -20,7 +20,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const lines = invoice.lines;
                 const plan = {};
                 const line = lines.data.find(
-                    (element) => element.parent?.subscription_item_details?.type === "subscription_item_details" || element.type === "subscription"
+                    (element) => element.parent?.type === "subscription_item_details" || element.type === "subscription"
                 );
                 console.log("lines.data", invoice.lines.data);
                 console.log("line", line);
