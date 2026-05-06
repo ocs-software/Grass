@@ -32,6 +32,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         const ret_code = await grantAccess(invoice.customer, plan, thisDb);
                         res.sendStatus(ret_code);
                     }
+                } else {
+                    return res.sendStatus(200);
                 }
 
                 break;
@@ -39,6 +41,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "invoice.payment_failed": {
                 const invoice = event.data.object;
                 // should we change subscription to basic?
+                return res.sendStatus(200);
                 break;
             }
 
@@ -59,10 +62,9 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             }
             default:
                 // Ignore everything else
+                return res.sendStatus(200);
                 break;
       }
-
-        return res.sendStatus(200);
     } catch (err) {
         console.error("Webhook handler failed:", err);
         return res.sendStatus(500);
