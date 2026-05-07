@@ -20,13 +20,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "invoice.paid": {
                 const invoice = event.data.object;
                 const lines = invoice.lines;
-                console.log("start lines");
                 if (lines.total_count > 1) {
                     let count = 1;
                     for (var i = 0; i < lines.total_count; i++) {
                         const line = lines.data[i];
-                        console.log("line", line);
-                        const res_ret = await check_line(line, invoice.customer, false);
+                        const res_ret = await check_line(line, invoice.customer, false, invoice.period_end);
                         if (res_ret !== 200) {
                             return res.sendStatus(res_ret);
                         } else {
@@ -37,7 +35,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         count++;
                     }
                 } else {
-                    console.log("only 1 line", lines);
                     const line = lines.data[0];
                     const res_ret = await check_line(line, invoice.customer, true);
                     return res.sendStatus(res_ret);
@@ -79,11 +76,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             }
             case "customer.subscription.updated": {
                 const subscription = event.data.object;
-                console.log(subscription);
+                // console.log(subscription);
 
                 // const ret_code = await grantAccess(invoice.customer);
                 // res.sendStatus(ret_code);
-                res.sendStatus(499);
+                res.sendStatus(200);
                 break;
             }
             case "checkout.session.completed": {
@@ -104,7 +101,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         return res.sendStatus(500);
     }
 
-    async function check_line(line, customer, basic) { 
+    async function check_line(line, customer, basic, period_end) { 
         if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
             const appConfig = getAppConfig();
             const stripe = Stripe(appConfig.stripe.skey);
@@ -120,12 +117,19 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 plan.stripe_price_id = priceId;
                 plan.type = price.metadata.type;
                 plan.start = new Date(line.period.start * 1000);
-                const period = new Date(line.period.end * 1000);
-                plan.period = period;
                 if (line.amount > 0) {
+                    const period = new Date(line.period.end * 1000);
+                    plan.period = period;
                     const ret_code = await grantAccess(customer, plan);
                     return 200;
                 } else {
+                    if (basic && period_end) {
+                        const period = new Date(period_end * 1000);
+                        plan.period = period;
+                    } else {
+                        const period = new Date(line.period.end * 1000);
+                        plan.period = period;
+                    }
                     const ret_code = await revokeAccess(customer, plan, basic);
                     return ret_code;
                 }
@@ -181,7 +185,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     return 200;
                 } else {
                     // Different plan: end old subscription, create new one
-                    console.log("end old sub", activeSubscription);
                     await subscriptions.updateOne(
                         { _id: activeSubscription._id },
                         {
