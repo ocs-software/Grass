@@ -247,21 +247,21 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             const item = await users.find({ user_email: email }).toArray();
 
             if (item.length === 0) {
-            console.log("User not found");
-            return 420;
+                console.log("User not found");
+                return 420;
             }
 
             const result = await users.updateOne(
-            { email },
+            { user_email: email },
             {
                 $set: {
-                cust_id: cust_id
+                    cust_id: cust_id
                 }
             }
             );
 
             if (result.matchedCount === 0) {
-            return 420;
+                return 420;
             }
 
             return 200;
