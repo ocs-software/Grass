@@ -92,7 +92,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         return res.sendStatus(500);
     }
 
-    async check_line(line, customer) { 
+    async function check_line(line, customer) { 
         if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
             const appConfig = getAppConfig();
             const stripe = Stripe(appConfig.stripe.skey);
