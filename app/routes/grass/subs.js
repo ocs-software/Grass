@@ -34,11 +34,10 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
                         res.sendStatus(200);
                     } else {
-                        console.log("price", price);
                         plan.name = price.metadata.plan;
                         plan.interval = price.recurring.interval;
                         plan.stripe_price_id = priceId;
-                        plan.type == price.metadata.type;
+                        plan.type = price.metadata.type;
                         plan.start = new Date(line.period.start * 1000);
                         const period = new Date(line.period.end * 1000);
                         plan.period = period;
@@ -115,7 +114,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     });
 
                     return 200;
-                } else if (activeSubscription.plan === pan.stripe_price_id) {
+                } else if (activeSubscription.plan === plan.stripe_price_id) {
                 // Same plan: renewal, update existing active subscription
                     await subscriptions.updateOne(
                         { _id: activeSubscription._id },
