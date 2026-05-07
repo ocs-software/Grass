@@ -113,7 +113,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             const price = await stripe.prices.retrieve(priceId);
             const plan = {};
             if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
-                res.sendStatus(200);
+                return 200;
             } else {
                 plan.name = price.metadata.plan;
                 plan.interval = price.recurring.interval;
@@ -124,9 +124,10 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 plan.period = period;
                 if (line.amount > 0) {
                     const ret_code = await grantAccess(customer, plan);
-                    res.sendStatus(ret_code);
+                    return 200;
                 } else {
-                    const ret_code = await revokeAccess(customer, plan, basic)
+                    const ret_code = await revokeAccess(customer, plan, basic);
+                    return ret_code;
                 }
             }
         } else {
