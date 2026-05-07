@@ -244,7 +244,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         try {
             const users = thisDb.collection("users");
 
-            const item = await users.find({ email }).toArray();
+            const item = await users.find({ user_email: email }).toArray();
 
             if (item.length === 0) {
             console.log("User not found");
