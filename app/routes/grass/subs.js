@@ -93,8 +93,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const activeSubscription = await subscriptions.findOne(query);
 
                 // No active subscription yet: create first one
+                const now = new Date();
                 if (!activeSubscription) {
-                    const now = new Date();
                     const result = await subscriptions.insertOne({
                         user_id: userId,
                         plan: plan.stripe_price_id,
@@ -154,8 +154,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         previous_subscription_id: activeSubscription._id,
                         renewed_at: null,
                         ended_at: null,
-                        created_at: plan.start,
-                        updated_at: plan.start,
+                        created_at: now,
+                        updated_at: now,
                     });
 
                     return 200;
