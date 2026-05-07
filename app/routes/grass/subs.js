@@ -35,6 +35,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     plan.name = price.metadata.plan;
                     plan.interval = price.recurring.interval;
                     plan.stripe_price_id = priceId;
+                    plan.type == price.metadata.type;
+                    plan.start = new Date(line.period.start * 1000);
                     const period = new Date(line.period.end * 1000);
                     plan.period = period;
                     if (line.amount > 0) {
@@ -92,19 +94,20 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
                 // No active subscription yet: create first one
                 if (!activeSubscription) {
+                    const now = new Date();
                     const result = await subscriptions.insertOne({
                         user_id: userId,
                         plan: plan.stripe_price_id,
                         plan_name: plan.name,
-                        plan_type: plan.name == "Pro" ? "P" : "E",
+                        plan_type: plan.type,
                         status: "Active",
                         started_at: plan.start,
                         end_interval: plan.period,
                         interval: plan.interval,
                         renewed_at: null,
                         ended_at: null,
-                        created_at: plan.start,
-                        updated_at: plan.start,
+                        created_at: now,
+                        updated_at: now,
                     });
 
                     return 200;
