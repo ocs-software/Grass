@@ -21,34 +21,32 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const invoice = event.data.object;
                 const lines = invoice.lines;
                 const plan = {};
-                const line = lines.data.find(
-                    (element) => element.parent?.type === "subscription_item_details" || element.type === "subscription"
-                );
+                lines.data.array.forEach(line => {    
+                    if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
+                        const appConfig = getAppConfig();
+                        const stripe = Stripe(appConfig.stripe.skey);
 
-                if (line) {
-                    const appConfig = getAppConfig();
-                    const stripe = Stripe(appConfig.stripe.skey);
-
-                    const priceId = line.price?.id || line.pricing?.price_details?.price;
-                    const price = await stripe.prices.retrieve(priceId);
-                    if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
-                        res.sendStatus(200);
-                    } else {
-                        plan.name = price.metadata.plan;
-                        plan.interval = price.recurring.interval;
-                        plan.stripe_price_id = priceId;
-                        plan.type = price.metadata.type;
-                        plan.start = new Date(line.period.start * 1000);
-                        const period = new Date(line.period.end * 1000);
-                        plan.period = period;
-                        if (line.amount > 0) {
-                            const ret_code = await grantAccess(invoice.customer, plan, thisDb);
-                            res.sendStatus(ret_code);
+                        const priceId = line.price?.id || line.pricing?.price_details?.price;
+                        const price = await stripe.prices.retrieve(priceId);
+                        if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
+                            res.sendStatus(200);
+                        } else {
+                            plan.name = price.metadata.plan;
+                            plan.interval = price.recurring.interval;
+                            plan.stripe_price_id = priceId;
+                            plan.type = price.metadata.type;
+                            plan.start = new Date(line.period.start * 1000);
+                            const period = new Date(line.period.end * 1000);
+                            plan.period = period;
+                            if (line.amount > 0) {
+                                const ret_code = await grantAccess(invoice.customer, plan, thisDb);
+                                res.sendStatus(ret_code);
+                            }
                         }
                     }
-                } else {
-                    return res.sendStatus(200);
-                }
+                });
+
+                return res.sendStatus(200);
 
                 break;
             }
@@ -64,6 +62,29 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
                 const ret_code = await revokeAccess(invoice.customer, thisDb);
                 res.sendStatus(ret_code);
+                break;
+            }
+            case "customer.subscription.paused": {
+                const subscription = event.data.object;
+
+                const ret_code = await revokeAccess(invoice.customer, thisDb);
+                res.sendStatus(ret_code);
+                break;
+            }
+            case "customer.subscription.resumed": {
+                const subscription = event.data.object;
+
+                const ret_code = await grantAccess(invoice.customer, thisDb);
+                res.sendStatus(ret_code);
+                break;
+            }
+            case "customer.subscription.updated": {
+                const subscription = event.data.object;
+                console.log(subscription);
+
+                // const ret_code = await grantAccess(invoice.customer, thisDb);
+                // res.sendStatus(ret_code);
+                res.sendStatus(499);
                 break;
             }
             case "checkout.session.completed": {
