@@ -31,17 +31,20 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
                     const priceId = line.price?.id || line.pricing?.price_details?.price;
                     const price = await stripe.prices.retrieve(priceId);
-
-                    plan.name = price.metadata.plan;
-                    plan.interval = price.recurring.interval;
-                    plan.stripe_price_id = priceId;
-                    plan.type == price.metadata.type;
-                    plan.start = new Date(line.period.start * 1000);
-                    const period = new Date(line.period.end * 1000);
-                    plan.period = period;
-                    if (line.amount > 0) {
-                        const ret_code = await grantAccess(invoice.customer, plan, thisDb);
-                        res.sendStatus(ret_code);
+                    if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
+                        res.sendStatus(200);
+                    } else {
+                        plan.name = price.metadata.plan;
+                        plan.interval = price.recurring.interval;
+                        plan.stripe_price_id = priceId;
+                        plan.type == price.metadata.type;
+                        plan.start = new Date(line.period.start * 1000);
+                        const period = new Date(line.period.end * 1000);
+                        plan.period = period;
+                        if (line.amount > 0) {
+                            const ret_code = await grantAccess(invoice.customer, plan, thisDb);
+                            res.sendStatus(ret_code);
+                        }
                     }
                 } else {
                     return res.sendStatus(200);
