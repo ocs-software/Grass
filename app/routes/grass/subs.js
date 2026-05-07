@@ -20,7 +20,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "invoice.paid": {
                 const invoice = event.data.object;
                 const lines = invoice.lines;
-                const plan = {};
                 if (lines.data.total_count > 1) {
                     for (var i = 0; i < lines.data.total_count; i++) {
                         const line = lines.data[0];
@@ -99,6 +98,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
             const priceId = line.price?.id || line.pricing?.price_details?.price;
             const price = await stripe.prices.retrieve(priceId);
+            const plan = {};
             if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
                 res.sendStatus(200);
             } else {
