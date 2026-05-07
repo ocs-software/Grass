@@ -181,6 +181,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     return 200;
                 } else {
                     // Different plan: end old subscription, create new one
+                    console.log("end old sub", activeSubscription);
                     await subscriptions.updateOne(
                         { _id: activeSubscription._id },
                         {
