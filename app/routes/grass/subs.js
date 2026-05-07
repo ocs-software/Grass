@@ -22,13 +22,19 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const lines = invoice.lines;
                 console.log("start lines");
                 if (lines.total_count > 1) {
+                    let count = 1;
                     for (var i = 0; i < lines.data.total_count; i++) {
                         const line = lines.data[i];
                         console.log("line", line);
                         const res_ret = await check_line(line, invoice.customer, true);
                         if (res_ret !== 200) {
                             return res.sendStatus(res_ret);
+                        } else {
+                            if (lines.total_count == count) {
+                                return res.sendStatus(200);
+                            }
                         }
+                        count++;
                     }
                 } else {
                     console.log("only 1 line", lines);
@@ -36,8 +42,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     const res_ret = await check_line(line, invoice.customer, false);
                     return res.sendStatus(res_ret);
                 }
-
-                return res.sendStatus(200);
 
                 break;
             }
