@@ -23,7 +23,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 console.log("start lines");
                 if (lines.total_count > 1) {
                     let count = 1;
-                    for (var i = 0; i < lines.data.total_count; i++) {
+                    for (var i = 0; i < lines.total_count; i++) {
                         const line = lines.data[i];
                         console.log("line", line);
                         const res_ret = await check_line(line, invoice.customer, true);
