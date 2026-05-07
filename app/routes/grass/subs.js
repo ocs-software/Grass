@@ -265,20 +265,22 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     }
                 } else {
                     // create a basic "subscription"
-                    const newdate = new Date();
-                    const result = await subscriptions.insertOne({
-                        user_id: userId,
-                        plan: null,
-                        plan_name: "Basic",
-                        plan_type: "B",
-                        status: "Active",
-                        started_at: newdate,
-                        end_interval: "not set",
-                        interval: "not set",
-                        previous_subscription_id: activeSubscription._id,
-                        created_at: newdate,
-                        updated_at: newdate,
-                    });
+                    if (createBasic) {
+                        const newdate = new Date();
+                        const result = await subscriptions.insertOne({
+                            user_id: userId,
+                            plan: null,
+                            plan_name: "Basic",
+                            plan_type: "B",
+                            status: "Active",
+                            started_at: newdate,
+                            end_interval: "not set",
+                            interval: "not set",
+                            previous_subscription_id: activeSubscription._id,
+                            created_at: newdate,
+                            updated_at: newdate,
+                        });
+                    }
                     return 200;
                 }
             }
