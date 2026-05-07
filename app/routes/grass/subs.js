@@ -117,7 +117,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 plan.stripe_price_id = priceId;
                 plan.type = price.metadata.type;
                 plan.start = new Date(line.period.start * 1000);
-                if (line.amount > 0) {
+                if (line.amount >= 0) {
                     const period = new Date(line.period.end * 1000);
                     plan.period = period;
                     const ret_code = await grantAccess(customer, plan);
