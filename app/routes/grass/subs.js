@@ -68,7 +68,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             }
             case "checkout.session.completed": {
                 const session = event.data.object;
-                const userId = session.client_reference_id;
+                const userId = session.client_reference_id ? session.client_reference_id : session.customer_email;
                 const stripeCustomerId = session.customer;
                 const ret_code = await updateCustID(userId, stripeCustomerId, thisDb);
                 res.sendStatus(ret_code);
