@@ -146,7 +146,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         user_id: userId,
                         plan: plan.stripe_price_id,
                         plan_name: plan.name,
-                        plan_type: plan.name == "Pro" ? "P" : "E",
+                        plan_type: plan.type,
                         status: "Active",
                         started_at: plan.start,
                         end_interval: plan.period,
