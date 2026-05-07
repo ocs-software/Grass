@@ -21,32 +21,19 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const invoice = event.data.object;
                 const lines = invoice.lines;
                 const plan = {};
-                lines.data.array.forEach(line => {    
-                    if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
-                        const appConfig = getAppConfig();
-                        const stripe = Stripe(appConfig.stripe.skey);
-
-                        const priceId = line.price?.id || line.pricing?.price_details?.price;
-                        const price = await stripe.prices.retrieve(priceId);
-                        if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
-                            res.sendStatus(200);
-                        } else {
-                            plan.name = price.metadata.plan;
-                            plan.interval = price.recurring.interval;
-                            plan.stripe_price_id = priceId;
-                            plan.type = price.metadata.type;
-                            plan.start = new Date(line.period.start * 1000);
-                            const period = new Date(line.period.end * 1000);
-                            plan.period = period;
-                            if (line.amount > 0) {
-                                const ret_code = await grantAccess(invoice.customer, plan, thisDb);
-                                res.sendStatus(ret_code);
-                            }
+                if (lines.data.total_count > 1) {
+                    for (var i = 0; i < lines.data.total_count; i++) {
+                        const line = lines.data[0];
+                        const res_ret = await check_line(line, invoice.customer);
+                        if (res_ret !== 200) {
+                            return res.sendStatus(res_ret);
                         }
                     }
-                });
-
-                return res.sendStatus(200);
+                } else {
+                    const line = lines.data[0];
+                    const res_ret = await check_line(line, invoice.customer);
+                    return res.sendStatus(res_ret);
+                }
 
                 break;
             }
@@ -60,21 +47,21 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "customer.subscription.deleted": {
                 const subscription = event.data.object;
 
-                const ret_code = await revokeAccess(invoice.customer, thisDb);
+                const ret_code = await revokeAccess(invoice.customer);
                 res.sendStatus(ret_code);
                 break;
             }
             case "customer.subscription.paused": {
                 const subscription = event.data.object;
 
-                const ret_code = await revokeAccess(invoice.customer, thisDb);
+                const ret_code = await revokeAccess(invoice.customer);
                 res.sendStatus(ret_code);
                 break;
             }
             case "customer.subscription.resumed": {
                 const subscription = event.data.object;
 
-                const ret_code = await grantAccess(invoice.customer, thisDb);
+                const ret_code = await grantAccess(invoice.customer);
                 res.sendStatus(ret_code);
                 break;
             }
@@ -82,7 +69,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const subscription = event.data.object;
                 console.log(subscription);
 
-                // const ret_code = await grantAccess(invoice.customer, thisDb);
+                // const ret_code = await grantAccess(invoice.customer);
                 // res.sendStatus(ret_code);
                 res.sendStatus(499);
                 break;
@@ -91,7 +78,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 const session = event.data.object;
                 const userId = session.client_reference_id ? session.client_reference_id : session.customer_email;
                 const stripeCustomerId = session.customer;
-                const ret_code = await updateCustID(userId, stripeCustomerId, thisDb);
+                const ret_code = await updateCustID(userId, stripeCustomerId);
                 res.sendStatus(ret_code);
                 break;
             }
@@ -105,7 +92,36 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         return res.sendStatus(500);
     }
 
-    async function grantAccess(user, plan, thisDb) {
+    async check_line(line, customer) { 
+        if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
+            const appConfig = getAppConfig();
+            const stripe = Stripe(appConfig.stripe.skey);
+
+            const priceId = line.price?.id || line.pricing?.price_details?.price;
+            const price = await stripe.prices.retrieve(priceId);
+            if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
+                res.sendStatus(200);
+            } else {
+                plan.name = price.metadata.plan;
+                plan.interval = price.recurring.interval;
+                plan.stripe_price_id = priceId;
+                plan.type = price.metadata.type;
+                plan.start = new Date(line.period.start * 1000);
+                const period = new Date(line.period.end * 1000);
+                plan.period = period;
+                if (line.amount > 0) {
+                    const ret_code = await grantAccess(customer, plan);
+                    res.sendStatus(ret_code);
+                } else {
+                    const ret_code = await revokeAccess(customer, plan)
+                }
+            }
+        } else {
+            return 200;
+        }
+    }
+
+    async function grantAccess(user, plan) {
         // Update/create subscription record.
         try {
             const subscriptions = thisDb.collection("subs");
@@ -191,7 +207,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         }
     }
 
-    async function revokeAccess(user, plan, thisDb) {
+    async function revokeAccess(user, plan) {
         try {
             const subscriptions = thisDb.collection("subs");
             let query = { cust_id: user };
@@ -261,7 +277,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         }
     }
 
-    async function updateCustID(email, cust_id, thisDb) {
+    async function updateCustID(email, cust_id) {
         try {
             const users = thisDb.collection("users");
 
