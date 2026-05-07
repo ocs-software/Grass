@@ -26,7 +26,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     for (var i = 0; i < lines.total_count; i++) {
                         const line = lines.data[i];
                         console.log("line", line);
-                        const res_ret = await check_line(line, invoice.customer, true);
+                        const res_ret = await check_line(line, invoice.customer, false);
                         if (res_ret !== 200) {
                             return res.sendStatus(res_ret);
                         } else {
@@ -39,7 +39,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 } else {
                     console.log("only 1 line", lines);
                     const line = lines.data[0];
-                    const res_ret = await check_line(line, invoice.customer, false);
+                    const res_ret = await check_line(line, invoice.customer, true);
                     return res.sendStatus(res_ret);
                 }
 
@@ -157,8 +157,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         started_at: plan.start,
                         end_interval: plan.period,
                         interval: plan.interval,
-                        renewed_at: null,
-                        ended_at: null,
                         created_at: now,
                         updated_at: now,
                     });
@@ -205,8 +203,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         end_interval: plan.period,
                         interval: plan.interval,
                         previous_subscription_id: activeSubscription._id,
-                        renewed_at: null,
-                        ended_at: null,
                         created_at: now,
                         updated_at: now,
                     });
@@ -257,8 +253,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                                 end_interval: "not set",
                                 interval: "not set",
                                 previous_subscription_id: activeSubscription._id,
-                                renewed_at: null,
-                                ended_at: null,
                                 created_at: newdate,
                                 updated_at: newdate,
                             });
@@ -281,8 +275,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         end_interval: "not set",
                         interval: "not set",
                         previous_subscription_id: activeSubscription._id,
-                        renewed_at: null,
-                        ended_at: null,
                         created_at: newdate,
                         updated_at: newdate,
                     });
