@@ -20,21 +20,17 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "invoice.paid": {
                 const invoice = event.data.object;
                 const lines = invoice.lines;
-                console.log("start lines");
-                if (lines.data.total_count > 1) {
+                if (lines.total_count > 1) {
                     for (var i = 0; i < lines.data.total_count; i++) {
                         const line = lines.data[i];
-                        console.log("line", line);
-                        const res_ret = await check_line(line, invoice.customer);
-                        console.log("res_ret", res_ret);
+                        const res_ret = await check_line(line, invoice.customer, true);
                         if (res_ret !== 200) {
                             return res.sendStatus(res_ret);
                         }
                     }
                 } else {
-                console.log("only 1 line");
                     const line = lines.data[0];
-                    const res_ret = await check_line(line, invoice.customer);
+                    const res_ret = await check_line(line, invoice.customer, false);
                     return res.sendStatus(res_ret);
                 }
 
@@ -50,14 +46,18 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "customer.subscription.deleted": {
                 const subscription = event.data.object;
 
-                const ret_code = await revokeAccess(invoice.customer);
+                const period = new Date(subscription.lines.data[0].period.end * 1000);
+                const plan = {period: period};
+                const ret_code = await revokeAccess(invoice.customer, plan, true);
                 res.sendStatus(ret_code);
                 break;
             }
             case "customer.subscription.paused": {
                 const subscription = event.data.object;
 
-                const ret_code = await revokeAccess(invoice.customer);
+                const period = new Date(subscription.lines.data[0].period.end * 1000);
+                const plan = {period: period};
+                const ret_code = await revokeAccess(invoice.customer, plan, true);
                 res.sendStatus(ret_code);
                 break;
             }
@@ -95,7 +95,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         return res.sendStatus(500);
     }
 
-    async function check_line(line, customer) { 
+    async function check_line(line, customer, basic) { 
         if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
             const appConfig = getAppConfig();
             const stripe = Stripe(appConfig.stripe.skey);
@@ -117,7 +117,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     const ret_code = await grantAccess(customer, plan);
                     res.sendStatus(ret_code);
                 } else {
-                    const ret_code = await revokeAccess(customer, plan)
+                    const ret_code = await revokeAccess(customer, plan, basic)
                 }
             }
         } else {
@@ -211,13 +211,13 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         }
     }
 
-    async function revokeAccess(user, plan) {
+    async function revokeAccess(user, plan, createBasic) {
         try {
             const subscriptions = thisDb.collection("subs");
             let query = { cust_id: user };
-            const items = await thisDb.collection("users").find(query).toArray();
-            if (items.length > 0) {
-                const userId = items[0]["_id"];
+            const users = await thisDb.collection("users").find(query).toArray();
+            if (users.length > 0) {
+                const userId = users[0]["_id"];
                 query = {user_id: userId, status: "Active"};
                 const activeSubscription = await subscriptions.findOne(query);
                 if (activeSubscription) {
@@ -236,41 +236,46 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             }
                         );
 
-                        const result = await subscriptions.insertOne({
-                            user_id: userId,
-                            plan: null,
-                            plan_name: "Basic",
-                            plan_type: "B",
-                            status: "Active",
-                            started_at: plan.period,
-                            end_interval: "not set",
-                            interval: "not set",
-                            previous_subscription_id: activeSubscription._id,
-                            renewed_at: null,
-                            ended_at: null,
-                            created_at: plan.period,
-                            updated_at: plan.period,
-                        });
+                        if (createBasic) {
+                            const newdate = new Date();
+                            await subscriptions.insertOne({
+                                user_id: userId,
+                                plan: null,
+                                plan_name: "Basic",
+                                plan_type: "B",
+                                status: "Active",
+                                started_at: plan.period,
+                                end_interval: "not set",
+                                interval: "not set",
+                                previous_subscription_id: activeSubscription._id,
+                                renewed_at: null,
+                                ended_at: null,
+                                created_at: newdate,
+                                updated_at: newdate,
+                            });
+                        }
+
                         return 200;
                     } else {
                         return 200;
                     }
                 } else {
                     // create a basic "subscription"
+                    const newdate = new Date();
                     const result = await subscriptions.insertOne({
                         user_id: userId,
                         plan: null,
                         plan_name: "Basic",
                         plan_type: "B",
                         status: "Active",
-                        started_at: new Date(),
+                        started_at: newdate,
                         end_interval: "not set",
                         interval: "not set",
                         previous_subscription_id: activeSubscription._id,
                         renewed_at: null,
                         ended_at: null,
-                        created_at: new Date(),
-                        updated_at: new Date(),
+                        created_at: newdate,
+                        updated_at: newdate,
                     });
                     return 200;
                 }
