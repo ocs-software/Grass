@@ -20,15 +20,19 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "invoice.paid": {
                 const invoice = event.data.object;
                 const lines = invoice.lines;
+                console.log("start lines");
                 if (lines.data.total_count > 1) {
                     for (var i = 0; i < lines.data.total_count; i++) {
-                        const line = lines.data[0];
+                        const line = lines.data[i];
+                        console.log("line", line);
                         const res_ret = await check_line(line, invoice.customer);
+                        console.log("res_ret", res_ret);
                         if (res_ret !== 200) {
                             return res.sendStatus(res_ret);
                         }
                     }
                 } else {
+                console.log("only 1 line");
                     const line = lines.data[0];
                     const res_ret = await check_line(line, invoice.customer);
                     return res.sendStatus(res_ret);
