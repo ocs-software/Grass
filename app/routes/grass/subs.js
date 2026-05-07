@@ -34,6 +34,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                     if (price.metadata.app !== "grass") { // not a grass subscription, just making sure that we do not process something that do not belong to grass subscriptions
                         res.sendStatus(200);
                     } else {
+                        console.log("price", price);
                         plan.name = price.metadata.plan;
                         plan.interval = price.recurring.interval;
                         plan.stripe_price_id = priceId;
