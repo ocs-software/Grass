@@ -1642,13 +1642,11 @@ router.post("/import", async (req, res) => {
                 console.log("_id", _id);
 
                 const toursDb = thisDb.collection("tours_dev");
-
-                query = {user_id: _id, tour: tour};
-
-                const new_tour = {
-                };
-
                 if (Object.keys(tour_obj).length > 0) {
+                    const tour = tour_obj.tour;
+
+                    query = {user_id: _id, tour: tour};
+
                     const new_data = {
                         $set: tour_obj,
                     }
