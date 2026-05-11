@@ -1637,10 +1637,10 @@ router.post("/import", async (req, res) => {
                                 message: "No Tour Document found/inserted",
                             });
                         } else {
-                            await endImport(new_tour);
+                            await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, new_tour);
                         }
                     } else {
-                        await endImport(null);
+                        await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, null);
                     }
                 }
             /* } else {
@@ -1664,11 +1664,11 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function endImport(tour_added) {
+    async function endImport(user_firstname, surname, old_user_obj, user_obj, email, thisDb, tour_added) {
 
         let res_json = {status: "OK"};
 
-        res_json.message = "User Updated.";
+        res_json.message = "User Import.";
         res_json.firstname = user_firstname;
         res_json.surname = surname;
         res.res_json = res_json;
@@ -1676,7 +1676,7 @@ router.post("/import", async (req, res) => {
         res.send({ res_json });
 
         const old_values = {};
-        const user = items[0];
+        const user = old_user_obj;
         const keys = Object.keys(user_obj);
         keys.array.forEach(element => {
             old_values[element] = user[element];
