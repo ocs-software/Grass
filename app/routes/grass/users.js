@@ -1619,7 +1619,10 @@ router.post("/import", async (req, res) => {
                     }
 
                     if (Object.keys(new_tour).length > 0) {
-                        result = await toursDb.updateOne(query, new_tour, {upsert: true});
+                        const new_data = {
+                            $set: new_tour,
+                        }
+                        result = await toursDb.updateOne(query, new_data, {upsert: true});
 
                         if (result.matchedCount === 0 && !result.upsertedId) {
                             return res.status(500).json({
