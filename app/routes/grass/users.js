@@ -1499,32 +1499,52 @@ router.post("/import", async (req, res) => {
 
         const data = req.body;
 
-        console.log("data", data);
-        const {
-            code,
-            email,
-            forename1,
-            forename2,
-            surname,
-            playing_name,
-            knownas,
-            gender,
-            dob,
-            tour,
-            tour_name
-        } = req.body;
+        let obj_keys = [];
+        const user_obj = {};
+        const tour_obj = {};
+        let token = "";
 
+        if (typeof data === "object") {
+            obj_keys = Object.keys(data);
+        } else {
+            return res.status(500).send({status: "FAILED", message: "Invalid data sent"});
+        }
+
+        for (const key of obj_keys) {
+            const value = data[key];
+            if (key == "token") {
+                token = value;
+            } else if (key != "tour") {
+                user_obj[key] = value;
+            } else {
+                if (typeof value === "object") {
+                    const tour_data = value;
+                    const tour_keys = Object.keys(tour_data);
+                    if (tour_keys.length > 0) {
+                        for (const tkey of tour_keys) {
+                            tour_obj[tkey] = tour_data[tkey];
+                        }
+                    }
+                }
+            }
+        }
+        
         var errMess = "";
 
-        if (email === null || email === "") {
+        const user_email = user_obj.email;
+
+        if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
         }
 
         if (errMess == "") {
-            if (!validateEmail(email)) {
+            if (!validateEmail(user_email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
+
+        const forename1 = user_obj.forename1;
+        const forename2 = user_obj.forename2;
 
         if ((forename1 === null || forename1 === "") && (forename2 === null || forename2 === "")) {
             errMess += " User Firstname Missing";
@@ -1532,6 +1552,7 @@ router.post("/import", async (req, res) => {
 
         const user_firstname = forename1 ? (forename2 ? (forename1 + " " + forename2) : forename1) : forename2;
 
+        const surname = user_obj.surname;
         if (surname === null || surname === "") {
             errMess += " User Surname Missing";
         }
@@ -1553,7 +1574,7 @@ router.post("/import", async (req, res) => {
             // if (token == process.env.TOKEN)
             //     superToken = true;
 
-            let query = { user_email: email };
+            let query = { user_email: user_email };
             const thisDb = db.db("grass");
             const usersDb = thisDb.collection("users_dev");
 
@@ -1565,23 +1586,6 @@ router.post("/import", async (req, res) => {
             if (users.length > 0) {
                 old_values = users[0];
             }
-
-            const user_obj = {
-                    user_firstname: user_firstname,
-                    user_surname: surname,
-                    user_dob: dob,
-                    // user_residence: user_residence,
-                    // count_strokes: count_strokes,
-                    // show_vspar: show_vspar,
-                    // handicap_index: handicap_index,
-                    gender: gender,
-                    // playing_status: playing_status,
-                    // unit_measure: unit_measure,
-                    // unit_speed: unit_speed,
-                    // unit_temperature: unit_temperature,
-                    updated: new Date(Date.now()),
-                    unix_timestamp: Date.now()
-            };
 
             for (const [key, value] of Object.entries(user_obj)) {
                 setFields[key] = value;
@@ -1598,25 +1602,22 @@ router.post("/import", async (req, res) => {
                 [
                     {
                         $set: {
-                            ...setFields,
+                            ...setFields, // only set fields sent by form
                             updated: {
                                 $cond: [
-                                    { $or: comparisons },
+                                    { $or: comparisons }, // only update "updated" timestamp if something changed
                                     "$$NOW",
-                                    "updated"
+                                    "$updated"
                                 ]
                             }
+                        },
+                        created: {
+                            $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
                         }
                     }
                 ],
                 { upsert: true }
             );
-
-            /* let newvalues = {
-                $set: user_obj,
-            };
-
-            let result = await usersDb.updateOne(query, newvalues, {upsert: true}); */
 
             if (result.matchedCount === 0 && !result.upsertedId) {
                 // Failed
@@ -1638,6 +1639,7 @@ router.post("/import", async (req, res) => {
                     if (new_user.length > 0)
                         _id = new_user[0]._id; */
                 }
+                console.log("_id", _id);
 
                 const toursDb = thisDb.collection("tours_dev");
 
@@ -1646,24 +1648,9 @@ router.post("/import", async (req, res) => {
                 const new_tour = {
                 };
 
-                if (playing_name) {
-                    new_tour.playing_name = playing_name;
-                }
-                if (knownas) {
-                    new_tour.knownas = knownas;
-                }
-
-                if (tour_name) {
-                    new_tour.tour_name = tour_name;
-                }
-
-                if (code) {
-                    new_tour.code = code;
-                }
-
-                if (Object.keys(new_tour).length > 0) {
+                if (Object.keys(tour_obj).length > 0) {
                     const new_data = {
-                        $set: new_tour,
+                        $set: tour_obj,
                     }
                     result = await toursDb.updateOne(query, new_data, {upsert: true});
 
