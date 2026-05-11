@@ -1608,10 +1608,10 @@ router.post("/import", async (req, res) => {
                     };
 
                     if (playing_name) {
-                        new_tour.playing_name: playing_name;
+                        new_tour.playing_name = playing_name;
                     }
                     if (knownas) {
-                        new_tour.knownas: knownas;
+                        new_tour.knownas = knownas;
                     }
 
                     if (tour_name) {
