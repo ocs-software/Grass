@@ -1527,6 +1527,8 @@ router.post("/import", async (req, res) => {
             errMess += " User Firstname Missing";
         }
 
+        const user_firstname = forename1 ? (forename2 ? (forename1 + " " + forename2) : forename1) : forename2;
+
         if (surname === null || surname === "") {
             errMess += " User Surname Missing";
         }
@@ -1560,7 +1562,6 @@ router.post("/import", async (req, res) => {
             }
 
             // if (item[0].token == token || superToken) {
-                const user_firstname = forename1 ? (forename2 ? (forename1 + " " + forename2) : forename1) : forename2;
                 const user_obj = {
                         user_firstname: user_firstname,
                         user_surname: surname,
@@ -1582,7 +1583,7 @@ router.post("/import", async (req, res) => {
                     $set: user_obj,
                 };
 
-                let result = await thisDb.collection("users_dev").updateOne(query, newvalues, {upsert: true});
+                let result = await usersDb.updateOne(query, newvalues, {upsert: true});
 
                 if (result.matchedCount === 0 && !result.upsertedId) {
                     // Failed
@@ -1596,8 +1597,10 @@ router.post("/import", async (req, res) => {
                     if (old_values) {
                         _id = old_values._id;
                     } else {
-                        const new_user = await usersDb.find(query).toArray()[0];
-                        _id = new_user._id;
+                        query = { user_email: email };
+                        const new_user = await usersDb.find(query).toArray();
+                        if (new_user.length > 0)
+                            _id = new_user[0]._id;
                     }
 
                     const toursDb = thisDb.collection("tours_dev");
@@ -1616,6 +1619,10 @@ router.post("/import", async (req, res) => {
 
                     if (tour_name) {
                         new_tour.tour_name = tour_name;
+                    }
+
+                    if (code) {
+                        new_tour.code = code;
                     }
 
                     if (Object.keys(new_tour).length > 0) {
