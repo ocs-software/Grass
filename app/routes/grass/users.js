@@ -1597,10 +1597,13 @@ router.post("/import", async (req, res) => {
                     if (old_values) {
                         _id = old_values._id;
                     } else {
-                        query = { user_email: email };
+                        if (result.upsertedId) {
+                            _id = result.upsertedId;
+                        }
+                        /* query = { user_email: email };
                         const new_user = await usersDb.find(query).toArray();
                         if (new_user.length > 0)
-                            _id = new_user[0]._id;
+                            _id = new_user[0]._id; */
                     }
 
                     const toursDb = thisDb.collection("tours_dev");
