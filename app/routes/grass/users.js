@@ -1588,10 +1588,12 @@ router.post("/import", async (req, res) => {
             }
 
             for (const [key, value] of Object.entries(user_obj)) {
-                setFields[key] = value;
-                comparisons.push({
-                    $ne: [key, value]
-                })
+                if (key !== "email") {
+                    setFields[key] = value;
+                    comparisons.push({
+                        $ne: [key, value]
+                    })
+                }
             }
 
             if (Object.keys(setFields).length === 0)
@@ -1635,6 +1637,7 @@ router.post("/import", async (req, res) => {
                     if (result.upsertedId) {
                         _id = result.upsertedId;
                     }
+                    console.log("result", result);
                     /* query = { user_email: email };
                     const new_user = await usersDb.find(query).toArray();
                     if (new_user.length > 0)
@@ -1660,10 +1663,10 @@ router.post("/import", async (req, res) => {
                         });
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, tour_obj, user_changes, tour_changes);
+                        await endImport(user_firstname, surname, old_values, user_obj, user_email, thisDb, tour_obj, user_changes, tour_changes);
                     }
                 } else {
-                    await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, null, user_changes, false);
+                    await endImport(user_firstname, surname, old_values, user_obj, user_email, thisDb, null, user_changes, false);
                 }
             }
         }
@@ -1681,6 +1684,10 @@ router.post("/import", async (req, res) => {
     async function endImport(user_firstname, surname, old_user_obj, user_obj, email, thisDb, tour_added, user_changed, tour_changed) {
 
         let res_json = {status: "OK"};
+
+        if (user_obj?.email) {
+            delete user_obj.email;
+        }
 
         res_json.message = "User Import.";
         res_json.firstname = user_firstname;
