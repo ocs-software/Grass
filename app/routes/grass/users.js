@@ -1545,8 +1545,8 @@ router.post("/import", async (req, res) => {
         } else {
             var superToken = false;
 
-            if (token == process.env.TOKEN)
-                superToken = true;
+            // if (token == process.env.TOKEN)
+            //     superToken = true;
 
             let query = { user_email: email };
             const thisDb = db.db("grass");
