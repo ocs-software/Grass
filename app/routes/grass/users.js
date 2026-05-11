@@ -1626,7 +1626,7 @@ router.post("/import", async (req, res) => {
                     message: "No User Document found/inserted",
                 });
             } else {
-                const user_changes = (result.modified.count > 0 || result.upsertedId);
+                const user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 // update/insert tour info
                 let _id;
                 if (old_values) {
@@ -1659,7 +1659,7 @@ router.post("/import", async (req, res) => {
                             message: "No Tour Document found/inserted",
                         });
                     } else {
-                        const tour_changes = result.modified.count > 0 || result.upsertedId;
+                        const tour_changes = result.modifiedCount > 0 || result.upsertedId;
                         await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, tour_obj, user_changes, tour_changes);
                     }
                 } else {
