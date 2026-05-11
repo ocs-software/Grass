@@ -1676,11 +1676,14 @@ router.post("/import", async (req, res) => {
         res.send({ res_json });
 
         const old_values = {};
-        const user = old_user_obj;
-        const keys = Object.keys(user_obj);
-        keys.array.forEach(element => {
-            old_values[element] = user[element];
-        });
+        if (old_user_obj) {
+            const user = old_user_obj;
+            const keys = Object.keys(user_obj);
+            keys.array.forEach(element => {
+                old_values[element] = user[element];
+            });
+        }
+        
         let query = {
             user_email: email,
             message: "Account Updated",
