@@ -1543,7 +1543,7 @@ router.post("/import", async (req, res) => {
             res_json.message = errMess;
 
             res.res_json = res_json;
-            res.send({ res_json });
+            res.status(203).send({ res_json });
         } else {
             var superToken = true;
 
