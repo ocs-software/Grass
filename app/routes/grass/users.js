@@ -1626,6 +1626,7 @@ router.post("/import", async (req, res) => {
                     message: "No User Document found/inserted",
                 });
             } else {
+                const user_changes = (result.modified.count > 0 || result.upsertedId);
                 // update/insert tour info
                 let _id;
                 if (old_values) {
@@ -1658,10 +1659,11 @@ router.post("/import", async (req, res) => {
                             message: "No Tour Document found/inserted",
                         });
                     } else {
-                        await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, new_tour);
+                        const tour_changes = result.modified.count > 0 || result.upsertedId;
+                        await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, tour_obj, user_changes, tour_changes);
                     }
                 } else {
-                    await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, null);
+                    await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, null, user_changes, false);
                 }
             }
         }
@@ -1676,7 +1678,7 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function endImport(user_firstname, surname, old_user_obj, user_obj, email, thisDb, tour_added) {
+    async function endImport(user_firstname, surname, old_user_obj, user_obj, email, thisDb, tour_added, user_changed, tour_changed) {
 
         let res_json = {status: "OK"};
 
@@ -1685,30 +1687,33 @@ router.post("/import", async (req, res) => {
         res_json.surname = surname;
         res.res_json = res_json;
 
-        const old_values = {};
-        if (old_user_obj && typeof old_user_obj === "object" && user_obj && typeof user_obj === "object") {
-            const keys = Object.keys(user_obj);
+        if (user_changed) {
+            const old_values = {};
+            if (old_user_obj && typeof old_user_obj === "object" && user_obj && typeof user_obj === "object") {
+                const keys = Object.keys(user_obj);
 
-            keys.forEach((key) => {
-                old_values[key] = old_user_obj[key];
-            });
+                keys.forEach((key) => {
+                    old_values[key] = old_user_obj[key];
+                });
+            }
+            
+            let query = {
+                user_email: email,
+                message: "Account Updated",
+                channel: "Import",
+                old_values: old_values,
+                new_values: user_obj,
+                created: new Date(Date.now()),
+                unix_timestamp: Date.now()
+            };
+
+            const logsDb = thisDb.collection("logs_dev");
+
+            await logsDb.insertOne(query, function (err, result) { });
         }
         
-        let query = {
-            user_email: email,
-            message: "Account Updated",
-            channel: "Import",
-            old_values: old_values,
-            new_values: user_obj,
-            created: new Date(Date.now()),
-            unix_timestamp: Date.now()
-        };
 
-        const logsDb = thisDb.collection("logs_dev");
-
-        await logsDb.insertOne(query, function (err, result) { });
-
-        if (tour_added) {
+        if (tour_added && tour_changed) {
             query = {
                 user_email: email,
                 message: "Tour Updated/Inserted",
