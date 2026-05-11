@@ -1618,7 +1618,7 @@ router.post("/import", async (req, res) => {
                         new_tour.tour_name = tour_name;
                     }
 
-                    if (new_tour) {
+                    if (Object.keys(new_tour).length > 0) {
                         result = await toursDb.updateOne(query, new_tour, {upsert: true});
 
                         if (result.matchedCount === 0 && !result.upsertedId) {
