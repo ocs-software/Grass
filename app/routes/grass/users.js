@@ -1545,7 +1545,7 @@ router.post("/import", async (req, res) => {
             res.res_json = res_json;
             res.send({ res_json });
         } else {
-            var superToken = false;
+            var superToken = true;
 
             // if (token == process.env.TOKEN)
             //     superToken = true;
@@ -1561,100 +1561,90 @@ router.post("/import", async (req, res) => {
                 old_values = users[0];
             }
 
-            // if (item[0].token == token || superToken) {
-                const user_obj = {
-                        user_firstname: user_firstname,
-                        user_surname: surname,
-                        user_dob: dob,
-                        // user_residence: user_residence,
-                        // count_strokes: count_strokes,
-                        // show_vspar: show_vspar,
-                        // handicap_index: handicap_index,
-                        gender: gender,
-                        // playing_status: playing_status,
-                        // unit_measure: unit_measure,
-                        // unit_speed: unit_speed,
-                        // unit_temperature: unit_temperature,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                };
+            const user_obj = {
+                    user_firstname: user_firstname,
+                    user_surname: surname,
+                    user_dob: dob,
+                    // user_residence: user_residence,
+                    // count_strokes: count_strokes,
+                    // show_vspar: show_vspar,
+                    // handicap_index: handicap_index,
+                    gender: gender,
+                    // playing_status: playing_status,
+                    // unit_measure: unit_measure,
+                    // unit_speed: unit_speed,
+                    // unit_temperature: unit_temperature,
+                    updated: new Date(Date.now()),
+                    unix_timestamp: Date.now()
+            };
 
-                let newvalues = {
-                    $set: user_obj,
-                };
+            let newvalues = {
+                $set: user_obj,
+            };
 
-                let result = await usersDb.updateOne(query, newvalues, {upsert: true});
+            let result = await usersDb.updateOne(query, newvalues, {upsert: true});
 
-                if (result.matchedCount === 0 && !result.upsertedId) {
-                    // Failed
-                    return res.status(500).json({
-                        status: "FAILED",
-                        message: "No User Document found/inserted",
-                    });
+            if (result.matchedCount === 0 && !result.upsertedId) {
+                // Failed
+                return res.status(500).json({
+                    status: "FAILED",
+                    message: "No User Document found/inserted",
+                });
+            } else {
+                // update/insert tour info
+                let _id;
+                if (old_values) {
+                    _id = old_values._id;
                 } else {
-                    // update/insert tour info
-                    let _id;
-                    if (old_values) {
-                        _id = old_values._id;
-                    } else {
-                        if (result.upsertedId) {
-                            _id = result.upsertedId;
-                        }
-                        /* query = { user_email: email };
-                        const new_user = await usersDb.find(query).toArray();
-                        if (new_user.length > 0)
-                            _id = new_user[0]._id; */
+                    if (result.upsertedId) {
+                        _id = result.upsertedId;
                     }
-
-                    const toursDb = thisDb.collection("tours_dev");
-
-                    query = {user_id: _id, tour: tour};
-
-                    const new_tour = {
-                    };
-
-                    if (playing_name) {
-                        new_tour.playing_name = playing_name;
-                    }
-                    if (knownas) {
-                        new_tour.knownas = knownas;
-                    }
-
-                    if (tour_name) {
-                        new_tour.tour_name = tour_name;
-                    }
-
-                    if (code) {
-                        new_tour.code = code;
-                    }
-
-                    if (Object.keys(new_tour).length > 0) {
-                        const new_data = {
-                            $set: new_tour,
-                        }
-                        result = await toursDb.updateOne(query, new_data, {upsert: true});
-
-                        if (result.matchedCount === 0 && !result.upsertedId) {
-                            return res.status(500).json({
-                                status: "FAILED",
-                                message: "No Tour Document found/inserted",
-                            });
-                        } else {
-                            await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, new_tour);
-                        }
-                    } else {
-                        await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, null);
-                    }
+                    /* query = { user_email: email };
+                    const new_user = await usersDb.find(query).toArray();
+                    if (new_user.length > 0)
+                        _id = new_user[0]._id; */
                 }
-            /* } else {
-                let res_json = {status: "FAILED"};
 
-                res_json.message = "Invalid Token Sent. Another Device has Logged on.";
-                res_json.user_email = user_email;
-                res.res_json = res_json;
+                const toursDb = thisDb.collection("tours_dev");
 
-                res.send({ res_json });
-            } */
+                query = {user_id: _id, tour: tour};
+
+                const new_tour = {
+                };
+
+                if (playing_name) {
+                    new_tour.playing_name = playing_name;
+                }
+                if (knownas) {
+                    new_tour.knownas = knownas;
+                }
+
+                if (tour_name) {
+                    new_tour.tour_name = tour_name;
+                }
+
+                if (code) {
+                    new_tour.code = code;
+                }
+
+                if (Object.keys(new_tour).length > 0) {
+                    const new_data = {
+                        $set: new_tour,
+                    }
+                    result = await toursDb.updateOne(query, new_data, {upsert: true});
+
+                    if (result.matchedCount === 0 && !result.upsertedId) {
+                        return res.status(500).json({
+                            status: "FAILED",
+                            message: "No Tour Document found/inserted",
+                        });
+                    } else {
+                        await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, new_tour);
+                    }
+                } else {
+                    await endImport(user_firstname, surname, old_values, user_obj, email, thisDb, null);
+                }
+            }
         }
     } catch (e) {
         console.log(e);
@@ -1676,8 +1666,6 @@ router.post("/import", async (req, res) => {
         res_json.surname = surname;
         res.res_json = res_json;
 
-        res.send({ res_json });
-
         const old_values = {};
         if (old_user_obj) {
             const user = old_user_obj;
@@ -1697,7 +1685,9 @@ router.post("/import", async (req, res) => {
             unix_timestamp: Date.now()
         };
 
-        thisDb.collection("logs_dev").insertOne(query, function (err, result) { });
+        const logsDb = thisDb.collection("logs_dev");
+
+        await logsDb.insertOne(query, function (err, result) { });
 
         if (tour_added) {
             query = {
@@ -1708,8 +1698,10 @@ router.post("/import", async (req, res) => {
                 created: new Date(Date.now()),
                 unix_timestamp: Date.now()
             }
-            thisDb.collection("logs_dev").insertOne(query, function (err, result) { });
+            await logsDb.insertOne(query, function (err, result) { });
         }
+
+        res.status(200).send(res_json);
     }
 
     function validateEmail(email) {
