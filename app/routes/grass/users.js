@@ -1609,10 +1609,10 @@ router.post("/import", async (req, res) => {
                                     "$$NOW",
                                     "$updated"
                                 ]
+                            },
+                            created: {
+                                $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
                             }
-                        },
-                        created: {
-                            $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
                         }
                     }
                 ],
