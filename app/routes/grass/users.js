@@ -1497,6 +1497,9 @@ router.post("/import", async (req, res) => {
     try {
         const db = req.db;
 
+        const data = req.body;
+
+        console.log("data", data);
         const {
             code,
             email,
@@ -1543,7 +1546,7 @@ router.post("/import", async (req, res) => {
             res_json.message = errMess;
 
             res.res_json = res_json;
-            res.status(203).send({ res_json });
+            return res.status(203).send({ res_json });
         } else {
             var superToken = true;
 
@@ -1557,6 +1560,8 @@ router.post("/import", async (req, res) => {
             const users = await usersDb.find(query).toArray();
 
             let old_values = {};
+            const setFields = {};
+            const comparisons = [];
             if (users.length > 0) {
                 old_values = users[0];
             }
@@ -1578,11 +1583,40 @@ router.post("/import", async (req, res) => {
                     unix_timestamp: Date.now()
             };
 
-            let newvalues = {
+            for (const [key, value] of Object.entries(user_obj)) {
+                setFields[key] = value;
+                comparisons.push({
+                    $ne: [key, value];
+                })
+            }
+
+            if (Object.keys(setFields).length === 0)
+                return res.status(201).send({status: "OK", message: "Nothing to change"});
+
+            let result = await usersDb.updateOne(
+                query,
+                [
+                    {
+                        $set: {
+                            ...setFields,
+                            updated: {
+                                $cond: [
+                                    { $or: comparisons },
+                                    "$$NOW",
+                                    "updated"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                { upsert: true }
+            );
+
+            /* let newvalues = {
                 $set: user_obj,
             };
 
-            let result = await usersDb.updateOne(query, newvalues, {upsert: true});
+            let result = await usersDb.updateOne(query, newvalues, {upsert: true}); */
 
             if (result.matchedCount === 0 && !result.upsertedId) {
                 // Failed
