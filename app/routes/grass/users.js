@@ -1523,7 +1523,7 @@ router.post("/import", async (req, res) => {
             }
         }
 
-        if ((firstname1 === null || firstname1 === "") && (firstname2 === null || firstname2 === "")) {
+        if ((forename1 === null || forename1 === "") && (forename2 === null || forename2 === "")) {
             errMess += " User Firstname Missing";
         }
 
@@ -1560,7 +1560,7 @@ router.post("/import", async (req, res) => {
             }
 
             // if (item[0].token == token || superToken) {
-                const user_firstname = firstname1 ? (firstname2 ? (firstname1 + " " + firstname2) : firstname1) : firstname2;
+                const user_firstname = forename1 ? (forename2 ? (forename1 + " " + forename2) : forename1) : forename2;
                 const user_obj = {
                         user_firstname: user_firstname,
                         user_surname: surname,
