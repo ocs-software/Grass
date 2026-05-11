@@ -1668,11 +1668,14 @@ router.post("/import", async (req, res) => {
 
         const old_values = {};
         if (old_user_obj) {
+            console.log("user_obj", user_obj);
             const user = old_user_obj;
             const keys = Object.keys(user_obj);
-            keys.array.forEach(element => {
-                old_values[element] = user[element];
-            });
+            if (keys.length > 0) {
+                keys.array.forEach(element => {
+                    old_values[element] = user[element];
+                });
+            }
         }
         
         let query = {
