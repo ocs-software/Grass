@@ -1723,6 +1723,7 @@ router.post("/import", async (req, res) => {
 
         if (tour_added && tour_changed) {
             query = {
+                user_id: _id,
                 user_email: user_email,
                 message: "Tour Updated/Inserted",
                 channel: "Import",
