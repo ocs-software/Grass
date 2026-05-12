@@ -1701,7 +1701,8 @@ router.post("/import", async (req, res) => {
                 const keys = Object.keys(user_obj);
 
                 keys.forEach((key) => {
-                    old_values[key] = old_user_obj[key];
+                    if (old_user_obj[key] != user_obj[key])
+                        old_values[key] = old_user_obj[key];
                 });
             }
             
