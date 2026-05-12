@@ -1564,12 +1564,12 @@ router.post("/import", async (req, res) => {
             return res.status(203).send({ res_json });
         } else {
             var superToken = true;
+            const thisDb = db.db("grass");
 
             // if (token == process.env.TOKEN)
             //     superToken = true;
 
             let query = { user_email: user_email };
-            const thisDb = db.db("grass");
             const usersDb = thisDb.collection("users" + ext);
 
             const users = await usersDb.find(query).toArray();
@@ -1582,11 +1582,13 @@ router.post("/import", async (req, res) => {
             }
 
             for (const [key, value] of Object.entries(user_obj)) {
-                if (key !== "email") {
-                    setFields[key] = value;
-                    comparisons.push({
-                        $ne: [key, value]
-                    })
+                if (key !== "user_email") {
+                    if (!old_value[key]) {
+                        setFields[key] = value;
+                        comparisons.push({
+                            $ne: [key, value]
+                        });
+                    }
                 }
             }
 
@@ -1679,7 +1681,7 @@ router.post("/import", async (req, res) => {
 
         const user_email = old_user_obj?.user_email ?? user_obj?.email;
 
-        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb);
+        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, ext);
 
         if (user_obj?.email) {
             delete user_obj.email;
@@ -1736,7 +1738,7 @@ router.post("/import", async (req, res) => {
         res.status(200).send(res_json);
     }
 
-    async function getUserId(user_email, thisDb) {
+    async function getUserId(user_email, thisDb, ext) {
         const usersDb = thisDb.collection("users" + ext);
 
         const query = {user_email: user_email};
