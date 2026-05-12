@@ -1515,14 +1515,15 @@ router.post("/import", async (req, res) => {
             if (key == "token") {
                 token = value;
             } else if (key != "tour") {
-                user_obj[key] = value;
+                user_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
             } else {
                 if (typeof value === "object") {
                     const tour_data = value;
                     const tour_keys = Object.keys(tour_data);
                     if (tour_keys.length > 0) {
                         for (const tkey of tour_keys) {
-                            tour_obj[tkey] = tour_data[tkey];
+                            const tvalue = tour_data[tkey];
+                            tour_obj[tkey] = typeof tvalue === "string" ? tvalue.replace(/\|'/g, "'") : tvalue;
                         }
                     }
                 }
