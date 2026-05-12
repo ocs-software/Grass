@@ -1543,14 +1543,12 @@ router.post("/import", async (req, res) => {
             }
         }
 
-        const forename1 = user_obj.forename1;
+/*         const forename1 = user_obj.forename1;
         const forename2 = user_obj.forename2;
 
         if ((forename1 === null || forename1 === "") && (forename2 === null || forename2 === "")) {
             errMess += " User Firstname Missing";
-        }
-
-        const user_firstname = forename1 ? (forename2 ? (forename1 + " " + forename2) : forename1) : forename2;
+        } */
 
         const surname = user_obj.surname;
         if (surname === null || surname === "") {
@@ -1633,19 +1631,12 @@ router.post("/import", async (req, res) => {
                 let _id;
                 
                 if (old_values?._id) {
-                    console.log("old_values", old_values);
                     _id = old_values._id;
                 } else {
                     if (result.upsertedId) {
                         _id = result.upsertedId;
                     }
-                    console.log("result", result);
-                    /* query = { user_email: email };
-                    const new_user = await usersDb.find(query).toArray();
-                    if (new_user.length > 0)
-                        _id = new_user[0]._id; */
                 }
-                console.log("_id", _id);
 
                 const toursDb = thisDb.collection("tours_dev");
                 if (Object.keys(tour_obj).length > 0) {
@@ -1702,6 +1693,8 @@ router.post("/import", async (req, res) => {
 
         let query = {};
 
+        const logsDb = thisDb.collection("logs_dev");
+
         if (user_changed) {
             const old_values = {};
             if (old_user_obj && typeof old_user_obj === "object" && user_obj && typeof user_obj === "object") {
@@ -1722,8 +1715,6 @@ router.post("/import", async (req, res) => {
                 created: new Date(Date.now()),
                 unix_timestamp: Date.now()
             };
-
-            const logsDb = thisDb.collection("logs_dev");
 
             await logsDb.insertOne(query, function (err, result) { });
         }
