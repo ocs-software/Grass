@@ -1651,9 +1651,17 @@ router.post("/import", async (req, res) => {
 
                     query = {user_id: _id, tour: tour};
 
+                    // TODO: When already exist, if member changed, save the old value in another field inside the document(may have multiple values)
                     const new_data = {
-                        $set: tour_obj,
-                    }
+                        $set: {
+                            ...tour_obj,
+                            updated_at: new Date()
+                        },
+                        $setOnInsert: {
+                            created_at: new Date()
+                        }
+                    };
+
                     result = await toursDb.updateOne(query, new_data, {upsert: true});
 
                     if (result.matchedCount === 0 && !result.upsertedId) {
