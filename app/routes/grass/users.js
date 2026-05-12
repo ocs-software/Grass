@@ -1620,6 +1620,9 @@ router.post("/import", async (req, res) => {
                             },
                             created: {
                                 $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
+                            },
+                            playing_status: {
+                                $ifNull: tour_obj?.playing_status ?? "A"
                             }
                         }
                     }
