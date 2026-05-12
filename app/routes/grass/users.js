@@ -9,6 +9,7 @@ const axios = require('axios');
 const { generateApiKey } = require('generate-api-key');
 const clientSocket = require('socket.io-client');
 let ObjectID = require('mongodb').ObjectID;
+const { getAppConfig } = require("../../config/stripe_keys");
 
 const message =
     '<!DOCTYPE html>' +
@@ -1494,8 +1495,14 @@ router.post("/golfbag", async (req, res) => {
 });
 
 router.post("/import", async (req, res) => {
+
     try {
         const db = req.db;
+
+        const appConfig = getAppConfig();
+
+        const live = appConfig.isProduction;
+        const ext = live ? "" : "_dev";
 
         const data = req.body;
 
@@ -1575,7 +1582,7 @@ router.post("/import", async (req, res) => {
 
             let query = { user_email: user_email };
             const thisDb = db.db("grass");
-            const usersDb = thisDb.collection("users_dev");
+            const usersDb = thisDb.collection("users" + ext);
 
             const users = await usersDb.find(query).toArray();
 
@@ -1639,7 +1646,7 @@ router.post("/import", async (req, res) => {
                     }
                 }
 
-                const toursDb = thisDb.collection("tours_dev");
+                const toursDb = thisDb.collection("tours" + ext);
                 if (Object.keys(tour_obj).length > 0) {
                     const tour = tour_obj.tour;
 
@@ -1694,7 +1701,7 @@ router.post("/import", async (req, res) => {
 
         let query = {};
 
-        const logsDb = thisDb.collection("logs_dev");
+        const logsDb = thisDb.collection("logs" + ext);
 
         if (user_changed) {
             const old_values = {};
@@ -1739,7 +1746,7 @@ router.post("/import", async (req, res) => {
     }
 
     async function getUserId(user_email, thisDb) {
-        const usersDb = thisDb.collection("users_dev");
+        const usersDb = thisDb.collection("users" + ext);
 
         const query = {user_email: user_email};
 
