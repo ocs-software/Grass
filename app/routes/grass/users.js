@@ -1501,7 +1501,7 @@ router.post("/import", async (req, res) => {
 
         const appConfig = getAppConfig();
 
-        const live = appConfig.isProduction || true;
+        const live = appConfig.isProduction;
         const ext = live ? "" : "_dev";
 
         const data = req.body;
