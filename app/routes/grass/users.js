@@ -1664,10 +1664,10 @@ router.post("/import", async (req, res) => {
                         });
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        await endImport(user_firstname, surname, old_values, user_obj, user_email, thisDb, tour_obj, user_changes, tour_changes);
+                        await endImport(old_values, user_obj, thisDb, tour_obj, user_changes, tour_changes);
                     }
                 } else {
-                    await endImport(user_firstname, surname, old_values, user_obj, user_email, thisDb, null, user_changes, false);
+                    await endImport(old_values, user_obj, thisDb, null, user_changes, false);
                 }
             }
         }
@@ -1682,13 +1682,13 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function endImport(old_user_obj, user_obj, email, thisDb, tour_added, user_changed, tour_changed) {
+    async function endImport(old_user_obj, user_obj, thisDb, tour_added, user_changed, tour_changed) {
 
         let res_json = {status: "OK"};
 
         const user_email = old_user_obj?.user_email ?? user_obj?.email;
 
-        if ()
+        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb);
 
         if (user_obj?.email) {
             delete user_obj.email;
@@ -1712,7 +1712,7 @@ router.post("/import", async (req, res) => {
             }
             
             query = {
-                user_id: old_user_obj?._id ? old_user_obj._id : use
+                user_id: _id,
                 user_email: email,
                 message: "Account Updated",
                 channel: "Import",
@@ -1741,6 +1741,16 @@ router.post("/import", async (req, res) => {
         }
 
         res.status(200).send(res_json);
+    }
+
+    async function getUserId(user_email, thisDb) {
+        const usersDb = thisDb.collection("users_dev");
+
+        const query = {user_email: user_email};
+
+        const result = await usersDb.findOne(query);
+
+        return result?._id ?? user_email;
     }
 
     function validateEmail(email) {
