@@ -1583,7 +1583,7 @@ router.post("/import", async (req, res) => {
 
             for (const [key, value] of Object.entries(user_obj)) {
                 if (key !== "user_email") {
-                    if (old_value[key] == null) {
+                    if (old_values[key] == null) {
                         setFields[key] = value;
                         comparisons.push({
                             $ne: [key, value]
