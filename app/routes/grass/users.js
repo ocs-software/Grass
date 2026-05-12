@@ -1642,6 +1642,10 @@ router.post("/import", async (req, res) => {
                 } else {
                     if (result.upsertedId) {
                         _id = result.upsertedId;
+                    } else {
+                        console.log("old_values", old_values);
+                        console.log("result.upsertedId", result.upsertedId);
+                        _id = user_email;
                     }
                 }
 
