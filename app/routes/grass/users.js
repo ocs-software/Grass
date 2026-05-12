@@ -1632,6 +1632,7 @@ router.post("/import", async (req, res) => {
                 // update/insert tour info
                 let _id;
                 if (old_values) {
+                    console.log("old_values", old_values);
                     _id = old_values._id;
                 } else {
                     if (result.upsertedId) {
@@ -1681,18 +1682,24 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function endImport(user_firstname, surname, old_user_obj, user_obj, email, thisDb, tour_added, user_changed, tour_changed) {
+    async function endImport(old_user_obj, user_obj, email, thisDb, tour_added, user_changed, tour_changed) {
 
         let res_json = {status: "OK"};
+
+        const user_email = old_user_obj?.user_email ?? user_obj?.email;
+
+        if ()
 
         if (user_obj?.email) {
             delete user_obj.email;
         }
 
         res_json.message = "User Import.";
-        res_json.firstname = user_firstname;
-        res_json.surname = surname;
+        res_json.firstname = old_user_obj?.user_firstname ?? user_obj?.user_firstname;
+        res_json.surname = old_user_obj?.user_surname ?? user_obj?.user_surname;;
         res.res_json = res_json;
+
+        let query = {};
 
         if (user_changed) {
             const old_values = {};
@@ -1704,7 +1711,8 @@ router.post("/import", async (req, res) => {
                 });
             }
             
-            let query = {
+            query = {
+                user_id: old_user_obj?._id ? old_user_obj._id : use
                 user_email: email,
                 message: "Account Updated",
                 channel: "Import",
