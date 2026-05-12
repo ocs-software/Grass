@@ -1631,7 +1631,8 @@ router.post("/import", async (req, res) => {
                 const user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 // update/insert tour info
                 let _id;
-                if (old_values) {
+                
+                if (old_values?._id) {
                     console.log("old_values", old_values);
                     _id = old_values._id;
                 } else {
@@ -1713,7 +1714,7 @@ router.post("/import", async (req, res) => {
             
             query = {
                 user_id: _id,
-                user_email: email,
+                user_email: user_email,
                 message: "Account Updated",
                 channel: "Import",
                 old_values: old_values,
@@ -1730,7 +1731,7 @@ router.post("/import", async (req, res) => {
 
         if (tour_added && tour_changed) {
             query = {
-                user_email: email,
+                user_email: user_email,
                 message: "Tour Updated/Inserted",
                 channel: "Import",
                 new_values: tour_added,
