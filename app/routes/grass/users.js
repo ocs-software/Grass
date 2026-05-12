@@ -1572,7 +1572,7 @@ router.post("/import", async (req, res) => {
             let query = { user_email: user_email };
             const usersDb = thisDb.collection("users" + ext);
 
-            const users = await usersDb.find(query).toArray();
+            let users = await usersDb.find(query).toArray();
 
             let old_values = {};
             const setFields = {};
@@ -1643,9 +1643,19 @@ router.post("/import", async (req, res) => {
                     if (result.upsertedId) {
                         _id = result.upsertedId;
                     } else {
-                        console.log("old_values", old_values);
-                        console.log("result.upsertedId", result.upsertedId);
-                        _id = user_email;
+ // TODO: same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
+                        users = await usersDb.find(query).toArray();
+                        if (users.length > 0) {
+                            old_values = users[0];
+                        }
+                        if (old_values?._id) {
+                            _id = old_values._id;
+                        } else {
+                            console.log("old_values", old_values);
+                            console.log("result", result);
+                            console.log("user_email", user_email);
+                            _id = user_email;
+                        }
                     }
                 }
 
@@ -1659,6 +1669,30 @@ router.post("/import", async (req, res) => {
                     const new_data = {
                         $set: {
                             ...tour_obj,
+                            history: {
+                                $cond: [
+                                    {
+                                        $and: [
+                                            { $ne: ["$member", tour_obj.member] },
+                                            { $ne: [{ $type: "$member"}, "missing"] }
+                                        ]
+                                    },
+                                    {
+                                        $concatArrays: [
+                                            { $ifNull: ["$history", []] },
+                                            [
+                                                {
+                                                    member: "$member",
+                                                    updated_at: "$$NOW"
+                                                }
+                                            ]
+                                        ]
+                                    },
+                                    {
+                                        $ifNull: ["$history", []]
+                                    }
+                                ]
+                            },
                             updated_at: new Date()
                         },
                         $setOnInsert: {
