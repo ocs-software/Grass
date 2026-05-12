@@ -1501,7 +1501,7 @@ router.post("/import", async (req, res) => {
 
         const appConfig = getAppConfig();
 
-        const live = appConfig.isProduction;
+        const live = appConfig.isProduction || true;
         const ext = live ? "" : "_dev";
 
         const data = req.body;
@@ -1622,7 +1622,7 @@ router.post("/import", async (req, res) => {
                                 $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
                             },
                             playing_status: {
-                                $ifNull: tour_obj?.playing_status ?? "A"
+                                $ifNull: ["$playing_status", tour_obj?.playing_status ?? "A"]
                             }
                         }
                     }
