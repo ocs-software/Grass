@@ -1583,7 +1583,7 @@ router.post("/import", async (req, res) => {
 
             for (const [key, value] of Object.entries(user_obj)) {
                 if (key !== "user_email") {
-                    if (!old_value[key]) {
+                    if (old_value[key] == null) {
                         setFields[key] = value;
                         comparisons.push({
                             $ne: [key, value]
@@ -1592,42 +1592,48 @@ router.post("/import", async (req, res) => {
                 }
             }
 
-            if (Object.keys(setFields).length === 0)
-                return res.status(201).send({status: "OK", message: "Nothing to change"});
-
-            let result = await usersDb.updateOne(
-                query,
-                [
-                    {
-                        $set: {
-                            ...setFields, // only set fields sent by form
-                            updated: {
-                                $cond: [
-                                    { $or: comparisons }, // only update "updated" timestamp if something changed
-                                    "$$NOW",
-                                    "$updated"
-                                ]
-                            },
-                            created: {
-                                $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
-                            },
-                            playing_status: {
-                                $ifNull: ["$playing_status", tour_obj?.playing_status ?? "A"]
+            let user_changes = false;
+            if (Object.keys(setFields).length === 0) {
+                if (tour_obj && typeof tour_obj === "object" && !Array.isArray(tour_obj) && Object.keys(tour_obj).length > 0) {
+                    
+                } else {
+                    return res.status(201).send({status: "OK", message: "Nothing to change"});
+                }
+            } else {
+                let result = await usersDb.updateOne(
+                    query,
+                    [
+                        {
+                            $set: {
+                                ...setFields, // only set fields sent by form
+                                updated: {
+                                    $cond: [
+                                        { $or: comparisons }, // only update "updated" timestamp if something changed
+                                        "$$NOW",
+                                        "$updated"
+                                    ]
+                                },
+                                created: {
+                                    $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
+                                },
+                                playing_status: {
+                                    $ifNull: ["$playing_status", tour_obj?.playing_status ?? "A"]
+                                }
                             }
                         }
-                    }
-                ],
-                { upsert: true }
-            );
+                    ],
+                    { upsert: true }
+                );
 
-            if (result.matchedCount === 0 && !result.upsertedId) {
-                // Failed
-                return res.status(500).json({
-                    status: "FAILED",
-                    message: "No User Document found/inserted",
-                });
-            } else {
-                const user_changes = (result.modifiedCount > 0 || result.upsertedId);
+                if (result.matchedCount === 0 && !result.upsertedId) {
+                    // Failed
+                    return res.status(500).json({
+                        status: "FAILED",
+                        message: "No User Document found/inserted",
+                    });
+                } else {
+                    user_changes = (result.modifiedCount > 0 || result.upsertedId);
+                }
                 // update/insert tour info
                 let _id;
                 
@@ -1663,6 +1669,7 @@ router.post("/import", async (req, res) => {
                     await endImport(old_values, user_obj, thisDb, null, user_changes, false, ext);
                 }
             }
+
         }
     } catch (e) {
         console.log(e);
