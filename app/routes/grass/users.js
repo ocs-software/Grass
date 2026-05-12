@@ -1539,7 +1539,7 @@ router.post("/import", async (req, res) => {
         
         var errMess = "";
 
-        const user_email = user_obj.email;
+        const user_email = user_obj.user_email;
 
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
@@ -1686,12 +1686,12 @@ router.post("/import", async (req, res) => {
 
         let res_json = {status: "OK"};
 
-        const user_email = old_user_obj?.user_email ?? user_obj?.email;
+        const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
 
         const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, ext);
 
-        if (user_obj?.email) {
-            delete user_obj.email;
+        if (user_obj?.user_email) {
+            delete user_obj.user_email;
         }
 
         res_json.message = "User Import.";
