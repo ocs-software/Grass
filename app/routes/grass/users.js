@@ -1550,18 +1550,6 @@ router.post("/import", async (req, res) => {
                 errMess = "Invalid Email Address Sent";
             }
         }
-
-/*         const forename1 = user_obj.forename1;
-        const forename2 = user_obj.forename2;
-
-        if ((forename1 === null || forename1 === "") && (forename2 === null || forename2 === "")) {
-            errMess += " User Firstname Missing";
-        } */
-
-        const surname = user_obj.surname;
-        if (surname === null || surname === "") {
-            errMess += " User Surname Missing";
-        }
 /* 
         if (token == null || token == "") {
             errMess += " Invalid Token Sent";
@@ -1667,10 +1655,10 @@ router.post("/import", async (req, res) => {
                         });
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        await endImport(old_values, user_obj, thisDb, tour_obj, user_changes, tour_changes);
+                        await endImport(old_values, user_obj, thisDb, tour_obj, user_changes, tour_changes, ext);
                     }
                 } else {
-                    await endImport(old_values, user_obj, thisDb, null, user_changes, false);
+                    await endImport(old_values, user_obj, thisDb, null, user_changes, false, ext);
                 }
             }
         }
@@ -1685,7 +1673,7 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function endImport(old_user_obj, user_obj, thisDb, tour_added, user_changed, tour_changed) {
+    async function endImport(old_user_obj, user_obj, thisDb, tour_added, user_changed, tour_changed, ext) {
 
         let res_json = {status: "OK"};
 
