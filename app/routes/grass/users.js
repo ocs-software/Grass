@@ -1807,7 +1807,7 @@ router.post("/import", async (req, res) => {
             type: "other",
             action: "users/import",
             error: e,
-            query || null,
+            query,
             payload: data,
             table: table
         });
