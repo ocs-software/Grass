@@ -477,7 +477,7 @@ router.post("/delete", async (req, res) => {
                                     thisDb,
                                     table: "users",
                                     channel: "delete",
-                                    sub_accs[0],
+                                    oldDoc: sub_accs[0],
                                     newData: {},
                                     user_id: sub_accs[0]?._id,
                                     user_email: user_email
@@ -1340,7 +1340,7 @@ router.post("/update", async (req, res) => {
                         thisDb,
                         table: "users",
                         channel: "update",
-                        item[0],
+                        oldDoc: item[0],
                         newData: new_values.$set,
                         user_id: item[0]._id,
                         user_email: user_email
@@ -1499,7 +1499,7 @@ router.post("/golfbag", async (req, res) => {
                         thisDb,
                         table: "users",
                         channel: "update",
-                        item[0],
+                        oldDoc: item[0],
                         newData: new_values.$set,
                         user_id: item[0]._id,
                         user_email: user_email
