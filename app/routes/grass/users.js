@@ -206,15 +206,15 @@ const missingmessage =
 '';
 
 router.post('/check', async (req, res) => {
-    try {
-        const db = req.db;
-        const thisDb = db.db("grass");
-        const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+    const db = req.db;
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = app_config.suffix;
 
-        let table;
-        let query;
+    let table;
+    let query;
         
+    try {
         const { user_email, token } = req.body;
 
         let errMess = '';
@@ -242,7 +242,7 @@ router.post('/check', async (req, res) => {
 
             res_json.message = errMess;
 
-            res.send({ res_json });
+            return res.send({ res_json });
         }
         else {
             query = { user_email: user_email };
@@ -294,7 +294,7 @@ router.post('/check', async (req, res) => {
                         table: table,
                     });
 
-                    res.send({ res_json });
+                    return res.send({ res_json });
                 }
             } else {
                 let res_json = {status: "ERROR"};
@@ -310,7 +310,7 @@ router.post('/check', async (req, res) => {
                     table: table,
                 });
 
-                res.send({ res_json });
+                return res.send({ res_json });
             }
         }
     }
