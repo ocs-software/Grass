@@ -209,7 +209,7 @@ router.post('/check', async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
     const appConfig = getAppConfig();
-    const suffix = app_config.suffix;
+    const suffix = appConfig.suffix;
 
     let table;
     let query;
@@ -347,7 +347,7 @@ router.post("/delete", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
 
         let table;
         let query;
@@ -617,7 +617,7 @@ router.post("/logon", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass")
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
 
         let table;
         let query;
@@ -765,7 +765,7 @@ router.post("/logout", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
 
         let table;
         let query;
@@ -902,7 +902,7 @@ router.get('/verify/:useremail', async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
 
         let table;
         let query;
@@ -986,7 +986,7 @@ router.post("/new", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
 
         let table;
         let query;
@@ -1224,7 +1224,7 @@ router.post("/update", async (req, res) => {
         let query;
 
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
         const thisDb = db.db("grass");
 
         const {
@@ -1420,7 +1420,7 @@ router.post("/golfbag", async (req, res) => {
 
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
 
         const {
             user_email,
@@ -1577,7 +1577,7 @@ router.post("/import", async (req, res) => {
     try {
         const db = req.db;
         const appConfig = getAppConfig();
-        const suffix = app_config.suffix;
+        const suffix = appConfig.suffix;
         const thisDb = db.db("grass");
         const data = req.body;
 
