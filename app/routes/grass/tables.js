@@ -4,6 +4,7 @@ const router = express.Router({ mergeParams: true });
 const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
+const { getAppConfig } = require("../../config/app_config");
 
 router.post("/get", async (req, res) => {
     db = req.db;
