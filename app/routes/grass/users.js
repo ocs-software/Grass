@@ -1574,20 +1574,48 @@ router.post("/golfbag", async (req, res) => {
 });
 
 router.post("/import", async (req, res) => {
+    db = req.db;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const thisDb = db.db("grass");
+
+    let table = "";
+    let obj_keys = [];
+    let token = "";
+    let pcount = 0;
+    let fcount = 0;
+    let messages = [];
+    
+    const user_obj = {};
+    const tour_obj = {};
+
     try {
-        const db = req.db;
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-        const thisDb = db.db("grass");
         const data = req.body;
+        for (var user in data.players) {
+            await processData(user);
+        }
+        res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
+    } catch (e) {
+        await logError({
+            thisDb,
+            type: "other",
+            action: "users/import",
+            error: e,
+            query,
+            payload: data,
+            table: table
+        });
 
-        let table = "";
-        let obj_keys = [];
-        let token = "";
-        
-        const user_obj = {};
-        const tour_obj = {};
+        let res_json = {status: "FAILED"};
 
+        res_json.message = "Error in Fetching data.";
+        res.res_json = res_json;
+
+        res.status(400).send({ message: "Error in Fetching data.", data: e });
+    }
+
+    async function processData(data) {
+        pcount++;
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
@@ -1598,7 +1626,9 @@ router.post("/import", async (req, res) => {
                 error: "Invalid data sent",
                 payload: data,
             });
-            return res.status(500).send({status: "FAILED", message: "Invalid data sent"});
+            fcount++;
+            messages.push({message: "Invalid data sent"});
+            return;
         }
 
         for (const key of obj_keys) {
@@ -1647,12 +1677,9 @@ router.post("/import", async (req, res) => {
                 error: errMess,
                 payload: data,
             });
-            let res_json = {status: "FAILED"};
-
-            res_json.message = errMess;
-
-            res.res_json = res_json;
-            return res.status(203).send({ res_json });
+            fcount++;
+            messages.push({message: errMess});
+            return;
         } else {
             var superToken = true;
             table = "users" + suffix;
@@ -1717,10 +1744,9 @@ router.post("/import", async (req, res) => {
 
                 if (result.matchedCount === 0 && !result.upsertedId) {
                     // Failed
-                    return res.status(500).json({
-                        status: "FAILED",
-                        message: "No User Document found/inserted",
-                    });
+                    fcount++;
+                    messages.push({message: "No User Document found/inserted"});
+                    return;
                 } else {
                     user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 }
@@ -1793,10 +1819,9 @@ router.post("/import", async (req, res) => {
                     result = await toursDb.updateOne(query, new_data, {upsert: true});
 
                     if (result.matchedCount === 0 && !result.upsertedId) {
-                        return res.status(500).json({
-                            status: "FAILED",
-                            message: "No Tour Document found/inserted",
-                        });
+                        fcount++;
+                        messages.push({message: "No Tour Document found/inserted"});
+                        return;
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
                         await endImport(thisDb, old_values, user_obj, old_tour, tour_obj, true, true);
@@ -1807,23 +1832,6 @@ router.post("/import", async (req, res) => {
             }
 
         }
-    } catch (e) {
-        await logError({
-            thisDb,
-            type: "other",
-            action: "users/import",
-            error: e,
-            query,
-            payload: data,
-            table: table
-        });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Fetching data.";
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
     async function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
@@ -1870,8 +1878,6 @@ router.post("/import", async (req, res) => {
                 console.error("Change log failed:", err)
             });
         }
-
-        res.status(200).send(res_json);
     }
 
     async function getUserId(user_email, thisDb, table) {
