@@ -309,7 +309,7 @@ router.post('/check', async (req, res) => {
                     user: user_email,
                     table: table,
                 });
-                
+
                 res.send({ res_json });
             }
         }
@@ -940,56 +940,50 @@ router.get('/verify/:useremail', async (req, res) => {
         // type = "N" = Verify  (from new)
         // type = "L" = Logging in
 
-        let query = { reg_token: user_token };
+        query = { reg_token: user_token };
+        table = "users" + ext;
         let returnstr = '';
 
-        thisDb.collection("users").find(query).toArray(function (err, item) {
-            if (err) {
-                console.log(err)
-                res.send(missingmessage);
-                returnstr = { status: "FAILED" };
-            }
-            else {
-                if (item.length > 0) {
-                    // if (item[0].token != user_token) {
-                    //     res.send(tokenmessage);
-                    //     returnstr = { status: "FAILED" }
-                    // } else {
-                    const lg_cnt = parseInt(item[0].logon_count) + 1;
+        const item = await thisDb.collection(table).find(query).toArray();
+        if (item.length > 0) {
+            // if (item[0].token != user_token) {
+            //     res.send(tokenmessage);
+            //     returnstr = { status: "FAILED" }
+            // } else {
+            const lg_cnt = parseInt(item[0].logon_count) + 1;
 
-                    let newvalues = {
-                        $set: {
-                            verified: "Y",
-                            token: user_token,
-                            reg_token: "",
-                            updated: new Date(Date.now()),
-                            last_logon: new Date(Date.now()),
-                            unix_timestamp: Date.now(),
-                            logon_count: lg_cnt,
-                        },
-                    };
+            let newvalues = {
+                $set: {
+                    verified: "Y",
+                    token: user_token,
+                    reg_token: "",
+                    updated: new Date(Date.now()),
+                    last_logon: new Date(Date.now()),
+                    unix_timestamp: Date.now(),
+                    logon_count: lg_cnt,
+                },
+            };
 
-                    const user_email = item[0].user_email;
+            const user_email = item[0].user_email;
 
-                    query = { user_email: user_email };
-                    thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
-                        if (err) {
-                            res.send(errmessage);
-                            returnstr = { status: "FAILED" }
-                        }
-                        else {
-                            res.send(message);
-                            returnstr = { status: "OK" }
-                        }
-                    });
-                    // }
-                }
-                else {
-                    res.send(errmessage);
-                    returnstr = { status: "FAILED" };
-                }
-            }
-        });
+            query = { user_email: user_email };
+            const result = await thisDb.collection(table).updateOne(query, newvalues);
+            res.send(message);
+            returnstr = { status: "OK" }
+        } else {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "users/verify",
+                error: "Not found",
+                payload: req.body,
+                query,
+                table,
+                user: user_email,
+            });
+            res.send(errmessage);
+            returnstr = { status: "FAILED" };
+        }
     } catch(e) {
         await logError({
             thisDb,
