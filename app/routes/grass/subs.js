@@ -5,7 +5,7 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const Stripe = require("stripe");
-const { getAppConfig } = require("../../config/stripe_keys");
+const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
 
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
