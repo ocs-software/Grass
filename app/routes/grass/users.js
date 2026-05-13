@@ -473,19 +473,17 @@ router.post("/delete", async (req, res) => {
                                 // update log
                                 message = "Sub-account deleted. " + username;
 
-                                let query = {
-                                    user_email: user_email,
-                                    owner: "",
-                                    venue: "",
-                                    venue_name: "",
-                                    course: "",
-                                    course_name: "",
-                                    message: message,
-                                    created: new Date(Date.now()),
-                                    unix_timestamp: Date.now(),
-                                };
-
-                                thisDb.collection("logs").insertOne(query, function (err, result) { });
+                                logDocumentChange({
+                                    thisDb,
+                                    table: "users",
+                                    channel: "delete",
+                                    sub_accs[0],
+                                    newData: {},
+                                    user_id: sub_accs[0]?._id,
+                                    user_email: user_email
+                                }).catch(err => {
+                                    console.error("Change log failed:", err)
+                                });
                             }
                         } else {
                             let res_json = {status: "FAILED"};
@@ -497,6 +495,8 @@ router.post("/delete", async (req, res) => {
                     } else {
                         // delete owner account
                         query = { user_email: user_email };
+                        const old_user = await thisDb.collection(table).findOne(query);
+
                         let del = await thisDb.collection(table).deleteOne(query);
                         let res_json = {status: "OK"};
 
@@ -521,23 +521,34 @@ router.post("/delete", async (req, res) => {
 
                         // Delete linked sub-accounts
                         query = { linked_from: user_email };
+                        const old_users = await thisDb.collection(table).find(query).toArray();
                         del = await thisDb.collection(table).deleteMany(query);
 
-                        query = { user_email: user_email };
-                        thisDb.collection("logs").deleteMany(query, function (err, item) {
-                            if (err) {
-                                console.log("Delete Account Log");
-                                console.log(err);
-                            }
+                        logDocumentChange({
+                            thisDb,
+                            table: "users",
+                            channel: "delete",
+                            old_user,
+                            newData: {},
+                            user_id: old_user?._id,
+                            user_email: user_email
+                        }).catch(err => {
+                            console.error("Change log failed:", err)
                         });
 
-                        query = { owner: user_email };
-                        thisDb.collection("logs").deleteMany(query, function (err, item) {
-                            if (err) {
-                                console.log("Delete Sub-Account Log");
-                                console.log(err);
-                            }
-                        });
+                        for (var old in old_users) {
+                            logDocumentChange({
+                                thisDb,
+                                table: "users",
+                                channel: "delete",
+                                old,
+                                newData: {},
+                                user_id: old?._id,
+                                user_email: user_email
+                            }).catch(err => {
+                                console.error("Change log failed:", err)
+                            });
+                        }
                     }
                 } else {
                     let res_json = {status: "FAILED"};
@@ -1109,7 +1120,7 @@ router.post("/new", async (req, res) => {
                     unix_timestamp: Date.now()
                 };
 
-                const result = await thisDb.collection(table).insertOne(query)
+                const result = await thisDb.collection(table).insertOne(query);
                 let res_json = {status: "OK"};
 
                 res_json.message = "User Created.";
@@ -1136,18 +1147,18 @@ router.post("/new", async (req, res) => {
                         "TrackOpens": true,
                         "TemplateModel": templatemodel
                     }).then(resp => { });
-                    let query = {
-                        user_email: linked_email,
-                        owner: "",
-                        venue: "",
-                        venue_name: "",
-                        course: "",
-                        course_name: "",
-                        message: message,
-                        created: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    };
-                    thisDb.collection("logs").insertOne(query, function (err, result) { });
+
+                    logDocumentChange({
+                        thisDb,
+                        table: "users",
+                        channel: "new",
+                        oldDoc: {},
+                        newData: query,
+                        user_id: result.insertedId,
+                        user_email: linked_email
+                    }).catch(err => {
+                        console.error("Change log failed:", err)
+                    });
                 }
                 var userurl = user_token + "~N~";
                 if (linked_email != "") {
@@ -1166,18 +1177,17 @@ router.post("/new", async (req, res) => {
                     "TemplateModel": templatemodel
                 }).then(resp => { });
 
-                let query = {
-                    user_email: user_email,
-                    owner: linked_email,
-                    venue: "",
-                    venue_name: "",
-                    course: "",
-                    course_name: "",
-                    message: message,
-                    created: new Date(Date.now()),
-                    unix_timestamp: Date.now()
-                };
-                thisDb.collection("logs").insertOne(query, function (err, result) { });
+                logDocumentChange({
+                    thisDb,
+                    table: "users",
+                    channel: "new",
+                    oldDoc: {},
+                    newData: query,
+                    user_id: result.insertedId,
+                    user_email: user_email
+                }).catch(err => {
+                    console.error("Change log failed:", err)
+                });
             }
         }
     } catch (e) {
@@ -1316,7 +1326,7 @@ router.post("/update", async (req, res) => {
                         },
                     };
 
-                    const result =thisDb.collection(table).updateOne(query, newvalues);
+                    const result = await thisDb.collection(table).updateOne(query, newvalues);
                     let res_json = {status: "OK"};
 
                     res_json.message = "User Updated.";
@@ -1326,19 +1336,17 @@ router.post("/update", async (req, res) => {
 
                     res.send({ res_json });
 
-                    let query = {
-                        user_email: user_email,
-                        owner: "",
-                        venue: "",
-                        venue_name: "",
-                        course: "",
-                        course_name: "",
-                        message: "Account Updated",
-                        created: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    };
-
-                    thisDb.collection("logs").insertOne(query, function (err, result) { });
+                    logDocumentChange({
+                        thisDb,
+                        table: "users",
+                        channel: "update",
+                        item[0],
+                        newData: new_values.$set,
+                        user_id: item[0]._id,
+                        user_email: user_email
+                    }).catch(err => {
+                        console.error("Change log failed:", err)
+                    });
                 } else {
                     await logError({
                         thisDb,
@@ -1487,21 +1495,17 @@ router.post("/golfbag", async (req, res) => {
 
                     res.send({ res_json });
 
-                    query = {
-                        user_email: user_email,
-                        owner: "",
-                        venue: "",
-                        venue_name: "",
-                        course: "",
-                        course_name: "",
-                        message: "Golf Bag Updated",
-                        created: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    };
-
-                    table = "logs" + suffix;
-
-                    await thisDb.collection(table).insertOne(query);
+                    logDocumentChange({
+                        thisDb,
+                        table: "users",
+                        channel: "update",
+                        item[0],
+                        newData: new_values.$set,
+                        user_id: item[0]._id,
+                        user_email: user_email
+                    }).catch(err => {
+                        console.error("Change log failed:", err)
+                    });
                 } else { 
                     await logError({
                         thisDb,
@@ -1749,7 +1753,9 @@ router.post("/import", async (req, res) => {
 
                     query = {user_id: _id, tour: tour};
 
-                    // TODO: When already exist, if member changed, save the old value in another field inside the document(may have multiple values)
+                    const old_tour = await toursDb.findOne(query);
+
+                    // When already exist, if member changed, save the old value in another field inside the document(may have multiple values)
                     const new_data = [{
                         $set: {
                             ...tour_obj,
@@ -1793,10 +1799,10 @@ router.post("/import", async (req, res) => {
                         });
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        await endImport(old_values, user_obj, thisDb, tour_obj, user_changes, tour_changes, ext);
+                        await endImport(thisDb, old_values, user_obj, old_tour, tour_obj, true, true);
                     }
                 } else {
-                    await endImport(old_values, user_obj, thisDb, null, user_changes, false, ext);
+                    await endImport(thisDb, old_values, user_obj, null, null, true, false);
                 }
             }
 
@@ -1820,13 +1826,13 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function endImport(old_user_obj, user_obj, thisDb, tour_added, user_changed, tour_changed, ext) {
+    async function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
 
         let res_json = {status: "OK"};
 
         const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
 
-        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, "users" + ext);
+        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, "users" + suffix);
 
         if (user_obj?.user_email) {
             delete user_obj.user_email;
@@ -1837,47 +1843,32 @@ router.post("/import", async (req, res) => {
         res_json.surname = old_user_obj?.user_surname ?? user_obj?.user_surname;;
         res.res_json = res_json;
 
-        let query = {};
-
-        const logsDb = thisDb.collection("logs" + ext);
-
         if (user_changed) {
-            const old_values = {};
-            if (old_user_obj && typeof old_user_obj === "object" && user_obj && typeof user_obj === "object") {
-                const keys = Object.keys(user_obj);
-
-                keys.forEach((key) => {
-                    if (old_user_obj[key] != user_obj[key])
-                        old_values[key] = old_user_obj[key];
-                });
-            }
-            
-            query = {
+            logDocumentChange({
+                thisDb,
+                table: "users",
+                channel: "import",
+                old_user_obj,
+                newData: user_obj,
                 user_id: _id,
-                user_email: user_email,
-                message: "Account Updated",
-                channel: "Import",
-                old_values: old_values,
-                new_values: user_obj,
-                created: new Date(Date.now()),
-                unix_timestamp: Date.now()
-            };
-
-            await logsDb.insertOne(query, function (err, result) { });
+                user_email: user_email
+            }).catch(err => {
+                console.error("Change log failed:", err)
+            });
         }
-        
 
-        if (tour_added && tour_changed) {
-            query = {
+        if (tour_changed) {
+            logDocumentChange({
+                thisDb,
+                table: "tours",
+                channel: "import",
+                old_tour_obj,
+                newData: tour_obj,
                 user_id: _id,
-                user_email: user_email,
-                message: "Tour Updated/Inserted",
-                channel: "Import",
-                new_values: tour_added,
-                created: new Date(Date.now()),
-                unix_timestamp: Date.now()
-            }
-            await logsDb.insertOne(query, function (err, result) { });
+                user_email: user_email
+            }).catch(err => {
+                console.error("Change log failed:", err)
+            });
         }
 
         res.status(200).send(res_json);
