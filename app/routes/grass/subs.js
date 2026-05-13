@@ -82,7 +82,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             }
             case "customer.subscription.updated": {
                 const subscription = event.data.object;
-                // console.log(subscription);
 
                 // const ret_code = await grantAccess(invoice.customer);
                 // res.sendStatus(ret_code);
@@ -103,7 +102,15 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 break;
       }
     } catch (err) {
-        console.error("Webhook handler failed:", err);
+        await logError({
+            thisDb,
+            type: "other",
+            action: "subs/webhook",
+            error: err,
+            query,
+            payload: event,
+            table: table,
+        });
         return res.sendStatus(500);
     }
 

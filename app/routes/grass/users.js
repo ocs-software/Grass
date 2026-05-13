@@ -497,62 +497,45 @@ router.post("/delete", async (req, res) => {
                     } else {
                         // delete owner account
                         query = { user_email: user_email };
-                        thisDb.collection(table).deleteOne(query, function (err, item) {
+                        let del = await thisDb.collection(table).deleteOne(query);
+                        let res_json = {status: "OK"};
+
+                        res_json.message = "Account Deleted: " + user_email;
+                        res.res_json = res_json;
+
+                        res.send({ res_json });
+
+                        if (!superToken) {
+                            message = "Your Account has been deleted , with any Sub-accounts , Venues or Courses you may of created.";
+                            templatemodel = { "username": ownername, "subject": "Account Deleted", "account_number": user_email, "important_00": "Account Deleted", "info": [{ "infol": message }] };
+                            client = new postmark.ServerClient(serverToken);
+
+                            client.sendEmailWithTemplate({
+                                "From": "admin@thegrass.app",
+                                "To": user_email,
+                                "TemplateAlias": "Default",
+                                "TrackOpens": true,
+                                "TemplateModel": templatemodel,
+                            });
+                        }
+
+                        // Delete linked sub-accounts
+                        query = { linked_from: user_email };
+                        del = await thisDb.collection(table).deleteMany(query);
+
+                        query = { user_email: user_email };
+                        thisDb.collection("logs").deleteMany(query, function (err, item) {
                             if (err) {
+                                console.log("Delete Account Log");
                                 console.log(err);
-
-                                let res_json = {status: "FAILED"};
-
-                                res_json.message = "Deleting Account: " + user_email;
-
-                                res.send({ res_json });
                             }
-                            else {
-                                let res_json = {status: "OK"};
+                        });
 
-                                res_json.message = "Account Deleted: " + user_email;
-                                res.res_json = res_json;
-
-                                res.send({ res_json });
-
-                                if (!superToken) {
-                                    message = "Your Account has been deleted , with any Sub-accounts , Venues or Courses you may of created.";
-                                    templatemodel = { "username": ownername, "subject": "Account Deleted", "account_number": user_email, "important_00": "Account Deleted", "info": [{ "infol": message }] };
-                                    client = new postmark.ServerClient(serverToken);
-
-                                    client.sendEmailWithTemplate({
-                                        "From": "admin@thegrass.app",
-                                        "To": user_email,
-                                        "TemplateAlias": "Default",
-                                        "TrackOpens": true,
-                                        "TemplateModel": templatemodel,
-                                    });
-                                }
-
-                                // Delete linked sub-accounts
-                                query = { linked_from: user_email };
-                                thisDb.collection(table).deleteMany(query, function (err, item) {
-                                    if (err) {
-                                        console.log("Delete Linked/Delete Account Error");
-                                        console.log(err);
-                                    }
-                                });
-
-                                query = { user_email: user_email };
-                                thisDb.collection("logs").deleteMany(query, function (err, item) {
-                                    if (err) {
-                                        console.log("Delete Account Log");
-                                        console.log(err);
-                                    }
-                                });
-
-                                query = { owner: user_email };
-                                thisDb.collection("logs").deleteMany(query, function (err, item) {
-                                    if (err) {
-                                        console.log("Delete Sub-Account Log");
-                                        console.log(err);
-                                    }
-                                });
+                        query = { owner: user_email };
+                        thisDb.collection("logs").deleteMany(query, function (err, item) {
+                            if (err) {
+                                console.log("Delete Sub-Account Log");
+                                console.log(err);
                             }
                         });
                     }
