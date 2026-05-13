@@ -19,7 +19,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     const suffix = appConfig.suffix;
 
     try {
-        // event = JSON.parse(req.body.toString('utf8'))
         event = req.body
 
         switch (event.type) {
@@ -154,10 +153,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     async function grantAccess(user, plan) {
         // Update/create subscription record.
         try {
-            const subscriptions = thisDb.collection("subs");
             let query = { cust_id: user };
             table = "users" + suffix;
             const items = await thisDb.collection(table).find(query).toArray();
+            table = "subs" + suffix;
+            const subscriptions = thisDb.collection(table);
             if (items.length > 0) {
                 const userId = items[0]["_id"];
                 query = {user_id: userId, status: "Active"};

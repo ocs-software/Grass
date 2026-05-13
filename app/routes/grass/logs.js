@@ -11,11 +11,11 @@ router.get("/user", async (req, res) => {
     let table;
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
+    db = req.db;
+    const thisDb = db.db("grass");
     try {
         const user = req.query.id;
 
-        db = req.db;
-        const thisDb = db.db("grass");
 
         var errMess = "";
 
