@@ -1549,7 +1549,7 @@ router.post("/golfbag", async (req, res) => {
             type: "other",
             action: "users/golfbag",
             error: e,
-            query || null,
+            query,
             payload: req.body,
             table: table
         });
