@@ -6,11 +6,17 @@ let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const Stripe = require("stripe");
 const { getAppConfig } = require("../../config/stripe_keys");
+const { logError } = require("../../logs/errorLogger");
 
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     let event;
     const db = req.db;
     const thisDb = db.db("grass");
+
+    let query;
+    let table;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
 
     try {
         // event = JSON.parse(req.body.toString('utf8'))
@@ -103,7 +109,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
     async function check_line(line, customer, basic, period_end) { 
         if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
-            const appConfig = getAppConfig();
             const stripe = Stripe(appConfig.stripe.skey);
 
             const priceId = line.price?.id || line.pricing?.price_details?.price;
@@ -144,7 +149,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         try {
             const subscriptions = thisDb.collection("subs");
             let query = { cust_id: user };
-            const items = await thisDb.collection("users").find(query).toArray();
+            table = "users" + suffix;
+            const items = await thisDb.collection(table).find(query).toArray();
             if (items.length > 0) {
                 const userId = items[0]["_id"];
                 query = {user_id: userId, status: "Active"};
@@ -216,19 +222,30 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 }
             }
         } catch (err) {
-            console.log(err);
+            await logError({
+                thisDb,
+                type: "other",
+                action: "subs/grantAccess",
+                error: err,
+                query,
+                payload: plan,
+                table: table,
+                user: user,
+            });
             return 423;
         }
     }
 
     async function revokeAccess(user, plan, createBasic) {
         try {
-            const subscriptions = thisDb.collection("subs");
-            let query = { cust_id: user };
-            const users = await thisDb.collection("users").find(query).toArray();
+            query = { cust_id: user };
+            table = "users" + suffix;
+            const users = await thisDb.collection(table).find(query).toArray();
             if (users.length > 0) {
                 const userId = users[0]["_id"];
+                table = "subs" + suffix;
                 query = {user_id: userId, status: "Active"};
+                const subscriptions = thisDb.collection(table);
                 const activeSubscription = await subscriptions.findOne(query);
                 if (activeSubscription) {
                     // Reset subscription record to "Basic".
@@ -248,7 +265,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
                         if (createBasic) {
                             const newdate = new Date();
-                            await subscriptions.insertOne({
+                            query = {
                                 user_id: userId,
                                 plan: null,
                                 plan_name: "Basic",
@@ -260,7 +277,8 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                                 previous_subscription_id: activeSubscription._id,
                                 created_at: newdate,
                                 updated_at: newdate,
-                            });
+                            };
+                            await subscriptions.insertOne(query);
                         }
 
                         return 200;
@@ -268,10 +286,12 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         return 200;
                     }
                 } else {
+                    table = "subs" + suffix;
+                    const subscriptions = thisDb.collection(table);
                     // create a basic "subscription"
                     if (createBasic) {
                         const newdate = new Date();
-                        const result = await subscriptions.insertOne({
+                        query = {
                             user_id: userId,
                             plan: null,
                             plan_name: "Basic",
@@ -283,35 +303,56 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             previous_subscription_id: activeSubscription._id,
                             created_at: newdate,
                             updated_at: newdate,
-                        });
+                        };
+                        const result = await subscriptions.insertOne(query);
                     }
                     return 200;
                 }
             }
         } catch (err) {
-            console.log(err);
+            await logError({
+                thisDb,
+                type: "other",
+                action: "subs/revokeAccess",
+                error: err,
+                query,
+                payload: plan,
+                table: table,
+                user: user,
+            });
             return 422;
         }
     }
 
     async function updateCustID(email, cust_id) {
         try {
-            const users = thisDb.collection("users");
+            table = "users" + suffix;
+            query = { user_email: email };
+            const users = thisDb.collection(table);
 
-            const item = await users.find({ user_email: email }).toArray();
+            const item = await users.find(query).toArray();
 
             if (item.length === 0) {
-                console.log("User not found");
+                await logError({
+                    thisDb,
+                    type: "validation",
+                    action: "subs/updateCustID",
+                    error: "User not found",
+                    query,
+                    payload: cust_id,
+                    table: table,
+                    user: email,
+                });
                 return 420;
             }
 
             const result = await users.updateOne(
-            { user_email: email },
-            {
-                $set: {
-                    cust_id: cust_id
+                query,
+                {
+                    $set: {
+                        cust_id: cust_id
+                    }
                 }
-            }
             );
 
             if (result.matchedCount === 0) {
@@ -321,7 +362,16 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             return 200;
 
         } catch (err) {
-            console.log(err);
+            await logError({
+                thisDb,
+                type: "other",
+                action: "subs/updateCustID",
+                error: err,
+                query,
+                payload: cust_id,
+                table: table,
+                user: email,
+            });
             return 501;
         }
     }
@@ -331,6 +381,10 @@ router.get("/user/active", async (req, res) => {
     try {
         const db = req.db;
         const thisDb = db.db("grass");
+        let query;
+        let table;
+        const appConfig = getAppConfig();
+        const suffix = appConfig.suffix;
         const { user_email, token } = req.query;
 
         let errMess = '';
@@ -346,22 +400,31 @@ router.get("/user/active", async (req, res) => {
         }
 
         if (errMess !== '') {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "subs/user/active",
+                error: errMess,
+                payload: user_email,
+            });
             let res_json = {status: 'FAILED'};
 
             res_json.message = errMess;
 
             res.send({ res_json });
         } else {
-            let query = { user_email: user_email };
+            query = { user_email: user_email };
+            table = "users" + suffix;
 
             // get Account details to check
-            const users = await thisDb.collection('users').find(query).toArray();
+            const users = await thisDb.collection(table).find(query).toArray();
 
             if (users.length > 0) {
                 const user = users[0];
                 if (user.token == token) {
                     query = {user_id: user._id, status: "Active"};
-                    const subs = await thisDb.collection("subs").findOne(query);
+                    table = "subs" + suffix;
+                    const subs = await thisDb.collection(table).findOne(query);
                     if (!subs) {
                         let res_json = {status: "OK"};
 
@@ -383,19 +446,48 @@ router.get("/user/active", async (req, res) => {
                     let res_json = {status: "FAILED"};
 
                     res_json.message = "Invalid Token Sent. Another Device has Logged on.";
+                    await logError({
+                        thisDb,
+                        type: "validation",
+                        action: "subs/user/active",
+                        error: res_json.message,
+                        payload: user,
+                        user: user._id,
+                        table: table,
+                        query
+                    });
 
                     res.send({ res_json });
                 }
             } else {
                 let res_json = {status: "FAILED"};
-
                 res_json.message = "Account Not Found";
+
+                await logError({
+                    thisDb,
+                    type: "validation",
+                    action: "subs/user/active",
+                    error: res_json.message,
+                    payload: users,
+                    user: user_email,
+                    table: table,
+                    query
+                });
 
                 res.send({ res_json });
             }
         }
     } catch (err) {
-        console.log(err);
+        await logError({
+            thisDb,
+            type: "other",
+            action: "subs/updateCustID",
+            error: err,
+            query,
+            payload: cust_id,
+            table: table,
+            user: email,
+        });
 
         let res_json = {status: "FAILED"};
 
@@ -415,10 +507,15 @@ router.get("/user/active", async (req, res) => {
 router.get("/search", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
+    let query = req.query;
+    let table;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
     const { plan, status, periodEnd } = req.query;
 
     try {
-        const subscriptions = thisDb.collection("subs");
+        table = "subs" + suffix;
+        const subscriptions = thisDb.collection(table);
 
         const match = {};
 
@@ -487,11 +584,18 @@ router.get("/search", async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Error searching subscriptions:", err);
+        await logError({
+            thisDb,
+            type: "other",
+            action: "subs/search",
+            error: err,
+            query,
+            table: table,
+        });
 
         return res.status(502).json({
-        success: false,
-        message: "Error searching subscriptions"
+            success: false,
+            message: "Error searching subscriptions"
         });
     }
 });

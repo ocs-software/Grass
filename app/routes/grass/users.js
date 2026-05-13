@@ -210,7 +210,7 @@ router.post('/check', async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         let table;
         let query;
@@ -246,7 +246,7 @@ router.post('/check', async (req, res) => {
         }
         else {
             query = { user_email: user_email };
-            table = "users" + ext;
+            table = "users" + suffix;
 
             // get Account details to check if Owner or Sub Account
             const account = await thisDb.collection(table).find(query).toArray();
@@ -347,7 +347,7 @@ router.post("/delete", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         let table;
         let query;
@@ -403,7 +403,7 @@ router.post("/delete", async (req, res) => {
                 superToken = true;
 
             query = { user_email: user_email };
-            table = "users" + ext;
+            table = "users" + suffix;
 
             const item = await thisDb.collection(table).find(query).toArray();
             if (item.length > 0) {
@@ -433,7 +433,7 @@ router.post("/delete", async (req, res) => {
                                 res.send({ res_json });
                             } else {
                                 username = sub_accs[0].user_firstname + " " + sub_acc[0].user_surname;
-                                const del = await thisDb.collection("users").deleteOne(query);
+                                const del = await thisDb.collection(table).deleteOne(query);
                                 let res_json = {status: "OK"};
 
                                 res_json.message = "Sub-Account Deleted: " + sub_acc;
@@ -497,7 +497,7 @@ router.post("/delete", async (req, res) => {
                     } else {
                         // delete owner account
                         query = { user_email: user_email };
-                        thisDb.collection("users").deleteOne(query, function (err, item) {
+                        thisDb.collection(table).deleteOne(query, function (err, item) {
                             if (err) {
                                 console.log(err);
 
@@ -531,31 +531,13 @@ router.post("/delete", async (req, res) => {
 
                                 // Delete linked sub-accounts
                                 query = { linked_from: user_email };
-                                thisDb.collection("users").deleteMany(query, function (err, item) {
+                                thisDb.collection(table).deleteMany(query, function (err, item) {
                                     if (err) {
                                         console.log("Delete Linked/Delete Account Error");
                                         console.log(err);
                                     }
                                 });
-/*
-                                // Delete Venues
-                                query = { owner: user_email };
-                                thisDb.collection("venues").deleteMany(query, function (err, item) {
-                                    if (err) {
-                                        console.log("Delete Venue/Delete Account Error")
-                                        console.log(err)
-                                    } else { }
-                                });
 
-                                // Delete Courses
-                                query = { owner: user_email };
-                                thisDb.collection("courses").deleteMany(query, function (err, item) {
-                                    if (err) {
-                                        console.log("Delete Courses/Delete Account Error")
-                                        console.log(err)
-                                    } else { }
-                                });
-*/
                                 query = { user_email: user_email };
                                 thisDb.collection("logs").deleteMany(query, function (err, item) {
                                     if (err) {
@@ -641,7 +623,7 @@ router.post("/logon", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass")
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         let table;
         let query;
@@ -688,7 +670,7 @@ router.post("/logon", async (req, res) => {
             //     method: 'uuidv4',
             // });
             query = { user_email: user_email };
-            table = "users" + ext;
+            table = "users" + suffix;
             const item = await thisDb.collection(table).find(query).toArray();
             // zero index of item 'item[0]' below is because we are using 'toArray' function
             // and only need to send data from the object at the first index (since there is no other items in this array!)
@@ -789,7 +771,7 @@ router.post("/logout", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         let table;
         let query;
@@ -829,7 +811,7 @@ router.post("/logout", async (req, res) => {
         else {
             query = { user_email: user_email };
 
-            table = "users" + ext;
+            table = "users" + suffix;
             const item = await thisDb.collection(table).find(query).toArray();
             if (item.length > 0) {
                 if (item[0].token == token) {
@@ -841,7 +823,7 @@ router.post("/logout", async (req, res) => {
                             unix_timestamp: Date.now()
                         },
                     };
-                    const result = await thisDb.collection("users").updateOne(query, newvalues);
+                    const result = await thisDb.collection(table).updateOne(query, newvalues);
 
                     item[0].verified = "N";
                     // item[0].token = "";
@@ -926,7 +908,7 @@ router.get('/verify/:useremail', async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         let table;
         let query;
@@ -941,7 +923,7 @@ router.get('/verify/:useremail', async (req, res) => {
         // type = "L" = Logging in
 
         query = { reg_token: user_token };
-        table = "users" + ext;
+        table = "users" + suffix;
         let returnstr = '';
 
         const item = await thisDb.collection(table).find(query).toArray();
@@ -1010,7 +992,7 @@ router.post("/new", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         let table;
         let query;
@@ -1074,7 +1056,7 @@ router.post("/new", async (req, res) => {
         else {
             // Check if email already exists
             query = { user_email: user_email };
-            table = "users" + ext;
+            table = "users" + suffix;
             const item = await thisDb.collection(table).find(query).toArray();
             if (item.length > 0) {
                 let res_json = {status: "FAILED"};
@@ -1249,7 +1231,7 @@ router.post("/update", async (req, res) => {
         let query;
 
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
         const thisDb = db.db("grass");
 
         const {
@@ -1324,7 +1306,7 @@ router.post("/update", async (req, res) => {
 
             // Check if email already exists
             query = { user_email: user_email };
-            table = "users" + ext;
+            table = "users" + suffix;
 
             const item = await thisDb.collection(table).find(query).toArray();
             // zero index of item 'item[0]' below is because we are using 'toArray' function
@@ -1351,7 +1333,7 @@ router.post("/update", async (req, res) => {
                         },
                     };
 
-                    const result =thisDb.collection("users").updateOne(query, newvalues);
+                    const result =thisDb.collection(table).updateOne(query, newvalues);
                     let res_json = {status: "OK"};
 
                     res_json.message = "User Updated.";
@@ -1447,7 +1429,7 @@ router.post("/golfbag", async (req, res) => {
 
         const thisDb = db.db("grass");
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
 
         const {
             user_email,
@@ -1493,9 +1475,10 @@ router.post("/golfbag", async (req, res) => {
                 superToken = true;
 
             // Check if email already exists
-            let query = { user_email: user_email };
+            query = { user_email: user_email };
+            table = "users" + suffix;
 
-            const item = await thisDb.collection("users").find(query).toArray();
+            const item = await thisDb.collection(table).find(query).toArray();
 
             // zero index of item 'item[0]' below is because we are using 'toArray' function
             // and only need to send data from the object at the first index (since there is no other items in this array!)
@@ -1510,7 +1493,7 @@ router.post("/golfbag", async (req, res) => {
                         },
                     };
 
-                    table = "users" + ext;
+                    table = "users" + suffix;
 
                     const result = await thisDb.collection(table).updateOne(query, newvalues);
                     let res_json = {status: "OK"};
@@ -1533,7 +1516,7 @@ router.post("/golfbag", async (req, res) => {
                         unix_timestamp: Date.now()
                     };
 
-                    table = "logs" + ext;
+                    table = "logs" + suffix;
 
                     await thisDb.collection(table).insertOne(query);
                 } else { 
@@ -1607,7 +1590,7 @@ router.post("/import", async (req, res) => {
     try {
         const db = req.db;
         const appConfig = getAppConfig();
-        const ext = app_config.extension;
+        const suffix = app_config.suffix;
         const thisDb = db.db("grass");
         const data = req.body;
 
@@ -1685,7 +1668,7 @@ router.post("/import", async (req, res) => {
             return res.status(203).send({ res_json });
         } else {
             var superToken = true;
-            table = "users" + ext;
+            table = "users" + suffix;
             // if (token == process.env.TOKEN)
             //     superToken = true;
 
@@ -1777,7 +1760,7 @@ router.post("/import", async (req, res) => {
                 }
 
                 if (Object.keys(tour_obj).length > 0) {
-                    table = "tours" + ext;
+                    table = "tours" + suffix;
                     const toursDb = thisDb.collection(table);
                     const tour = tour_obj.tour;
 
@@ -1860,7 +1843,7 @@ router.post("/import", async (req, res) => {
 
         const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
 
-        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, ext);
+        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, "users" + ext);
 
         if (user_obj?.user_email) {
             delete user_obj.user_email;
@@ -1917,8 +1900,8 @@ router.post("/import", async (req, res) => {
         res.status(200).send(res_json);
     }
 
-    async function getUserId(user_email, thisDb, ext) {
-        const usersDb = thisDb.collection("users" + ext);
+    async function getUserId(user_email, thisDb, table) {
+        const usersDb = thisDb.collection(table);
 
         const query = {user_email: user_email};
 
