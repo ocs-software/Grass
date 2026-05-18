@@ -1610,7 +1610,6 @@ router.post("/import", async (req, res) => {
     async function processData(data) {
         let obj_keys = [];
         let table = "";
-        let obj_keys = [];
         let token = "";
         
         const user_obj = {};
