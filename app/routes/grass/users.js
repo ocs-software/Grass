@@ -1584,8 +1584,7 @@ router.post("/import", async (req, res) => {
 
     try {
         const data = req.body;
-        console.log(typeof data, data);
-        for (var user in data.players) {
+        for (var user of data.players) {
             await processData(user, pcount, fcount, messages, thisDb);
         }
         res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
