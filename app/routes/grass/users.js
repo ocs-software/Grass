@@ -11,6 +11,7 @@ const clientSocket = require('socket.io-client');
 let ObjectID = require('mongodb').ObjectID;
 const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
+const { logDocumentChange } = requeir("../../changeLogger");
 
 const message =
     '<!DOCTYPE html>' +
