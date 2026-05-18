@@ -1574,7 +1574,7 @@ router.post("/golfbag", async (req, res) => {
 });
 
 router.post("/import", async (req, res) => {
-    db = req.db;
+    const db = req.db;
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
@@ -1607,7 +1607,7 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function processData(data) {
+    async function processData(data, pcount, fcount, messages, thisDb) {
         let obj_keys = [];
         let table = "";
         let token = "";
@@ -1616,7 +1616,7 @@ router.post("/import", async (req, res) => {
         const tour_obj = {};
         pcount++;
         if (typeof data === "object") {
-            obj_keys = Object.keys(data, pcount, fcount, messages, thisDb);
+            obj_keys = Object.keys(data);
         } else {
             await logError({
                 thisDb,
