@@ -1581,11 +1581,13 @@ router.post("/import", async (req, res) => {
     let pcount = 0;
     let fcount = 0;
     let messages = [];
+    let query = "";
+    let table = "";
 
     try {
         const data = req.body;
         for (var user of data.players) {
-            await processData(user, pcount, fcount, messages, thisDb);
+            await processData(user, pcount, fcount, messages, thisDb, suffix, query, table);
         }
         res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
     } catch (e) {
@@ -1607,9 +1609,8 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function processData(data, pcount, fcount, messages, thisDb) {
+    async function processData(data, pcount, fcount, messages, thisDb, query, table) {
         let obj_keys = [];
-        let table = "";
         let token = "";
         
         const user_obj = {};
@@ -1685,7 +1686,7 @@ router.post("/import", async (req, res) => {
             // if (token == process.env.TOKEN)
             //     superToken = true;
 
-            let query = { user_email: user_email };
+            query = { user_email: user_email };
             const usersDb = thisDb.collection(table);
 
             let users = await usersDb.find(query).toArray();
