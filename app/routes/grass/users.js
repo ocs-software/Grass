@@ -1583,10 +1583,12 @@ router.post("/import", async (req, res) => {
     let messages = [];
     let query = "";
     let table = "";
+    let payload;
 
     try {
         const data = req.body;
         for (var user of data.players) {
+            payload = user;
             await processData(user, pcount, fcount, messages, thisDb, suffix, query, table);
         }
         res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
@@ -1597,7 +1599,7 @@ router.post("/import", async (req, res) => {
             action: "users/import",
             error: e,
             query,
-            payload: data,
+            payload: user,
             table: table
         });
 
