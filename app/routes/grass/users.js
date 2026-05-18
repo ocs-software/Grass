@@ -1578,21 +1578,14 @@ router.post("/import", async (req, res) => {
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
-
-    let table = "";
-    let obj_keys = [];
-    let token = "";
     let pcount = 0;
     let fcount = 0;
     let messages = [];
-    
-    const user_obj = {};
-    const tour_obj = {};
 
     try {
         const data = req.body;
         for (var user in data.players) {
-            await processData(user);
+            await processData(user, pcount, fcount, messages, thisDb);
         }
         res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
     } catch (e) {
@@ -1615,9 +1608,16 @@ router.post("/import", async (req, res) => {
     }
 
     async function processData(data) {
+        let obj_keys = [];
+        let table = "";
+        let obj_keys = [];
+        let token = "";
+        
+        const user_obj = {};
+        const tour_obj = {};
         pcount++;
         if (typeof data === "object") {
-            obj_keys = Object.keys(data);
+            obj_keys = Object.keys(data, pcount, fcount, messages, thisDb);
         } else {
             await logError({
                 thisDb,
