@@ -1584,6 +1584,7 @@ router.post("/import", async (req, res) => {
 
     try {
         const data = req.body;
+        console.log(typeof data, data);
         for (var user in data.players) {
             await processData(user, pcount, fcount, messages, thisDb);
         }
