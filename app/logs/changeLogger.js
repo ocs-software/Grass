@@ -1,4 +1,4 @@
-const { getAppConfig } = require("../config/aap_config");
+const { getAppConfig } = require("../config/app_config");
 
 const DEFAULT_IGNORED_FIELDS = [
   "_id",
