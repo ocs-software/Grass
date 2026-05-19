@@ -476,7 +476,7 @@ router.post("/delete", async (req, res) => {
 
                                 logDocumentChange({
                                     thisDb,
-                                    table: "users",
+                                    table: table,
                                     channel: "delete",
                                     oldDoc: sub_accs[0],
                                     newData: {},
@@ -527,7 +527,7 @@ router.post("/delete", async (req, res) => {
 
                         logDocumentChange({
                             thisDb,
-                            table: "users",
+                            table: table,
                             channel: "delete",
                             old_user,
                             newData: {},
@@ -540,7 +540,7 @@ router.post("/delete", async (req, res) => {
                         for (var old in old_users) {
                             logDocumentChange({
                                 thisDb,
-                                table: "users",
+                                table: table,
                                 channel: "delete",
                                 old,
                                 newData: {},
@@ -1151,7 +1151,7 @@ router.post("/new", async (req, res) => {
 
                     logDocumentChange({
                         thisDb,
-                        table: "users",
+                        table: table,
                         channel: "new",
                         oldDoc: {},
                         newData: query,
@@ -1180,7 +1180,7 @@ router.post("/new", async (req, res) => {
 
                 logDocumentChange({
                     thisDb,
-                    table: "users",
+                    table: table,
                     channel: "new",
                     oldDoc: {},
                     newData: query,
@@ -1339,7 +1339,7 @@ router.post("/update", async (req, res) => {
 
                     logDocumentChange({
                         thisDb,
-                        table: "users",
+                        table: table,
                         channel: "update",
                         oldDoc: item[0],
                         newData: new_values.$set,
@@ -1498,7 +1498,7 @@ router.post("/golfbag", async (req, res) => {
 
                     logDocumentChange({
                         thisDb,
-                        table: "users",
+                        table: table,
                         channel: "update",
                         oldDoc: item[0],
                         newData: new_values.$set,
@@ -1574,6 +1574,90 @@ router.post("/golfbag", async (req, res) => {
     }
 });
 
+router.post("/deleteTour", async (req, res) => {
+    const db = req.db;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const thisDb = db.db("grass");
+
+    const table = "tours" + suffix;
+
+    try {
+        const data = req.body;
+        const user_email = data.user_email;
+        let query = "";
+
+        var errMess = "";
+
+        if (user_email === null || user_email === "") {
+            errMess = "Email Address Missing";
+        }
+
+        if (errMess == "") {
+            if (!validateEmail(user_email)) {
+                errMess = "Invalid Email Address Sent";
+            }
+        }
+
+        if (data?.tour?.tour) {
+            errMess = "Invalid tour sent.";
+        }
+
+        if (errMess !== "") {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "users/import",
+                error: errMess,
+                payload: data,
+            });
+            return res.status(205).send({ message: errMess, data: data });
+        } else {
+            query = { user_email: user_email, tour: data.tour.tour };
+            const resp = await thisDb.collection(table).findOneAndDelete(query);
+
+            if (resp) {
+                logDocumentChange({
+                    thisDb,
+                    table: table,
+                    channel: "deleteTour",
+                    resp,
+                    newData: {},
+                    user_id: _id,
+                    user_email: user_email
+                }).catch(err => {
+                    console.error("Change log failed:", err)
+                });
+            }
+
+            res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
+        }
+    } catch(e) {
+        await logError({
+            thisDb,
+            type: "other",
+            action: "users/deleteTour",
+            error: e,
+            query,
+            payload: user,
+            table: table
+        });
+
+        let res_json = {status: "FAILED"};
+
+        res_json.message = "Error in deleting user tour data.";
+        res.res_json = res_json;
+
+        res.status(400).send({ message: "Error in deleting user tour data.", data: e });
+    }
+
+    function validateEmail(email) {
+        const re = /\S+@\S+\.\S+/;
+
+        return re.test(email);
+    }
+});
+
 router.post("/import", async (req, res) => {
     const db = req.db;
     const appConfig = getAppConfig();
@@ -1588,10 +1672,15 @@ router.post("/import", async (req, res) => {
 
     try {
         const data = req.body;
-        for (var user of data.players) {
-            payload = user;
-            await processData(user, pcount, fcount, messages, thisDb, suffix, query, table);
+        if (data?.players) {
+            for (var user of data.players) {
+                payload = user;
+                await processData(user, pcount, fcount, messages, thisDb, suffix, query, table);
+            }
+        } else {
+            await processData(data, pcount, fcount, messages, thisDb, suffix, query, table);
         }
+        
         res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
     } catch (e) {
         await logError({
@@ -1843,7 +1932,9 @@ router.post("/import", async (req, res) => {
 
         const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
 
-        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, "users" + suffix);
+        let table = "users" + suffix;
+
+        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, table);
 
         if (user_obj?.user_email) {
             delete user_obj.user_email;
@@ -1857,7 +1948,7 @@ router.post("/import", async (req, res) => {
         if (user_changed) {
             logDocumentChange({
                 thisDb,
-                table: "users",
+                table: table,
                 channel: "import",
                 old_user_obj,
                 newData: user_obj,
@@ -1871,7 +1962,7 @@ router.post("/import", async (req, res) => {
         if (tour_changed) {
             logDocumentChange({
                 thisDb,
-                table: "tours",
+                table: "tours" + suffix,
                 channel: "import",
                 old_tour_obj,
                 newData: tour_obj,
