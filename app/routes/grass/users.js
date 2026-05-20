@@ -1709,12 +1709,14 @@ router.post("/import", async (req, res) => {
         const user_obj = {};
         const tour_obj = {};
 
-        if (response?.pcount && response.pcount > 0) {
+        if (response?.pcount && response?.pcount > 0) {
             response.pcount++;
         } else {
-            response.pcount = 1;
-            response.fcount = 0;
-            response.messages = new Array();
+            response = {
+                pcount: 1,
+                fcount: 0,
+                messages: []
+            };
         }
 
         if (typeof data === "object") {
