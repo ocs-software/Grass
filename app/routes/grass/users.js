@@ -1680,7 +1680,7 @@ router.post("/import", async (req, res) => {
             }
             res.status(200).send({status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages})
         } else {
-            await processData(data, response, thisDb, suffix, query, table);
+            response = await processData(data, response, thisDb, suffix, query, table);
             res.status(200).send({status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages})
         }
     } catch (e) {
