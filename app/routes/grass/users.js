@@ -1808,7 +1808,7 @@ router.post("/import", async (req, res) => {
                     if (old_values[key] == null) {
                         setFields[key] = value;
                         comparisons.push({
-                            $ne: [key, value]
+                            $ne: [`$${key}`, value]
                         });
                     }
                 }
@@ -1934,55 +1934,57 @@ router.post("/import", async (req, res) => {
                         return response;
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        await endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changed, true);
+                        endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changes, true);
                         return response;
                     }
                 } else {
-                    await endImport(thisDb, old_values, user_obj, null, null, user_changed, false);
+                    endImport(thisDb, old_values, user_obj, null, null, user_changes, false);
                     return response;
                 }
             }
         }
     }
 
-    async function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
-        const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
+    function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
+        Promise.resolve()
+            .then(async () => {
+                const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
 
-        let table = "users" + suffix;
+                let table = "users" + suffix;
 
-        const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, table);
+                const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, table);
 
-        if (user_obj?.user_email) {
-            delete user_obj.user_email;
-        }
+                if (user_obj?.user_email) {
+                    delete user_obj.user_email;
+                }
 
-        if (user_changed) {
-            logDocumentChange({
-                thisDb,
-                table: table,
-                channel: "import",
-                old_user_obj,
-                newData: user_obj,
-                user_id: _id,
-                user_email: user_email
-            }).catch(err => {
-                console.error("Change log failed:", err)
+                if (user_changed) {
+                    await logDocumentChange({
+                        thisDb,
+                        table: table,
+                        channel: "import",
+                        old_user_obj,
+                        newData: user_obj,
+                        user_id: _id,
+                        user_email: user_email
+                    });
+                }
+
+                if (tour_changed) {
+                    await logDocumentChange({
+                        thisDb,
+                        table: "tours" + suffix,
+                        channel: "import",
+                        old_tour_obj,
+                        newData: tour_obj,
+                        user_id: _id,
+                        user_email: user_email
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Change log failed:", err);
             });
-        }
-
-        if (tour_changed) {
-            logDocumentChange({
-                thisDb,
-                table: "tours" + suffix,
-                channel: "import",
-                old_tour_obj,
-                newData: tour_obj,
-                user_id: _id,
-                user_email: user_email
-            }).catch(err => {
-                console.error("Change log failed:", err)
-            });
-        }
     }
 
     async function getUserId(user_email, thisDb, table) {
