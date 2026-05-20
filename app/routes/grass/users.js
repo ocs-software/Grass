@@ -1493,4 +1493,435 @@ router.post("/golfbag", async (req, res) => {
     }
 });
 
+router.post("/deleteTour", async (req, res) => {
+    const db = req.db;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const thisDb = db.db("grass");
+
+    const table = "tours" + suffix;
+
+    try {
+        const data = req.body;
+        const user_email = data.user_email;
+        let query = "";
+
+        var errMess = "";
+
+        if (user_email === null || user_email === "") {
+            errMess = "Email Address Missing";
+        }
+
+        if (errMess == "") {
+            if (!validateEmail(user_email)) {
+                errMess = "Invalid Email Address Sent";
+            }
+        }
+
+        if (data?.tour?.tour) {
+            errMess = "Invalid tour sent.";
+        }
+
+        if (errMess !== "") {
+            logError({
+                thisDb,
+                type: "validation",
+                action: "users/import",
+                error: errMess,
+                payload: data,
+            });
+            return res.status(205).send({ message: errMess, data: data });
+        } else {
+            query = { user_email: user_email, tour: data.tour.tour };
+            const resp = await thisDb.collection(table).findOneAndDelete(query);
+
+            if (resp) {
+                logDocumentChange({
+                    thisDb,
+                    table: table,
+                    channel: "deleteTour",
+                    resp,
+                    newData: {},
+                    user_email: user_email
+                }).catch(err => {
+                    console.error("Change log failed:", err)
+                });
+            }
+
+            res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
+        }
+    } catch(e) {
+        await logError({
+            thisDb,
+            type: "other",
+            action: "users/deleteTour",
+            error: e,
+            query,
+            payload: user,
+            table: table
+        });
+
+        let res_json = {status: "FAILED"};
+
+        res_json.message = "Error in deleting user tour data.";
+        res.res_json = res_json;
+
+        res.status(400).send({ message: "Error in deleting user tour data.", data: e });
+    }
+
+    function validateEmail(email) {
+        const re = /\S+@\S+\.\S+/;
+
+        return re.test(email);
+    }
+});
+
+router.post("/import", async (req, res) => {
+    const db = req.db;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const thisDb = db.db("grass");
+    let response = {};
+    let pcount = 0;
+    let fcount = 0;
+    let messages = [];
+    let query = "";
+    let table = "";
+    let payload;
+
+    try {
+        const data = req.body;
+        if (data?.players) {
+            for (var user of data.players) {
+                payload = user;
+                response = await processData(user, response, thisDb, suffix, query, table);
+            }
+            res.status(200).send({status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages})
+        } else {
+            response = await processData(data, response, thisDb, suffix, query, table);
+            res.status(200).send({status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages})
+        }
+    } catch (e) {
+        await logError({
+            thisDb,
+            type: "other",
+            action: "users/import",
+            error: e,
+            query,
+            payload: user,
+            table: table
+        });
+
+        let res_json = {status: "FAILED"};
+
+        res_json.message = "Error in Fetching data.";
+        res.res_json = res_json;
+
+        res.status(400).send({ message: "Error in Fetching data.", data: e });
+    }
+
+    async function processData(data, response, thisDb, query, table) {
+        let obj_keys = [];
+        let token = "";
+        
+        const user_obj = {};
+        const tour_obj = {};
+
+        if (response?.pcount && response?.pcount > 0) {
+            response.pcount++;
+        } else {
+            response = {
+                pcount: 1,
+                fcount: 0,
+                messages: []
+            };
+        }
+
+        if (typeof data === "object") {
+            obj_keys = Object.keys(data);
+        } else {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "users/import",
+                error: "Invalid data sent",
+                payload: data,
+            });
+            response.fcount++;
+            response.messages.push({message: "Invalid data sent"});
+            return response;
+        }
+
+        for (const key of obj_keys) {
+            const value = data[key];
+            if (key == "token") {
+                token = value;
+            } else if (key != "tour") {
+                user_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
+            } else {
+                if (typeof value === "object") {
+                    const tour_data = value;
+                    const tour_keys = Object.keys(tour_data);
+                    if (tour_keys.length > 0) {
+                        for (const tkey of tour_keys) {
+                            const tvalue = tour_data[tkey];
+                            tour_obj[tkey] = typeof tvalue === "string" ? tvalue.replace(/\|'/g, "'") : tvalue;
+                        }
+                    }
+                }
+            }
+        }
+        
+        var errMess = "";
+
+        const user_email = user_obj.user_email;
+
+        if (user_email === null || user_email === "") {
+            errMess = "Email Address Missing";
+        }
+
+        if (errMess == "") {
+            if (!validateEmail(user_email)) {
+                errMess = "Invalid Email Address Sent";
+            }
+        }
+/* 
+        if (token == null || token == "") {
+            errMess += " Invalid Token Sent";
+        }
+ */
+        if (errMess !== "") {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "users/import",
+                error: errMess,
+                payload: data,
+            });
+            response.fcount++;
+            response.messages.push({message: errMess});
+            return response;
+        } else {
+            var superToken = true;
+            table = "users" + suffix;
+            // if (token == process.env.TOKEN)
+            //     superToken = true;
+
+            query = { user_email: user_email };
+            const usersDb = thisDb.collection(table);
+
+            let users = await usersDb.find(query).toArray();
+
+            let old_values = {};
+            const setFields = {};
+            const comparisons = [];
+            let result;
+            if (users.length > 0) {
+                old_values = users[0];
+            }
+
+            for (const [key, value] of Object.entries(user_obj)) {
+                if (key !== "user_email") {
+                    // if (old_values[key] == null || old_values[key] != value) {
+                    // We only update main record with data that does not have there yet. Should we change?
+                    if (old_values[key] == null) {
+                        setFields[key] = value;
+                        comparisons.push({
+                            $ne: [`$${key}`, value]
+                        });
+                    }
+                }
+            }
+
+            let user_changes = false;
+            // check if we do have somethig to update
+            if (Object.keys(setFields).length === 0) {
+                if (tour_obj && typeof tour_obj === "object" && !Array.isArray(tour_obj) && Object.keys(tour_obj).length > 0) {
+                    
+                } else {
+                    response.fcount++;
+                    response.messages.push("Nothing to change");
+                    return response;
+                }
+            } else {
+                // Update/insert main record
+                result = await usersDb.updateOne(
+                    query,
+                    [
+                        {
+                            $set: {
+                                ...setFields, // only set fields sent by form
+                                updated: {
+                                    $cond: [
+                                        { $or: comparisons }, // only update "updated" timestamp if something changed
+                                        "$$NOW",
+                                        "$updated"
+                                    ]
+                                },
+                                created: {
+                                    $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
+                                },
+                                playing_status: {
+                                    $ifNull: ["$playing_status", tour_obj?.playing_status ?? "A"]
+                                }
+                            }
+                        }
+                    ],
+                    { upsert: true }
+                );
+
+                if (result.matchedCount === 0 && !result.upsertedId) {
+                    // Failed
+                    response.fcount++;
+                    response.messages.push({message: "No User Document found/inserted"});
+                    return response;
+                } else {
+                    user_changes = (result.modifiedCount > 0 || result.upsertedId);
+                }
+            }
+
+            // update/insert tour info
+            let _id;
+            
+            if (old_values?._id) {
+                _id = old_values._id;
+            } else {
+                if (result.upsertedId) {
+                    _id = result.upsertedId;
+                } else {
+// same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
+                    users = await usersDb.find(query).toArray();
+                    if (users.length > 0) {
+                        old_values = users[0];
+                    }
+                    if (old_values?._id) {
+                        _id = old_values._id;
+                    } else {
+                        _id = user_email;
+                    }
+                }
+            }
+
+            if (Object.keys(tour_obj).length > 0) {
+            // have some tour information to update.
+                table = "tours" + suffix;
+                const toursDb = thisDb.collection(table);
+                const tour = tour_obj.tour;
+
+                query = {user_id: _id, tour: tour};
+
+                const old_tour = await toursDb.findOne(query);
+
+                // When already exist, if member changed, save the old value in another field inside the document(may have multiple values)
+                const new_data = [{
+                    $set: {
+                        ...tour_obj,
+                        history: {
+                            $cond: [ // create history of member code if already exist one and code has changed
+                                {
+                                    $and: [
+                                        { $ne: ["$member", tour_obj.member] },
+                                        { $ne: [{ $type: "$member"}, "missing"] }
+                                    ]
+                                },
+                                {
+                                    $concatArrays: [
+                                        { $ifNull: ["$history", []] },
+                                        [
+                                            { // actual history record(inside the same document)
+                                                member: "$member",
+                                                updated_at: "$updated_at"
+                                            }
+                                        ]
+                                    ]
+                                },
+                                {
+                                    $ifNull: ["$history", []] // If already have history, it will preserve, else will create a empty array.
+                                }
+                            ]
+                        },
+                        updated_at: new Date(),
+                        created_at: {
+                            $ifNull: ["$created_at", "$$NOW"]
+                        }
+                    }
+                }];
+
+                result = await toursDb.updateOne(query, new_data, {upsert: true});
+
+                if (result.matchedCount === 0 && !result.upsertedId) {
+                    response.fcount++;
+                    response.messages.push({message: "No Tour Document found/inserted"});
+                    return response;
+                } else {
+                    const tour_changes = result.modifiedCount > 0 || result.upsertedId;
+                    endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changes, true);
+                    return response;
+                }
+            } else {
+                endImport(thisDb, old_values, user_obj, null, null, user_changes, false);
+                return response;
+            }
+        }
+    }
+
+    function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
+        Promise.resolve()
+            .then(async () => {
+                const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
+
+                let table = "users" + suffix;
+
+                const _id = old_user_obj?._id ?? await getUserId(user_email, thisDb, table);
+
+                if (user_obj?.user_email) {
+                    delete user_obj.user_email;
+                }
+
+                if (user_changed) {
+                    await logDocumentChange({
+                        thisDb,
+                        table: table,
+                        channel: "import",
+                        old_user_obj,
+                        newData: user_obj,
+                        user_id: _id,
+                        user_email: user_email
+                    });
+                }
+
+                if (tour_changed) {
+                    await logDocumentChange({
+                        thisDb,
+                        table: "tours" + suffix,
+                        channel: "import",
+                        old_tour_obj,
+                        newData: tour_obj,
+                        user_id: _id,
+                        user_email: user_email
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Change log failed:", err);
+            });
+    }
+
+    async function getUserId(user_email, thisDb, table) {
+        const usersDb = thisDb.collection(table);
+
+        const query = {user_email: user_email};
+
+        const result = await usersDb.findOne(query);
+
+        return result?._id ?? user_email;
+    }
+
+    function validateEmail(email) {
+        const re = /\S+@\S+\.\S+/;
+
+        return re.test(email);
+    }
+});
+
 module.exports = router;
