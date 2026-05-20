@@ -1792,6 +1792,8 @@ router.post("/import", async (req, res) => {
 
             for (const [key, value] of Object.entries(user_obj)) {
                 if (key !== "user_email") {
+                    // if (old_values[key] == null || old_values[key] != value) {
+                    // We only update main record with data that does not have there yet. Should we change?
                     if (old_values[key] == null) {
                         setFields[key] = value;
                         comparisons.push({
@@ -1802,6 +1804,7 @@ router.post("/import", async (req, res) => {
             }
 
             let user_changes = false;
+            // check if we do have somethig to update
             if (Object.keys(setFields).length === 0) {
                 if (tour_obj && typeof tour_obj === "object" && !Array.isArray(tour_obj) && Object.keys(tour_obj).length > 0) {
                     
@@ -1809,6 +1812,7 @@ router.post("/import", async (req, res) => {
                     return res.status(201).send({status: "OK", message: "Nothing to change"});
                 }
             } else {
+                // Update/insert main record
                 let result = await usersDb.updateOne(
                     query,
                     [
@@ -1851,7 +1855,7 @@ router.post("/import", async (req, res) => {
                     if (result.upsertedId) {
                         _id = result.upsertedId;
                     } else {
- // TODO: same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
+ // same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
                         users = await usersDb.find(query).toArray();
                         if (users.length > 0) {
                             old_values = users[0];
@@ -1865,6 +1869,7 @@ router.post("/import", async (req, res) => {
                 }
 
                 if (Object.keys(tour_obj).length > 0) {
+                // have some tour information to update.
                     table = "tours" + suffix;
                     const toursDb = thisDb.collection(table);
                     const tour = tour_obj.tour;
@@ -1878,7 +1883,7 @@ router.post("/import", async (req, res) => {
                         $set: {
                             ...tour_obj,
                             history: {
-                                $cond: [
+                                $cond: [ // create history of member code if already exist one and code has changed
                                     {
                                         $and: [
                                             { $ne: ["$member", tour_obj.member] },
@@ -1889,7 +1894,7 @@ router.post("/import", async (req, res) => {
                                         $concatArrays: [
                                             { $ifNull: ["$history", []] },
                                             [
-                                                {
+                                                { // actual history record(inside the same document)
                                                     member: "$member",
                                                     updated_at: "$updated_at"
                                                 }
@@ -1897,7 +1902,7 @@ router.post("/import", async (req, res) => {
                                         ]
                                     },
                                     {
-                                        $ifNull: ["$history", []]
+                                        $ifNull: ["$history", []] // If already have history, it will preserve, else will create a empty array.
                                     }
                                 ]
                             },
