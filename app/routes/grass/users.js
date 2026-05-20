@@ -1859,88 +1859,89 @@ router.post("/import", async (req, res) => {
                 } else {
                     user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 }
-                // update/insert tour info
-                let _id;
-                
-                if (old_values?._id) {
-                    _id = old_values._id;
+            }
+            
+            // update/insert tour info
+            let _id;
+            
+            if (old_values?._id) {
+                _id = old_values._id;
+            } else {
+                if (result.upsertedId) {
+                    _id = result.upsertedId;
                 } else {
-                    if (result.upsertedId) {
-                        _id = result.upsertedId;
+// same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
+                    users = await usersDb.find(query).toArray();
+                    if (users.length > 0) {
+                        old_values = users[0];
+                    }
+                    if (old_values?._id) {
+                        _id = old_values._id;
                     } else {
- // same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
-                        users = await usersDb.find(query).toArray();
-                        if (users.length > 0) {
-                            old_values = users[0];
-                        }
-                        if (old_values?._id) {
-                            _id = old_values._id;
-                        } else {
-                            _id = user_email;
-                        }
+                        _id = user_email;
                     }
                 }
+            }
 
-                if (Object.keys(tour_obj).length > 0) {
-                // have some tour information to update.
-                    table = "tours" + suffix;
-                    const toursDb = thisDb.collection(table);
-                    const tour = tour_obj.tour;
+            if (Object.keys(tour_obj).length > 0) {
+            // have some tour information to update.
+                table = "tours" + suffix;
+                const toursDb = thisDb.collection(table);
+                const tour = tour_obj.tour;
 
-                    query = {user_id: _id, tour: tour};
+                query = {user_id: _id, tour: tour};
 
-                    const old_tour = await toursDb.findOne(query);
+                const old_tour = await toursDb.findOne(query);
 
-                    // When already exist, if member changed, save the old value in another field inside the document(may have multiple values)
-                    const new_data = [{
-                        $set: {
-                            ...tour_obj,
-                            history: {
-                                $cond: [ // create history of member code if already exist one and code has changed
-                                    {
-                                        $and: [
-                                            { $ne: ["$member", tour_obj.member] },
-                                            { $ne: [{ $type: "$member"}, "missing"] }
+                // When already exist, if member changed, save the old value in another field inside the document(may have multiple values)
+                const new_data = [{
+                    $set: {
+                        ...tour_obj,
+                        history: {
+                            $cond: [ // create history of member code if already exist one and code has changed
+                                {
+                                    $and: [
+                                        { $ne: ["$member", tour_obj.member] },
+                                        { $ne: [{ $type: "$member"}, "missing"] }
+                                    ]
+                                },
+                                {
+                                    $concatArrays: [
+                                        { $ifNull: ["$history", []] },
+                                        [
+                                            { // actual history record(inside the same document)
+                                                member: "$member",
+                                                updated_at: "$updated_at"
+                                            }
                                         ]
-                                    },
-                                    {
-                                        $concatArrays: [
-                                            { $ifNull: ["$history", []] },
-                                            [
-                                                { // actual history record(inside the same document)
-                                                    member: "$member",
-                                                    updated_at: "$updated_at"
-                                                }
-                                            ]
-                                        ]
-                                    },
-                                    {
-                                        $ifNull: ["$history", []] // If already have history, it will preserve, else will create a empty array.
-                                    }
-                                ]
-                            },
-                            updated_at: new Date(),
-                            created_at: {
-                                $ifNull: ["$created_at", "$$NOW"]
-                            }
+                                    ]
+                                },
+                                {
+                                    $ifNull: ["$history", []] // If already have history, it will preserve, else will create a empty array.
+                                }
+                            ]
+                        },
+                        updated_at: new Date(),
+                        created_at: {
+                            $ifNull: ["$created_at", "$$NOW"]
                         }
-                    }];
-
-                    result = await toursDb.updateOne(query, new_data, {upsert: true});
-
-                    if (result.matchedCount === 0 && !result.upsertedId) {
-                        response.fcount++;
-                        response.messages.push({message: "No Tour Document found/inserted"});
-                        return response;
-                    } else {
-                        const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changes, true);
-                        return response;
                     }
+                }];
+
+                result = await toursDb.updateOne(query, new_data, {upsert: true});
+
+                if (result.matchedCount === 0 && !result.upsertedId) {
+                    response.fcount++;
+                    response.messages.push({message: "No Tour Document found/inserted"});
+                    return response;
                 } else {
-                    endImport(thisDb, old_values, user_obj, null, null, user_changes, false);
+                    const tour_changes = result.modifiedCount > 0 || result.upsertedId;
+                    endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changes, true);
                     return response;
                 }
+            } else {
+                endImport(thisDb, old_values, user_obj, null, null, user_changes, false);
+                return response;
             }
         }
     }
