@@ -1797,6 +1797,7 @@ router.post("/import", async (req, res) => {
             let old_values = {};
             const setFields = {};
             const comparisons = [];
+            let result;
             if (users.length > 0) {
                 old_values = users[0];
             }
@@ -1826,7 +1827,7 @@ router.post("/import", async (req, res) => {
                 }
             } else {
                 // Update/insert main record
-                let result = await usersDb.updateOne(
+                result = await usersDb.updateOne(
                     query,
                     [
                         {
@@ -1860,7 +1861,7 @@ router.post("/import", async (req, res) => {
                     user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 }
             }
-            
+
             // update/insert tour info
             let _id;
             
