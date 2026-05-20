@@ -1663,6 +1663,7 @@ router.post("/import", async (req, res) => {
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
+    let response = {};
     let pcount = 0;
     let fcount = 0;
     let messages = [];
@@ -1675,13 +1676,13 @@ router.post("/import", async (req, res) => {
         if (data?.players) {
             for (var user of data.players) {
                 payload = user;
-                await processData(user, pcount, fcount, messages, thisDb, suffix, query, table);
+                response = await processData(user, response, thisDb, suffix, query, table);
             }
         } else {
-            await processData(data, pcount, fcount, messages, thisDb, suffix, query, table);
+            await processData(data, thisDb, suffix, query, table);
         }
         
-        res.status(200).send({status: "OK", processed: pcount, failed: fcount, messages: messages})
+        res.status(200).send({status: "OK", processed: response.pcount, failed: response.fcount, messages: response.messages})
     } catch (e) {
         await logError({
             thisDb,
@@ -1701,13 +1702,21 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function processData(data, pcount, fcount, messages, thisDb, query, table) {
+    async function processData(data, response, thisDb, query, table) {
         let obj_keys = [];
         let token = "";
         
         const user_obj = {};
         const tour_obj = {};
-        pcount++;
+
+        if (response.pcount) {
+            response.pcount++;
+        } else {
+            response.pcount = 1;
+            response.fcount = 0;
+            response.messages = new Array();
+        }
+
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
@@ -1718,9 +1727,9 @@ router.post("/import", async (req, res) => {
                 error: "Invalid data sent",
                 payload: data,
             });
-            fcount++;
-            messages.push({message: "Invalid data sent"});
-            return;
+            response.fcount++;
+            response.messages.push({message: "Invalid data sent"});
+            return response;
         }
 
         for (const key of obj_keys) {
@@ -1769,9 +1778,9 @@ router.post("/import", async (req, res) => {
                 error: errMess,
                 payload: data,
             });
-            fcount++;
-            messages.push({message: errMess});
-            return;
+            response.fcount++;
+            response.messages.push({message: errMess});
+            return response;
         } else {
             var superToken = true;
             table = "users" + suffix;
@@ -1809,7 +1818,9 @@ router.post("/import", async (req, res) => {
                 if (tour_obj && typeof tour_obj === "object" && !Array.isArray(tour_obj) && Object.keys(tour_obj).length > 0) {
                     
                 } else {
-                    return res.status(201).send({status: "OK", message: "Nothing to change"});
+                    response.fcount++;
+                    response.messages.push("Nothing to change");
+                    return response;
                 }
             } else {
                 // Update/insert main record
@@ -1840,9 +1851,9 @@ router.post("/import", async (req, res) => {
 
                 if (result.matchedCount === 0 && !result.upsertedId) {
                     // Failed
-                    fcount++;
-                    messages.push({message: "No User Document found/inserted"});
-                    return;
+                    response.fcount++;
+                    response.messages.push({message: "No User Document found/inserted"});
+                    return response;
                 } else {
                     user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 }
@@ -1916,9 +1927,9 @@ router.post("/import", async (req, res) => {
                     result = await toursDb.updateOne(query, new_data, {upsert: true});
 
                     if (result.matchedCount === 0 && !result.upsertedId) {
-                        fcount++;
-                        messages.push({message: "No Tour Document found/inserted"});
-                        return;
+                        response.fcount++;
+                        response.messages.push({message: "No Tour Document found/inserted"});
+                        return response;
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
                         await endImport(thisDb, old_values, user_obj, old_tour, tour_obj, true, true);
@@ -1927,14 +1938,11 @@ router.post("/import", async (req, res) => {
                     await endImport(thisDb, old_values, user_obj, null, null, true, false);
                 }
             }
-
         }
+        return response;
     }
 
     async function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
-
-        let res_json = {status: "OK"};
-
         const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
 
         let table = "users" + suffix;
@@ -1944,11 +1952,6 @@ router.post("/import", async (req, res) => {
         if (user_obj?.user_email) {
             delete user_obj.user_email;
         }
-
-        res_json.message = "User Import.";
-        res_json.firstname = old_user_obj?.user_firstname ?? user_obj?.user_firstname;
-        res_json.surname = old_user_obj?.user_surname ?? user_obj?.user_surname;;
-        res.res_json = res_json;
 
         if (user_changed) {
             logDocumentChange({
