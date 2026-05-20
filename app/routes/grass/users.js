@@ -1709,7 +1709,7 @@ router.post("/import", async (req, res) => {
         const user_obj = {};
         const tour_obj = {};
 
-        if (response.pcount) {
+        if (response?.pcount && response.pcount > 0) {
             response.pcount++;
         } else {
             response.pcount = 1;
