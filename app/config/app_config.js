@@ -1,5 +1,5 @@
 function getAppConfig() {
-  const appEnv = process.env.APP_ENV || "development";
+  const appEnv = process.env.APP_ENV || "production";
 
   return {
     env: appEnv,

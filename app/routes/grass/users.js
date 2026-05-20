@@ -1604,7 +1604,7 @@ router.post("/deleteTour", async (req, res) => {
         }
 
         if (errMess !== "") {
-            await logError({
+            logError({
                 thisDb,
                 type: "validation",
                 action: "users/import",
@@ -1623,7 +1623,6 @@ router.post("/deleteTour", async (req, res) => {
                     channel: "deleteTour",
                     resp,
                     newData: {},
-                    user_id: _id,
                     user_email: user_email
                 }).catch(err => {
                     console.error("Change log failed:", err)
