@@ -1932,14 +1932,15 @@ router.post("/import", async (req, res) => {
                         return response;
                     } else {
                         const tour_changes = result.modifiedCount > 0 || result.upsertedId;
-                        await endImport(thisDb, old_values, user_obj, old_tour, tour_obj, true, true);
+                        await endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changed, true);
+                        return response;
                     }
                 } else {
-                    await endImport(thisDb, old_values, user_obj, null, null, true, false);
+                    await endImport(thisDb, old_values, user_obj, null, null, user_changed, false);
+                    return response;
                 }
             }
         }
-        return response;
     }
 
     async function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
