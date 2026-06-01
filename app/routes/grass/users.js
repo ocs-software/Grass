@@ -208,6 +208,8 @@ router.post('/check', async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, token } = req.body;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         let errMess = '';
         let owner = '';
@@ -233,7 +235,7 @@ router.post('/check', async (req, res) => {
             let query = { user_email: user_email };
 
             // get Account details to check if Owner or Sub Account
-            thisDb.collection('users').find(query).toArray(function (err, account) {
+            thisDb.collection(table).find(query).toArray(function (err, account) {
                 if (err) {
                     console.log(err);
 
@@ -260,7 +262,7 @@ router.post('/check', async (req, res) => {
                             else {
                                 // Owner. Get any sub-accounts
                                 query = { linked_from: owner };
-                                thisDb.collection("users").find(query).toArray(function (err, subs) {
+                                thisDb.collection(table).find(query).toArray(function (err, subs) {
                                     if (err) {
 
                                     }
@@ -366,6 +368,8 @@ router.post("/delete", async (req, res) => {
         let client = "";
         // let serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
         let serverToken = process.env.POSTMARK;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
@@ -402,7 +406,7 @@ router.post("/delete", async (req, res) => {
 
             let query = { user_email: user_email };
 
-            thisDb.collection("users").find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
@@ -420,7 +424,7 @@ router.post("/delete", async (req, res) => {
                             if (sub_acc != "") {
                                 // get sub-account
                                 let query = { user_email: sub_acc };
-                                thisDb.collection("users").find(query).toArray(function (err, sub_accs) {
+                                thisDb.collection(table).find(query).toArray(function (err, sub_accs) {
                                     if (err) {
                                         let res_json = {status: "FAILED"};
 
@@ -439,7 +443,7 @@ router.post("/delete", async (req, res) => {
                                             }
                                             else {
                                                 username = sub_accs[0].user_firstname + " " + sub_acc[0].user_surname;
-                                                thisDb.collection("users").deleteOne(query, function (err, item) {
+                                                thisDb.collection(table).deleteOne(query, function (err, item) {
                                                     if (err) {
                                                         console.log(err);
 
@@ -519,7 +523,7 @@ router.post("/delete", async (req, res) => {
                             else {
                                 // delete owner account
                                 query = { user_email: user_email };
-                                thisDb.collection("users").deleteOne(query, function (err, item) {
+                                thisDb.collection(table).deleteOne(query, function (err, item) {
                                     if (err) {
                                         console.log(err);
 
@@ -553,7 +557,7 @@ router.post("/delete", async (req, res) => {
 
                                         // Delete linked sub-accounts
                                         query = { linked_from: user_email };
-                                        thisDb.collection("users").deleteMany(query, function (err, item) {
+                                        thisDb.collection(table).deleteMany(query, function (err, item) {
                                             if (err) {
                                                 console.log("Delete Linked/Delete Account Error");
                                                 console.log(err);
@@ -638,6 +642,8 @@ router.post("/logon", async (req, res) => {
     try {
         const db = req.db;
         const { user_email, token } = req.body;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         let errMess = "";
 
@@ -672,9 +678,24 @@ router.post("/logon", async (req, res) => {
             // const token = await generateApiKey({
             //     method: 'uuidv4',
             // });
+            let query_aggregate = [
+                { 
+                    $match: {
+                        user_email: user_email
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "tours" + suffix,
+                        localField: "_id",
+                        foreignField: "user_id",
+                        as: "tours"
+                    }
+                }
+            ];
             let query = { user_email: user_email };
             const thisDb = db.db("grass")
-            thisDb.collection("users").find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
@@ -707,7 +728,7 @@ router.post("/logon", async (req, res) => {
                                 },
                             };
 
-                            thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                            thisDb.collection(table).updateOne(query, newvalues, function (err, result) {
                                 if (err) { } else { }
                             });
 
@@ -771,6 +792,8 @@ router.post("/logout", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, token } = req.body;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         let errMess = "";
 
@@ -798,7 +821,7 @@ router.post("/logout", async (req, res) => {
         else {
             let query = { user_email: user_email };
 
-            thisDb.collection("users").find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
@@ -819,7 +842,7 @@ router.post("/logout", async (req, res) => {
                                     unix_timestamp: Date.now()
                                 },
                             };
-                            thisDb.collection("users").updateOne(query, newvalues, function (err, result) { });
+                            thisDb.collection(table).updateOne(query, newvalues, function (err, result) { });
 
                             item[0].verified = "N";
                             // item[0].token = "";
@@ -875,6 +898,8 @@ router.get('/verify/:useremail', (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
     const user_details = req.params.useremail;
+    const suffix = appConfig.suffix;
+    const table = "users" + suffix;
 
     const user_array = user_details.split("~")
     const user_token = user_array[0];
@@ -886,7 +911,7 @@ router.get('/verify/:useremail', (req, res) => {
     let query = { reg_token: user_token };
     let returnstr = '';
 
-    thisDb.collection("users").find(query).toArray(function (err, item) {
+    thisDb.collection(table).find(query).toArray(function (err, item) {
         if (err) {
             console.log(err)
             res.send(missingmessage);
@@ -915,7 +940,7 @@ router.get('/verify/:useremail', (req, res) => {
                 const user_email = item[0].user_email;
 
                 query = { user_email: user_email };
-                thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                thisDb.collection(table).updateOne(query, newvalues, function (err, result) {
                     if (err) {
                         res.send(errmessage);
                         returnstr = { status: "FAILED" }
@@ -950,6 +975,8 @@ router.post("/new", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         response.data = req.body;
 
@@ -1001,7 +1028,7 @@ router.post("/new", async (req, res) => {
         else {
             // Check if email already exists
             let query = { user_email: user_email };
-            thisDb.collection("users").find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
@@ -1071,7 +1098,7 @@ router.post("/new", async (req, res) => {
                             unix_timestamp: Date.now()
                         };
 
-                        thisDb.collection("users").insertOne(query, function (err, result) {
+                        thisDb.collection(table).insertOne(query, function (err, result) {
                             if (err) {
                                 return res.status(500).json({
                                     status: "FAILED",
@@ -1194,6 +1221,8 @@ router.post("/update", async (req, res) => {
         } = req.body;
 
         response.data = req.body;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         var errMess = "";
 
@@ -1243,7 +1272,7 @@ router.post("/update", async (req, res) => {
             let query = { user_email: user_email };
             const thisDb = db.db("grass");
 
-            thisDb.collection("users").find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
@@ -1277,7 +1306,7 @@ router.post("/update", async (req, res) => {
                                 },
                             };
 
-                            thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                            thisDb.collection(table).updateOne(query, newvalues, function (err, result) {
                                 if (err) {
                                     return res.status(500).json({
                                         status: "FAILED",
@@ -1363,6 +1392,8 @@ router.post("/golfbag", async (req, res) => {
         } = req.body;
 
         response.data = req.body;
+        const suffix = appConfig.suffix;
+        const table = "users" + suffix;
 
         var errMess = "";
 
@@ -1396,7 +1427,7 @@ router.post("/golfbag", async (req, res) => {
             let query = { user_email: user_email };
             const thisDb = db.db("grass");
 
-            thisDb.collection("users").find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
@@ -1419,7 +1450,7 @@ router.post("/golfbag", async (req, res) => {
                                 },
                             };
 
-                            thisDb.collection("users").updateOne(query, newvalues, function (err, result) {
+                            thisDb.collection(table).updateOne(query, newvalues, function (err, result) {
                                 if (err) {
                                     return res.status(500).json({
                                         status: "FAILED",
