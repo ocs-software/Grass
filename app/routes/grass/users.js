@@ -655,7 +655,7 @@ router.post("/logon", async (req, res) => {
             //     method: 'uuidv4',
             // });
             table = "users" + suffix;
-            const result = await getUserData(table, thisDb, "A", user_email);
+            const result = await getUserData(table, thisDb, suffix, "A", user_email);
             const item = result.data;
             query = result.query;
             // zero index of item 'item[0]' below is because we are using 'toArray' function
@@ -1962,7 +1962,7 @@ function validateEmail(email) {
     return re.test(email);
 }
 
-async function getUserData(table, thisDb, type, user_email) {
+async function getUserData(table, thisDb, suffix, type, user_email) {
     const response = {};
 
     if (type == "A") {
