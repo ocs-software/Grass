@@ -208,6 +208,7 @@ router.post('/check', async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, token } = req.body;
+        const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -368,6 +369,7 @@ router.post("/delete", async (req, res) => {
         let client = "";
         // let serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
         let serverToken = process.env.POSTMARK;
+        const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -642,6 +644,7 @@ router.post("/logon", async (req, res) => {
     try {
         const db = req.db;
         const { user_email, token } = req.body;
+        const appConfig = getAppConfig();
         let suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -794,6 +797,7 @@ router.post("/logout", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, token } = req.body;
+        const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -900,6 +904,7 @@ router.get('/verify/:useremail', (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
     const user_details = req.params.useremail;
+    const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     const table = "users" + suffix;
 
@@ -977,6 +982,7 @@ router.post("/new", async (req, res) => {
         const db = req.db;
         const thisDb = db.db("grass");
         const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
+        const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -1223,6 +1229,7 @@ router.post("/update", async (req, res) => {
         } = req.body;
 
         response.data = req.body;
+        const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -1394,6 +1401,7 @@ router.post("/golfbag", async (req, res) => {
         } = req.body;
 
         response.data = req.body;
+        const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const table = "users" + suffix;
 
@@ -1556,7 +1564,7 @@ router.post("/deleteTour", async (req, res) => {
         }
 
         if (errMess !== "") {
-            logError({
+            await logError({
                 thisDb,
                 type: "validation",
                 action: "users/import",
