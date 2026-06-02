@@ -681,7 +681,7 @@ router.post("/logon", async (req, res) => {
                 }
             ];
             table = "users" + suffix;
-            const item = await thisDb.collection(table).find(query_aggregate).toArray();
+            const item = await thisDb.collection(table).aggregate(query_aggregate).toArray();
             // zero index of item 'item[0]' below is because we are using 'toArray' function
             // and only need to send data from the object at the first index (since there is no other items in this array!)
             if (item.length > 0) {
