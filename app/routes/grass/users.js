@@ -694,8 +694,10 @@ router.post("/logon", async (req, res) => {
                 }
             ];
 
+            let query = '';
+
             const thisDb = db.db("grass")
-            thisDb.collection(table).find(query).toArray(function (err, item) {
+            thisDb.collection(table).find(query_aggregate).toArray(function (err, item) {
                 if (err) {
                     console.log(err);
 
