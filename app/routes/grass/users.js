@@ -614,19 +614,19 @@ router.post("/delete", async (req, res) => {
 });
 
 router.post("/logon", async (req, res) => {
+    const db = req.db;
+    const thisDb = db.db("grass")
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
+    let table;
+    let query;
+
+    const { user_email, token } = req.body;
+
+    let errMess = "";
+
     try {
-        const db = req.db;
-        const thisDb = db.db("grass")
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-
-        let table;
-        let query;
-
-        const { user_email, token } = req.body;
-
-        let errMess = "";
-
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
         }
