@@ -645,10 +645,6 @@ router.post("/logon", async (req, res) => {
         let suffix = appConfig.suffix || ;
         const table = "users" + suffix;
 
-        if (user_email.includes("jnhassko")) {
-            suffix = "_dev";
-        }
-
         let errMess = "";
 
         if (user_email === null || user_email === "") {
