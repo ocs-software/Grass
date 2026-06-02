@@ -642,7 +642,7 @@ router.post("/logon", async (req, res) => {
     try {
         const db = req.db;
         const { user_email, token } = req.body;
-        let suffix = appConfig.suffix || ;
+        let suffix = appConfig.suffix;
         const table = "users" + suffix;
 
         let errMess = "";
@@ -693,7 +693,7 @@ router.post("/logon", async (req, res) => {
                     }
                 }
             ];
-            
+
             const thisDb = db.db("grass")
             thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
