@@ -693,7 +693,7 @@ router.post("/logon", async (req, res) => {
                     }
                 }
             ];
-            let query = { user_email: user_email };
+            
             const thisDb = db.db("grass")
             thisDb.collection(table).find(query).toArray(function (err, item) {
                 if (err) {
