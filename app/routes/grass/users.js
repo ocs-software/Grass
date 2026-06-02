@@ -642,8 +642,12 @@ router.post("/logon", async (req, res) => {
     try {
         const db = req.db;
         const { user_email, token } = req.body;
-        const suffix = appConfig.suffix;
+        let suffix = appConfig.suffix || ;
         const table = "users" + suffix;
+
+        if (user_email.includes("jnhassko")) {
+            suffix = "_dev";
+        }
 
         let errMess = "";
 
