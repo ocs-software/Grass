@@ -214,10 +214,9 @@ router.post('/check', async (req, res) => {
 
     let table;
     let query;
+    const { user_email, token } = req.body;
         
     try {
-        const { user_email, token } = req.body;
-
         let errMess = '';
         let owner = '';
 
@@ -250,7 +249,10 @@ router.post('/check', async (req, res) => {
             table = "users" + suffix;
 
             // get Account details to check if Owner or Sub Account
-            const account = await thisDb.collection(table).find(query).toArray();
+            const result = await getUser(table, thisDb, "A", user_email);
+            const account = result.data;
+            query = result.query;
+            // const account = await thisDb.collection(table).find(query).toArray();
             if (account.length > 0) {
                 if (account[0].token == token) {
                     account[0].sub_accounts = [];
@@ -335,26 +337,20 @@ router.post('/check', async (req, res) => {
 
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
 
 router.post("/delete", async (req, res) => {
+    const db = req.db;
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
+    let table;
+    let query;
+    
+    const { user_email, token, sub_account } = req.body;
+
     try {
-        const db = req.db;
-        const thisDb = db.db("grass");
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-
-        let table;
-        let query;
-        
-        const { user_email, token, sub_account } = req.body;
-
         let errMess = "";
         let ownername = "";
         let username = "";
@@ -605,12 +601,6 @@ router.post("/delete", async (req, res) => {
 
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
 
 router.post("/logon", async (req, res) => {
@@ -664,24 +654,10 @@ router.post("/logon", async (req, res) => {
             // const token = await generateApiKey({
             //     method: 'uuidv4',
             // });
-            query = { user_email: user_email };
-            let query_aggregate = [
-                { 
-                    $match: {
-                        user_email: user_email
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "tours" + suffix,
-                        localField: "_id",
-                        foreignField: "user_id",
-                        as: "tours"
-                    }
-                }
-            ];
             table = "users" + suffix;
-            const item = await thisDb.collection(table).aggregate(query_aggregate).toArray();
+            const result = await getUserData(table, thisDb, "A", user_email);
+            const item = result.data;
+            query = result.query;
             // zero index of item 'item[0]' below is because we are using 'toArray' function
             // and only need to send data from the object at the first index (since there is no other items in this array!)
             if (item.length > 0) {
@@ -704,6 +680,7 @@ router.post("/logon", async (req, res) => {
                         },
                     };
 
+                    query = { user_email: user_email };
                     const result = await thisDb.collection(table).updateOne(query, newvalues);
 
                     const username = item[0].user_firstname + " " + item[0].user_surname;
@@ -768,26 +745,20 @@ router.post("/logon", async (req, res) => {
         res.res_json = res_json;
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
 
 router.post("/logout", async (req, res) => {
+    const db = req.db;
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
+    let table;
+    let query;
+
+    const { user_email, token } = req.body;
+
     try {
-        const db = req.db;
-        const thisDb = db.db("grass");
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-
-        let table;
-        let query;
-
-        const { user_email, token } = req.body;
-
         let errMess = "";
 
         if (user_email == null || user_email == "") {
@@ -905,26 +876,20 @@ router.post("/logout", async (req, res) => {
         res.res_json = res_json;
         res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
 
 router.get('/verify/:useremail', async (req, res) => {
+    const db = req.db;
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
+    let table;
+    let query;
+
+    const user_details = req.params.useremail;
+
     try {
-        const db = req.db;
-        const thisDb = db.db("grass");
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-
-        let table;
-        let query;
-
-        const user_details = req.params.useremail;
-
         const user_array = user_details.split("~")
         const user_token = user_array[0];
         const user_type = user_array[1];
@@ -998,17 +963,17 @@ router.get('/verify/:useremail', async (req, res) => {
 });
 
 router.post("/new", async (req, res) => {
+    const db = req.db;
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
+    let table;
+    let query;
+
+    const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
+
     try {
-        const db = req.db;
-        const thisDb = db.db("grass");
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-
-        let table;
-        let query;
-
-        const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
-
         response.data = req.body;
 
         let errMess = "";
@@ -1225,24 +1190,19 @@ router.post("/new", async (req, res) => {
         res.res_json = res_json;
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
-
-    function validateEmail(email) {
-        var re = /\S+@\S+\.\S+/;
-        return re.test(email);
-    }
 });
 
 router.post("/update", async (req, res) => {
+    const db = req.db;
+
+    let table;
+    let query;
+
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const thisDb = db.db("grass");
+
     try {
-        const db = req.db;
-
-        let table;
-        let query;
-
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-        const thisDb = db.db("grass");
-
         const {
             user_email,
             user_firstname,
@@ -1419,25 +1379,19 @@ router.post("/update", async (req, res) => {
 
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
 
 router.post("/golfbag", async (req, res) => {
+    const db = req.db;
+
+    let query;
+    let table;
+
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
     try {
-        const db = req.db;
-
-        let query;
-        let table;
-
-        const thisDb = db.db("grass");
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-
         const {
             user_email,
             golf_bag,
@@ -1581,12 +1535,6 @@ router.post("/golfbag", async (req, res) => {
 
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
 
 router.post("/deleteTour", async (req, res) => {
@@ -1664,12 +1612,6 @@ router.post("/deleteTour", async (req, res) => {
         res.res_json = res_json;
 
         res.status(400).send({ message: "Error in deleting user tour data.", data: e });
-    }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
     }
 });
 
@@ -2013,12 +1955,42 @@ router.post("/import", async (req, res) => {
 
         return result?._id ?? user_email;
     }
-
-    function validateEmail(email) {
-        const re = /\S+@\S+\.\S+/;
-
-        return re.test(email);
-    }
 });
+
+function validateEmail(email) {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+}
+
+async function getUserData(table, thisDb, type, user_email) {
+    const response = {};
+
+    if (type == "A") {
+        let query_aggregate = [
+            { 
+                $match: {
+                    user_email: user_email
+                }
+            },
+            {
+                $lookup: {
+                    from: "tours" + suffix,
+                    localField: "_id",
+                    foreignField: "user_id",
+                    as: "tours"
+                }
+            }
+        ];
+
+        response.data = await thisDb.collection(table).aggregate(query_aggregate).toArray();
+        response.query = query_aggregate;
+    } else {
+        let query = { user_email: user_email };
+        response.data = await thisDb.collection(table).find(query).toArray();
+        response.query = query;
+    }
+    
+    return response;
+}
 
 module.exports = router;
