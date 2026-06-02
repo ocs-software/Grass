@@ -665,8 +665,23 @@ router.post("/logon", async (req, res) => {
             //     method: 'uuidv4',
             // });
             query = { user_email: user_email };
+            let query_aggregate = [
+                { 
+                    $match: {
+                        user_email: user_email
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "tours" + suffix,
+                        localField: "_id",
+                        foreignField: "user_id",
+                        as: "tours"
+                    }
+                }
+            ];
             table = "users" + suffix;
-            const item = await thisDb.collection(table).find(query).toArray();
+            const item = await thisDb.collection(table).find(query_aggregate).toArray();
             // zero index of item 'item[0]' below is because we are using 'toArray' function
             // and only need to send data from the object at the first index (since there is no other items in this array!)
             if (item.length > 0) {
