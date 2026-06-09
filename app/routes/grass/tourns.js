@@ -254,7 +254,7 @@ router.post("/update", async (req, res) => {
         const tourn_code = tourn_obj.tourncode;
         const season = tourn_obj.season;
         const tour_id = await getTourId(tourn_obj.tour_code, thisDb, suffix);
-        tour_obj.tour_id = tour_id;
+        tourn_obj.tour_id = tour_id;
 
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
