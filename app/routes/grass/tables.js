@@ -11,12 +11,13 @@ router.post("/get", async (req, res) => {
     const thisDb = db.db("grass")
     let query;
     let table;
+    const result = {};
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
 
     try {
         const { table_id } = req.body;
-        response.data = req.body;
+        result.data = req.body;
 
         if (table_id === null || table_id === "") {
             table_id = "OPTIONS";

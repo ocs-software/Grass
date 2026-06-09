@@ -321,7 +321,7 @@ router.post('/check', async (req, res) => {
         await logError({
             thisDb,
             type: "other",
-            action: "users/delete",
+            action: "users/check",
             error: e,
             payload: req.body,
             query,
@@ -1659,17 +1659,17 @@ router.post("/import", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function processData(data, response, thisDb, query, table) {
+    async function processData(data, res, thisDb, query, table) {
         let obj_keys = [];
         let token = "";
         
         const user_obj = {};
         const tour_obj = {};
 
-        if (response?.pcount && response?.pcount > 0) {
-            response.pcount++;
+        if (res?.pcount && res?.pcount > 0) {
+            res.pcount++;
         } else {
-            response = {
+            res = {
                 pcount: 1,
                 fcount: 0,
                 messages: []
@@ -1686,9 +1686,9 @@ router.post("/import", async (req, res) => {
                 error: "Invalid data sent",
                 payload: data,
             });
-            response.fcount++;
-            response.messages.push({message: "Invalid data sent"});
-            return response;
+            res.fcount++;
+            res.messages.push({message: "Invalid data sent"});
+            return res;
         }
 
         for (const key of obj_keys) {
@@ -1737,9 +1737,9 @@ router.post("/import", async (req, res) => {
                 error: errMess,
                 payload: data,
             });
-            response.fcount++;
-            response.messages.push({message: errMess});
-            return response;
+            res.fcount++;
+            res.messages.push({message: errMess});
+            return res;
         } else {
             var superToken = true;
             table = "users" + suffix;
@@ -1778,9 +1778,9 @@ router.post("/import", async (req, res) => {
                 if (tour_obj && typeof tour_obj === "object" && !Array.isArray(tour_obj) && Object.keys(tour_obj).length > 0) {
                     
                 } else {
-                    response.fcount++;
-                    response.messages.push("Nothing to change");
-                    return response;
+                    res.fcount++;
+                    res.messages.push("Nothing to change");
+                    return res;
                 }
             } else {
                 // Update/insert main record
@@ -1811,9 +1811,9 @@ router.post("/import", async (req, res) => {
 
                 if (result.matchedCount === 0 && !result.upsertedId) {
                     // Failed
-                    response.fcount++;
-                    response.messages.push({message: "No User Document found/inserted"});
-                    return response;
+                    res.fcount++;
+                    res.messages.push({message: "No User Document found/inserted"});
+                    return res;
                 } else {
                     user_changes = (result.modifiedCount > 0 || result.upsertedId);
                 }
@@ -1889,17 +1889,17 @@ router.post("/import", async (req, res) => {
                 result = await toursDb.updateOne(query, new_data, {upsert: true});
 
                 if (result.matchedCount === 0 && !result.upsertedId) {
-                    response.fcount++;
-                    response.messages.push({message: "No Tour Document found/inserted"});
-                    return response;
+                    res.fcount++;
+                    res.messages.push({message: "No Tour Document found/inserted"});
+                    return res;
                 } else {
                     const tour_changes = result.modifiedCount > 0 || result.upsertedId;
                     endImport(thisDb, old_values, user_obj, old_tour, tour_obj, user_changes, true);
-                    return response;
+                    return res;
                 }
             } else {
                 endImport(thisDb, old_values, user_obj, null, null, user_changes, false);
-                return response;
+                return res;
             }
         }
     }
@@ -1928,7 +1928,6 @@ router.post("/import", async (req, res) => {
                         user_email: user_email
                     });
                 }
-
                 if (tour_changed) {
                     await logDocumentChange({
                         thisDb,
