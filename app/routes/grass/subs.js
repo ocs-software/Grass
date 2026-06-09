@@ -57,7 +57,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             case "customer.subscription.deleted": {
                 const subscription = event.data.object;
 
-                const period = new Date(subscription.lines.data[0].period.end * 1000);
+                const period = new Date(subscription.ended_at * 1000);
                 const plan = {period: period};
                 const ret_code = await revokeAccess(invoice.customer, plan, true);
                 res.sendStatus(ret_code);
