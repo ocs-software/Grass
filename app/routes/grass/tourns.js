@@ -88,6 +88,10 @@ router.post("/delete", async (req, res) => {
     const data = req.body;
 
     try {
+        if (!data.tour_code) {
+            errMess = "Database code not sent.";
+        }
+
         if (!data.season) {
             errMess = "Season code not sent.";
         }
@@ -95,9 +99,6 @@ router.post("/delete", async (req, res) => {
         if (!data.tourncode) {
             errMess = "Tournament code not sent.";
         }
-
-        const season = data.season;
-        const tourncode = data.tourncode;
 
         if (!errMess) {
             await logError({
@@ -115,7 +116,11 @@ router.post("/delete", async (req, res) => {
             return;
         }
 
-        const query = { season: season, tourncode, tourncode };
+        const season = data.season;
+        const tourncode = data.tourncode;
+        const tour_id = await getTourId(data.tour_code, thisDb, suffix);
+
+        const query = { tour_id: tour_id, season: season, tourncode, tourncode };
 
         const resp = await thisDb.collection(table).findOneAndDelete(query);
         if (resp) {
@@ -198,7 +203,7 @@ router.post("/update", async (req, res) => {
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function processData(data, res, thisDb, query, table) {
+    async function processData(data, res, thisDb, suffix, query, table) {
         let obj_keys = [];
         
         const tourn_obj = {};
@@ -247,6 +252,9 @@ router.post("/update", async (req, res) => {
         var errMess = "";
 
         const tourn_code = tourn_obj.tourncode;
+        const season = tourn_obj.season;
+        const tour_id = await getTourId(tourn_obj.tour_code, thisDb, suffix);
+        tour_obj.tour_id = tour_id;
 
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
@@ -266,7 +274,7 @@ router.post("/update", async (req, res) => {
         } else {
             table = "tourns" + suffix;
 
-            query = { tourncode: tourn_code };
+            query = { tour_id: tour_id, season: season, tourncode: tourn_code };
             const tournsDb = thisDb.collection(table);
 
             let tourns = await tournsDb.find(query).toArray();
@@ -280,7 +288,7 @@ router.post("/update", async (req, res) => {
             }
 
             for (const [key, value] of Object.entries(tourn_obj)) {
-                if (key !== "tourncode") {
+                if (key !== "tourncode" && key !== "season" && key != "tour_id") {
                     if (old_values[key] == null || old_values[key] != value) {
                         setFields[key] = value;
                         comparisons.push({
@@ -362,10 +370,11 @@ router.post("/update", async (req, res) => {
             .then(async () => {
                 const tourncode = old_obj?.tourncode ?? new_obj?.tourncode;
                 const season = old_obj?.season ?? new_obj?.season;
+                const tour_id = old_obj?.tour_id ?? new_obj?.tour_id;
 
                 let table = "tourns" + suffix;
 
-                const _id = old_obj?._id ?? await getTournId(season, tourncode, thisDb, table);
+                const _id = old_obj?._id ?? await getTournId(tour_id, season, tourncode, thisDb, table);
 
                 if (changed) {
                     await logDocumentChange({
@@ -384,14 +393,24 @@ router.post("/update", async (req, res) => {
             });
     }
 
-    async function getTournId(season, tourncode, thisDb, table) {
+    async function getTournId(tour_id, season, tourncode, thisDb, table) {
         const tournsDb = thisDb.collection(table);
 
-        const query = {season: season, tourncode: tourncode};
+        const query = {tour_id: tour_id, season: season, tourncode: tourncode};
 
         const result = await tournsDb.findOne(query);
 
         return result?._id ?? season + tourncode;
+    }
+
+    async function getTourId(tour_code, thisDb, suffix) {
+        const toursDb = thisDb.collection("tours" + suffix);
+
+        const query = {tour: tour_code};
+
+        const result = await toursDb.findOne(query);
+
+        return result?._id ?? tour_code;
     }
 });
 
