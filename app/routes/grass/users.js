@@ -1570,7 +1570,7 @@ router.post("/deleteTour", async (req, res) => {
             await logError({
                 thisDb,
                 type: "validation",
-                action: "users/import",
+                action: "users/deleteTour",
                 error: errMess,
                 payload: data,
             });
