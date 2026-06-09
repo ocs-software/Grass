@@ -248,7 +248,7 @@ router.post("/update", async (req, res) => {
 
         const tourn_code = tourn_obj.tourncode;
 
-        if (tourncode === null || tourncode === "") {
+        if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
         }
 
@@ -266,7 +266,7 @@ router.post("/update", async (req, res) => {
         } else {
             table = "tourns" + suffix;
 
-            query = { tourncode: tourncode };
+            query = { tourncode: tourn_code };
             const tournsDb = thisDb.collection(table);
 
             let tourns = await tournsDb.find(query).toArray();

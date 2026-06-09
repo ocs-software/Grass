@@ -249,7 +249,7 @@ router.post('/check', async (req, res) => {
             table = "users" + suffix;
 
             // get Account details to check if Owner or Sub Account
-            const result = await getUser(table, thisDb, "A", user_email);
+            const result = await getUserData(table, thisDb, suffix, "A", user_email);
             const account = result.data;
             query = result.query;
             // const account = await thisDb.collection(table).find(query).toArray();
