@@ -260,6 +260,10 @@ router.post("/update", async (req, res) => {
             errMess = "Tournament code is missing";
         }
 
+        if (season === null || season === "") {
+            errMess = "Season code is missing";
+        }
+
         if (errMess !== "") {
             await logError({
                 thisDb,
@@ -392,26 +396,253 @@ router.post("/update", async (req, res) => {
                 console.error("Change log failed:", err);
             });
     }
+});
 
-    async function getTournId(tour_id, season, tourncode, thisDb, table) {
-        const tournsDb = thisDb.collection(table);
+router.post("/entry", async (req, res) => {
+    const db = req.db;
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const thisDb = db.db("grass");
+    let result = {};
+    let pcount = 0;
+    let fcount = 0;
+    let messages = [];
+    let query = "";
+    let table = "";
+    let payload;
 
-        const query = {tour_id: tour_id, season: season, tourncode: tourncode};
+    try {
+        const data = req.body;
+        if (data?.entries) {
+            for (var entry of data.entries) {
+                payload = entry;
+                result = await processData(payload, result, thisDb, suffix, query, table);
+            }
+            res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages})
+        } else {
+            result = await processData(data, result, thisDb, suffix, query, table);
+            res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages})
+        }
+    } catch(e) {
+        await logError({
+            thisDb,
+            type: "other",
+            action: "tourns/entry",
+            error: e,
+            query,
+            payload: payload,
+            table: table
+        });
 
-        const result = await tournsDb.findOne(query);
+        let res_json = {status: "FAILED"};
 
-        return result?._id ?? season + tourncode;
+        res_json.message = "Error in Fetching data.";
+        res.res_json = res_json;
+
+        res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
-    async function getTourId(tour_code, thisDb, suffix) {
-        const toursDb = thisDb.collection("tours" + suffix);
+    async function processData(data, res, thisDb, suffix, query, table) {
+        let obj_keys = [];
+        
+        const entry_obj = {};
 
-        const query = {tour: tour_code};
+        if (res?.pcount && res?.pcount > 0) {
+            res.pcount++;
+        } else {
+            res = {
+                pcount: 1,
+                fcount: 0,
+                messages: []
+            };
+        }
 
-        const result = await toursDb.findOne(query);
+        if (typeof data === "object") {
+            obj_keys = Object.keys(data);
+        } else {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "tourns/entry",
+                error: "Invalid data sent",
+                payload: data,
+            });
+            res.fcount++;
+            res.messages.push({message: "Invalid data sent"});
+            return res;
+        }
 
-        return result?._id ?? tour_code;
+        for (const key of obj_keys) {
+            const value = data[key];
+            if (typeof value !== "object") {
+                entry_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
+            } else {
+                /* const other_data = value;
+                const other_keys = Object.keys(other_data);
+                if (other_keys.length > 0) {
+                    for (const okey of other_keys) {
+                        const ovalue = other_data[okey];
+                        other_obj[okey] = typeof ovalue === "string" ? ovalue.replace(/\|'/g, "'") : ovalue;
+                    }
+                } */
+            }
+        }
+        
+        var errMess = "";
+
+        const tourn_code = entry_obj.tourncode;
+        const season = tourn_obj.season;
+        const tour_id = await getTourId(entry_obj.tour_code, thisDb, suffix);
+        entry_obj.tour_id = tour_id;
+
+        const player_id = await getPlayerId($tour_id, entry_obj.user_email, thisDb, suffix);
+        entry_obj.user_id = player_id;
+
+        if (tourn_code === null || tourn_code === "") {
+            errMess = "Tournament code is missing";
+        }
+
+        if (season === null || season === "") {
+            errMess = "Season code is missing";
+        }
+
+        if (player_id === null || player_id === "") {
+            errMess = "Player not sent";
+        }
+
+        if (errMess !== "") {
+            await logError({
+                thisDb,
+                type: "validation",
+                action: "tourns/entry",
+                error: errMess,
+                payload: data,
+            });
+            res.fcount++;
+            res.messages.push({message: errMess});
+            return res;
+        } else {
+            table = "tourns" + suffix;
+
+            query = { tour_id: tour_id, season: season, tourncode: tourn_code };
+            const tournsDb = thisDb.collection(table);
+
+            let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
+
+            let old_values = {};
+            const setFields = {};
+            const comparisons = [];
+            let result;
+            if (!tourn) {
+                errMess = "Tournament not found";
+                await logError({
+                    thisDb,
+                    type: "validation",
+                    action: "tourns/entry",
+                    error: errMess,
+                    payload: data,
+                });
+                res.fcount++;
+                res.messages.push({message: errMess});
+                return res;
+            }
+            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.player_id === player_id) : {};
+
+            for (const [key, value] of Object.entries(entry_obj)) {
+                if (key !== "tourncode" && key !== "season" && key != "tour_id") {
+                    if (old_values[`entries.$.${key}`] == null || old_values[`entries.$.${key}`] != value) {
+                        setFields[`entries.$.${key}`] = value;
+                        comparisons.push({
+                            $ne: [`$${key}`, value]
+                        });
+                    }
+                }
+            }
+
+            if (Object.keys(old_values) > 0) {
+                if (Object.keys(setFields).length <= 0) {
+                    res.fcount++;
+                    res.messages.push("Nothing to change");
+                    return res;
+                }
+                setFields.updated_at = new Date();
+                $query["entries.$.player_id"] = player_id;
+
+                result = await tournsDb.updateOne(query, {$set: setFields});
+            } else {
+                result = await tournsDb.updateOne(query, {
+                    $push: { 
+                        entries: {
+                            ...entry_obj
+                        }
+                    },
+                    $set: {
+                        update_at: "$$NOW"
+                    }
+                });
+            }
+
+            if (result.matchedCount === 0 && !result.upsertedId) {
+                // Failed
+                res.fcount++;
+                res.messages.push({message: "No Tournament Document found/inserted"});
+                return res;
+            } 
+
+            endImport(thisDb, old_values, entry_obj, true);
+            return res;
+        }
+    }
+
+    function endImport(thisDb, old_obj, new_obj, changed) {
+        Promise.resolve()
+            .then(async () => {
+                const tourncode = old_obj?.tourncode ?? new_obj?.tourncode;
+                const season = old_obj?.season ?? new_obj?.season;
+                const tour_id = old_obj?.tour_id ?? new_obj?.tour_id;
+
+                let table = "tourns" + suffix;
+
+                const _id = old_obj._id;
+
+                if (changed) {
+                    await logDocumentChange({
+                        thisDb,
+                        table: table,
+                        channel: "tourns/entry",
+                        old_obj,
+                        newData: new_obj,
+                        tourn_id: _id,
+                        tourncode: tourncode
+                        player_id: new_obj.player_id
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Change log failed:", err);
+            });
     }
 });
+
+
+async function getTournId(tour_id, season, tourncode, thisDb, table) {
+    const tournsDb = thisDb.collection(table);
+
+    const query = {tour_id: tour_id, season: season, tourncode: tourncode};
+
+    const result = await tournsDb.findOne(query);
+
+    return result?._id ?? season + tourncode;
+}
+
+async function getTourId(tour_code, thisDb, suffix) {
+    const toursDb = thisDb.collection("tours" + suffix);
+
+    const query = {tour: tour_code};
+
+    const result = await toursDb.findOne(query);
+
+    return result?._id ?? tour_code;
+}
 
 module.exports = router;
