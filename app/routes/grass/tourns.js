@@ -493,12 +493,7 @@ router.post("/entry", async (req, res) => {
         var errMess = "";
 
         const tourn_code = entry_obj.tourncode;
-        const season = entry_obj.season;
-        const ret_obj = await getTourId(entry_obj.tour_code, entry_obj.user_emmail, thisDb, suffix);
-        entry_obj.tour_id = tour_id;
-
-        entry_obj.user_id = player_id;
-
+        
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
         }
@@ -506,10 +501,10 @@ router.post("/entry", async (req, res) => {
         if (season === null || season === "") {
             errMess = "Season code is missing";
         }
-
-        if (player_id === null || player_id === "") {
-            errMess = "Player not sent";
-        }
+        const season = entry_obj.season;
+        const ret_obj = await getTourId(entry_obj.tour_code, entry_obj.user_emmail, thisDb, suffix);
+        entry_obj.tour_id = ret_obj._id;
+        entry_obj.user_id = ret_obj.user_id;
 
         if (errMess !== "") {
             await logError({
