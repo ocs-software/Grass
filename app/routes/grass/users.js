@@ -1763,7 +1763,7 @@ router.post("/import", async (req, res) => {
                 if (key !== "user_email") {
                     // if (old_values[key] == null || old_values[key] != value) {
                     // We only update main record with data that does not have there yet. Should we change?
-                    if (old_values[key] == null) {
+                    if (old_values[key] == null || old_values[key] != user_obj[key]) {
                         setFields[key] = value;
                         comparisons.push({
                             $ne: [`$${key}`, value]
