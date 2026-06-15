@@ -633,7 +633,7 @@ async function getPlayerId(tour_code, user_email, thisDb, suffix) {
 
     const result = await toursDb.findOne(query);
 
-    return result?._id ?? user_email;
+    return result?.user_id ?? user_email;
 }
 
 
