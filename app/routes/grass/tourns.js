@@ -613,7 +613,7 @@ router.post("/entry", async (req, res) => {
                         old_obj,
                         newData: new_obj,
                         tourn_id: _id,
-                        tourncode: tourncode
+                        tourncode: tourncode,
                         player_id: new_obj.player_id
                     });
                 }
