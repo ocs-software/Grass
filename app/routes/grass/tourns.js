@@ -253,7 +253,7 @@ router.post("/update", async (req, res) => {
         const tourn_code = tourn_obj.tourncode;
         const season = tourn_obj.season;
 
-        if (tourn_obj.tour_code = null || tourn_obj.tour_code == "") {
+        if (!tourn_obj.tour_code || tourn_obj.tour_code = null || tourn_obj.tour_code == "") {
             errMess = "Tour code is missing";
         }
 
@@ -645,29 +645,6 @@ async function getTournId(tour_id, season, tourncode, thisDb, table) {
     const result = await tournsDb.findOne(query);
 
     return result?._id ?? season + tourncode;
-}
-
-async function getTourId(tour_code, user_email, thisDb, suffix) {
-    const toursDb = thisDb.collection("tours" + suffix);
-
-    const query = {tour: tour_code, email: user_email};
-
-    const result = await toursDb.findOne(query);
-
-    const ret_obj = {};
-    if (result?._id) {
-        ret_obj.tour_id = result._id;
-        if (result?.user_id) {
-            ret_obj.user_id = result.user_id;
-        } else {
-            ret_obj.user_id = user_email;
-        }
-    } else {
-        ret_obj._id = tour_code;
-        ret_obj.user_id = user_email;
-    }
-
-    return ret_obj;
 }
 
 module.exports = router;
