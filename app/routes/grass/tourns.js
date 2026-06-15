@@ -476,7 +476,7 @@ router.post("/entry", async (req, res) => {
         for (const key of obj_keys) {
             const value = data[key];
             if (typeof value !== "object") {
-                if (key != "tour_code" && key != "tourncode" && key != "seaon") {
+                if (key != "tour_code" && key != "tourncode" && key != "season") {
                     entry_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
                 }
             } else {
@@ -543,7 +543,7 @@ router.post("/entry", async (req, res) => {
                 res.messages.push({message: errMess});
                 return res;
             }
-            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.player_id === player_id) : {};
+            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id === player_id) : {};
 
             for (const [key, value] of Object.entries(entry_obj)) {
                 if (key !== "tourncode" && key !== "season" && key != "tour_id") {
@@ -556,14 +556,14 @@ router.post("/entry", async (req, res) => {
                 }
             }
 
-            if (Object.keys(old_values) > 0) {
+            if (Object.keys(old_values).length > 0) {
                 if (Object.keys(setFields).length <= 0) {
                     res.fcount++;
                     res.messages.push("Nothing to change");
                     return res;
                 }
-                setFields.updated_at = new Date();
-                query["entries.$.player_id"] = player_id;
+                setFields.updated = new Date();
+                query["entries.$.user_id"] = player_id;
 
                 result = await tournsDb.updateOne(query, {$set: setFields});
             } else {
@@ -574,7 +574,7 @@ router.post("/entry", async (req, res) => {
                         }
                     },
                     $set: {
-                        update_at: "$$NOW"
+                        updated: new Date()
                     }
                 });
             }
@@ -586,12 +586,12 @@ router.post("/entry", async (req, res) => {
                 return res;
             } 
 
-            endImport(thisDb, old_values, entry_obj, true);
+            endImport(thisDb, old_values, entry_obj, true, tourn_code, data.tour_code, season);
             return res;
         }
     }
 
-    function endImport(thisDb, old_obj, new_obj, changed) {
+    function endImport(thisDb, old_obj, new_obj, changed, tourncode, tour_code, season) {
         Promise.resolve()
             .then(async () => {
                 const tourncode = old_obj?.tourncode ?? new_obj?.tourncode;
@@ -609,9 +609,10 @@ router.post("/entry", async (req, res) => {
                         channel: "tourns/entry",
                         old_obj,
                         newData: new_obj,
-                        tourn_id: _id,
                         tourncode: tourncode,
-                        player_id: new_obj.player_id
+                        season: season,
+                        tour_code: tour_code,
+                        user_id: new_obj.user_id
                     });
                 }
             })
