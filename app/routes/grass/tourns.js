@@ -118,9 +118,8 @@ router.post("/delete", async (req, res) => {
 
         const season = data.season;
         const tourncode = data.tourncode;
-        const tour_id = await getTourId(data.tour_code, thisDb, suffix);
 
-        const query = { tour_id: tour_id, season: season, tourncode, tourncode };
+        const query = {season: season, tourncode: tourncode };
 
         const resp = await thisDb.collection(table).findOneAndDelete(query);
         if (resp) {
@@ -253,8 +252,11 @@ router.post("/update", async (req, res) => {
 
         const tourn_code = tourn_obj.tourncode;
         const season = tourn_obj.season;
-        const tour_id = await getTourId(tourn_obj.tour_code, thisDb, suffix);
-        tourn_obj.tour_id = tour_id;
+
+        if (tourn_obj.tour_code = null || tourn_obj.tour_code == "") {
+            errMess = "Tour code is missing";
+        }
+        }
 
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
@@ -278,7 +280,7 @@ router.post("/update", async (req, res) => {
         } else {
             table = "tourns" + suffix;
 
-            query = { tour_id: tour_id, season: season, tourncode: tourn_code };
+            query = { tour_code: tourn_obj.tour_code, season: season, tourncode: tourn_code };
             const tournsDb = thisDb.collection(table);
 
             let tourns = await tournsDb.find(query).toArray();
@@ -493,6 +495,7 @@ router.post("/entry", async (req, res) => {
         var errMess = "";
 
         const tourn_code = entry_obj.tourncode;
+        const season = entry_obj.season;
         
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
@@ -501,9 +504,7 @@ router.post("/entry", async (req, res) => {
         if (season === null || season === "") {
             errMess = "Season code is missing";
         }
-        const season = entry_obj.season;
-        const ret_obj = await getTourId(entry_obj.tour_code, entry_obj.user_emmail, thisDb, suffix);
-        entry_obj.tour_id = ret_obj._id;
+        const ret_obj = await getPlayerId(entry_obj.tour_code, entry_obj.user_emmail, thisDb, suffix);
         entry_obj.user_id = ret_obj.user_id;
 
         if (errMess !== "") {
@@ -620,10 +621,10 @@ router.post("/entry", async (req, res) => {
     }
 });
 
-async function getPlayerId(tour_id, user_email, thisDb, suffix) {
+async function getPlayerId(tour_code, user_email, thisDb, suffix) {
     const toursDb = thisDb.collection("tours" + suffix);
 
-    const query = {_id: tour_id, email: user_email};
+    const query = {tour: tour_code, email: user_email};
 
     const result = await toursDb.findOne(query);
 
