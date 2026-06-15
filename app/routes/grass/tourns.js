@@ -491,7 +491,7 @@ router.post("/entry", async (req, res) => {
         var errMess = "";
 
         const tourn_code = entry_obj.tourncode;
-        const season = tourn_obj.season;
+        const season = entry_obj.season;
         const tour_id = await getTourId(entry_obj.tour_code, thisDb, suffix);
         entry_obj.tour_id = tour_id;
 
