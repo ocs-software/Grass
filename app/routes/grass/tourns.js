@@ -256,7 +256,6 @@ router.post("/update", async (req, res) => {
         if (tourn_obj.tour_code = null || tourn_obj.tour_code == "") {
             errMess = "Tour code is missing";
         }
-        }
 
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
