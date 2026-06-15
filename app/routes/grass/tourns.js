@@ -503,7 +503,7 @@ router.post("/entry", async (req, res) => {
         if (season === null || season === "") {
             errMess = "Season code is missing";
         }
-        const player_id = await getPlayerId(data.tour_code, data.user_emmail, thisDb, suffix);
+        const player_id = await getPlayerId(data.tour_code, data.user_email, thisDb, suffix);
         entry_obj.user_id = player_id;
 
         if (errMess !== "") {
