@@ -493,8 +493,8 @@ router.post("/entry", async (req, res) => {
         
         var errMess = "";
 
-        const tourn_code = entry_obj.tourncode;
-        const season = entry_obj.season;
+        const tourn_code = data.tourncode;
+        const season = data.season;
         
         if (tourn_code === null || tourn_code === "") {
             errMess = "Tournament code is missing";
@@ -503,7 +503,7 @@ router.post("/entry", async (req, res) => {
         if (season === null || season === "") {
             errMess = "Season code is missing";
         }
-        const player_id = await getPlayerId(entry_obj.tour_code, entry_obj.user_emmail, thisDb, suffix);
+        const player_id = await getPlayerId(data.tour_code, data.user_emmail, thisDb, suffix);
         entry_obj.user_id = player_id;
 
         if (errMess !== "") {
@@ -520,7 +520,7 @@ router.post("/entry", async (req, res) => {
         } else {
             table = "tourns" + suffix;
 
-            query = { tour_code: entry_obj.tour_code, season: season, tourncode: tourn_code };
+            query = { tour_code: data.tour_code, season: season, tourncode: tourn_code };
             const tournsDb = thisDb.collection(table);
 
             let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
