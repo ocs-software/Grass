@@ -236,15 +236,6 @@ router.post("/update", async (req, res) => {
             const value = data[key];
             if (typeof value !== "object") {
                 tourn_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
-            } else {
-                /* const other_data = value;
-                const other_keys = Object.keys(other_data);
-                if (other_keys.length > 0) {
-                    for (const okey of other_keys) {
-                        const ovalue = other_data[okey];
-                        other_obj[okey] = typeof ovalue === "string" ? ovalue.replace(/\|'/g, "'") : ovalue;
-                    }
-                } */
             }
         }
         
