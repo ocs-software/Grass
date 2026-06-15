@@ -518,7 +518,6 @@ router.post("/entry", async (req, res) => {
 
             let old_values = {};
             const setFields = {};
-            const comparisons = [];
             let result;
             if (!tourn) {
                 errMess = "Tournament not found";
@@ -534,7 +533,13 @@ router.post("/entry", async (req, res) => {
                 res.messages.push({message: errMess});
                 return res;
             }
-            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id === player_id) : {};
+            console.log("player_id:", player_id, typeof player_id);
+
+            tourn.entries.forEach(entry => {
+                console.log("entry.user_id:", entry.user_id, typeof entry.user_id);
+            });
+
+            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id == player_id) : {};
 
             if (old_values == null) {
                 old_values = {};
@@ -544,9 +549,6 @@ router.post("/entry", async (req, res) => {
                 if (key !== "tourncode" && key !== "season" && key != "tour_id") {
                     if (old_values[`entries.$.${key}`] == null || old_values[`entries.$.${key}`] != value) {
                         setFields[`entries.$.${key}`] = value;
-                        comparisons.push({
-                            $ne: [`$${key}`, value]
-                        });
                     }
                 }
             }
