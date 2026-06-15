@@ -537,6 +537,7 @@ router.post("/entry", async (req, res) => {
                     action: "tourns/entry",
                     error: errMess,
                     payload: data,
+                    query: query,
                 });
                 res.fcount++;
                 res.messages.push({message: errMess});
