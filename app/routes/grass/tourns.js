@@ -475,7 +475,9 @@ router.post("/entry", async (req, res) => {
         for (const key of obj_keys) {
             const value = data[key];
             if (typeof value !== "object") {
-                entry_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
+                if (key != "tour_code" && key != "tourncode" && key != "seaon") {
+                    entry_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
+                }
             } else {
                 /* const other_data = value;
                 const other_keys = Object.keys(other_data);
@@ -492,10 +494,9 @@ router.post("/entry", async (req, res) => {
 
         const tourn_code = entry_obj.tourncode;
         const season = entry_obj.season;
-        const tour_id = await getTourId(entry_obj.tour_code, thisDb, suffix);
+        const ret_obj = await getTourId(entry_obj.tour_code, entry_obj.user_emmail, thisDb, suffix);
         entry_obj.tour_id = tour_id;
 
-        const player_id = await getPlayerId(tour_id, entry_obj.user_email, thisDb, suffix);
         entry_obj.user_id = player_id;
 
         if (tourn_code === null || tourn_code === "") {
@@ -627,7 +628,7 @@ router.post("/entry", async (req, res) => {
 async function getPlayerId(tour_id, user_email, thisDb, suffix) {
     const toursDb = thisDb.collection("tours" + suffix);
 
-    const query = {tour: tour_id, email: user_email};
+    const query = {_id: tour_id, email: user_email};
 
     const result = await toursDb.findOne(query);
 
@@ -645,14 +646,27 @@ async function getTournId(tour_id, season, tourncode, thisDb, table) {
     return result?._id ?? season + tourncode;
 }
 
-async function getTourId(tour_code, thisDb, suffix) {
+async function getTourId(tour_code, user_email, thisDb, suffix) {
     const toursDb = thisDb.collection("tours" + suffix);
 
-    const query = {tour: tour_code};
+    const query = {tour: tour_code, email: user_email};
 
     const result = await toursDb.findOne(query);
 
-    return result?._id ?? tour_code;
+    const ret_obj = {};
+    if (result?._id) {
+        ret_obj.tour_id = result._id;
+        if (result?.user_id) {
+            ret_obj.user_id = result.user_id;
+        } else {
+            ret_obj.user_id = user_email;
+        }
+    } else {
+        ret_obj._id = tour_code;
+        ret_obj.user_id = user_email;
+    }
+
+    return ret_obj;
 }
 
 module.exports = router;
