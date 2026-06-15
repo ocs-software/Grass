@@ -538,7 +538,7 @@ router.post("/entry", async (req, res) => {
             tourn.entries.forEach(entry => {
                 console.log("entry.user_id:", entry.user_id, typeof entry.user_id);
             });
-            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id == player_id) : {};
+            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id && entry.user_id.equals(player_id)) : {};
 
             if (old_values == null) {
                 old_values = {};
