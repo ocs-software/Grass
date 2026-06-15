@@ -545,6 +545,10 @@ router.post("/entry", async (req, res) => {
             }
             old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id === player_id) : {};
 
+            if (old_values == null) {
+                old_values = {};
+            }
+
             for (const [key, value] of Object.entries(entry_obj)) {
                 if (key !== "tourncode" && key !== "season" && key != "tour_id") {
                     if (old_values[`entries.$.${key}`] == null || old_values[`entries.$.${key}`] != value) {
