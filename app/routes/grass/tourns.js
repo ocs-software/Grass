@@ -495,7 +495,7 @@ router.post("/entry", async (req, res) => {
         const tour_id = await getTourId(entry_obj.tour_code, thisDb, suffix);
         entry_obj.tour_id = tour_id;
 
-        const player_id = await getPlayerId($tour_id, entry_obj.user_email, thisDb, suffix);
+        const player_id = await getPlayerId(tour_id, entry_obj.user_email, thisDb, suffix);
         entry_obj.user_id = player_id;
 
         if (tourn_code === null || tourn_code === "") {
@@ -566,7 +566,7 @@ router.post("/entry", async (req, res) => {
                     return res;
                 }
                 setFields.updated_at = new Date();
-                $query["entries.$.player_id"] = player_id;
+                query["entries.$.player_id"] = player_id;
 
                 result = await tournsDb.updateOne(query, {$set: setFields});
             } else {
@@ -623,6 +623,16 @@ router.post("/entry", async (req, res) => {
             });
     }
 });
+
+async function getPlayerId(tour_id, user_email, thisDb, suffix) {
+    const toursDb = thisDb.collection("tours" + suffix);
+
+    const query = {tour: tour_id, email: user_email};
+
+    const result = await toursDb.findOne(query);
+
+    return result?.id ?? user_email;
+}
 
 
 async function getTournId(tour_id, season, tourncode, thisDb, table) {
