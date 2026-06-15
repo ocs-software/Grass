@@ -244,7 +244,7 @@ router.post("/update", async (req, res) => {
         const tourn_code = tourn_obj.tourncode;
         const season = tourn_obj.season;
 
-        if (!(tourn_obj.tour_code) || tourn_obj.tour_code = null || tourn_obj.tour_code == "") {
+        if (!tourn_obj.tour_code || tourn_obj.tour_code == null || tourn_obj.tour_code == "") {
             errMess = "Tour code is missing";
         }
 
