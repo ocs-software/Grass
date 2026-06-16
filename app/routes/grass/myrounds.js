@@ -26,6 +26,20 @@ router.post("/get", async (req, res) => {
             errMess = "Player ID not sent.";
         }
 
+        if (!data.token) {
+            errMess = "Token not sent.";
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+
+        if (!user) {
+            errMess = "User not found."
+        }
+
+        if (data.token != user.token) {
+            errMess = "Token sent does not match with user.";
+        }
+
         if (errMess != "") {
             res_json.status = "FAILED";
             res_json.message = errMess;
@@ -47,7 +61,7 @@ router.post("/get", async (req, res) => {
 
         query = { user_id: new ObjectID(data.user_id) };
         if (data.round) {
-            query.my_round = data.my_round;
+            query.id = data.my_round;
         }
 
         const item = await thisDb.collection(table).find(query).toArray();
@@ -99,8 +113,22 @@ router.post("/delete", async (req, res) => {
             errMess = "User ID not sent.";
         }
 
-        if (!data.my_round) {
+        if (!data.my_round.id) {
             errMess = "Round ID not sent.";
+        }
+
+        if (!data.token) {
+            errMess = "Token not sent.";
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+
+        if (!user) {
+            errMess = "User not found."
+        }
+
+        if (data.token != user.token) {
+            errMess = "Token sent does not match with user.";
         }
 
         if (!errMess) {
@@ -119,7 +147,7 @@ router.post("/delete", async (req, res) => {
             return;
         }
 
-        const query = {my_round: data.my_round, user_id: new ObjectID(data.user_id) };
+        const query = {id: data.my_round.id, user_id: new ObjectID(data.user_id) };
 
         const resp = await thisDb.collection(table).findOneAndDelete(query);
         if (resp) {
@@ -171,7 +199,6 @@ router.post("/update", async (req, res) => {
         const data = req.body;
         let obj_keys = [];
         
-
         if (typeof data !== "object") {
             await logError({
                 thisDb,
@@ -193,13 +220,28 @@ router.post("/update", async (req, res) => {
 
         const user_id = data.user_id;
         const my_round = data.my_round;
+        const round_id = my_round.id;
 
         if (user_id === null || user_id === "") {
             errMess = "User ID is missing";
         }
 
-        if (my_round === null || my_round === "") {
+        if (round_id === null || round_id === "") {
             errMess = "Round ID is missing";
+        }
+
+        if (!data.token) {
+            errMess = "Token not sent.";
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+
+        if (user === null) {
+            errMess = "User not found."
+        } else {
+            if (data.token != user.token) {
+                errMess = "Token sent does not match with user.";
+            }
         }
 
         if (errMess !== "") {
@@ -216,8 +258,15 @@ router.post("/update", async (req, res) => {
             res.res_json = res_json;
 
             res.status(400).send({ message: errMess, data: data });
+            return;
         } else {
-            query = { my_round: my_round, user_id: new ObjectID(user_id) };
+            const setFields = {};
+            for (const [key, value] of Object.entries(my_round)) {
+                if (key != "user_id" && key != "id" && key != "token") {
+                    setFields[key] = value;
+                }
+            }
+            query = { id: round_id, user_id: new ObjectID(user_id) };
             const collectionDb = thisDb.collection(table);
 
             result = await collectionDb.updateOne(
@@ -225,7 +274,7 @@ router.post("/update", async (req, res) => {
                 [
                     {
                         $set: {
-                            ...data, // only set fields sent by form
+                            ...setFields, // only set fields sent by form
                             updated_at: new Date(),
                             created_at: {
                                 $ifNull: ["$created_at", "$$NOW"] // if record does not exist, add field created;
@@ -253,9 +302,10 @@ router.post("/update", async (req, res) => {
                 res.res_json = res_json;
 
                 res.status(400).send({ message: "My Round not updated/inserted.", data: data });
+                return;
             } 
         }
-        res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages});
+        res.status(200).send({status: "OK", data: data});
     } catch (e) {
         await logError({
             thisDb,
@@ -263,7 +313,7 @@ router.post("/update", async (req, res) => {
             action: "myrounds/update",
             error: e,
             query,
-            payload: data,
+            payload: req.body,
             table: table
         });
 
