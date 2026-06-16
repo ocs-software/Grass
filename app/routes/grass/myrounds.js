@@ -26,6 +26,20 @@ router.post("/get", async (req, res) => {
             errMess = "Player ID not sent.";
         }
 
+        if (!data.token) {
+            errMess = "Token not sent.";
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+
+        if (!user) {
+            errMess = "User not found."
+        }
+
+        if (data.token != user.token) {
+            errMess = "Token sent does not match with user.";
+        }
+
         if (errMess != "") {
             res_json.status = "FAILED";
             res_json.message = errMess;
