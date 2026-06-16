@@ -60,8 +60,12 @@ router.post("/get", async (req, res) => {
         }
 
         query = { user_id: new ObjectID(data.user_id) };
-        if (data.round) {
-            query.id = data.my_round;
+        if (data.my_round) {
+            if (typeof data.my_round === "object") {
+                query.id = data.my_round.id;
+            } else {
+                query.id = data.my_round;
+            }
         }
 
         const item = await thisDb.collection(table).find(query).toArray();
@@ -323,34 +327,6 @@ router.post("/update", async (req, res) => {
         res.res_json = res_json;
 
         res.status(400).send({ message: "Error in Fetching data.", data: e });
-    }
-
-    function endImport(thisDb, old_obj, new_obj, changed) {
-        Promise.resolve()
-            .then(async () => {
-                const tourncode = old_obj?.tourncode ?? new_obj?.tourncode;
-                const season = old_obj?.season ?? new_obj?.season;
-                const tour_id = old_obj?.tour_id ?? new_obj?.tour_id;
-
-                let table = "tourns" + suffix;
-
-                const _id = old_obj?._id ?? await getTournId(tour_id, season, tourncode, thisDb, table);
-
-                if (changed) {
-                    await logDocumentChange({
-                        thisDb,
-                        table: table,
-                        channel: "tourns/update",
-                        old_obj,
-                        newData: new_obj,
-                        tourn_id: _id,
-                        tourncode: tourncode
-                    });
-                }
-            })
-            .catch(err => {
-                console.error("Change log failed:", err);
-            });
     }
 });
 
