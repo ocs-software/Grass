@@ -159,6 +159,7 @@ router.post("/delete", async (req, res) => {
 });
 
 router.post("/update", async (req, res) => {
+    // insert/update Tournament record.
     const db = req.db;
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
