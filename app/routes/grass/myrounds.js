@@ -61,7 +61,7 @@ router.post("/get", async (req, res) => {
 
         query = { user_id: new ObjectID(data.user_id) };
         if (data.round) {
-            query.my_round = data.my_round;
+            query.id = data.my_round;
         }
 
         const item = await thisDb.collection(table).find(query).toArray();
@@ -113,7 +113,7 @@ router.post("/delete", async (req, res) => {
             errMess = "User ID not sent.";
         }
 
-        if (!data.my_round) {
+        if (!data.my_round.id) {
             errMess = "Round ID not sent.";
         }
 
@@ -147,7 +147,7 @@ router.post("/delete", async (req, res) => {
             return;
         }
 
-        const query = {my_round: data.my_round, user_id: new ObjectID(data.user_id) };
+        const query = {id: data.my_round.id, user_id: new ObjectID(data.user_id) };
 
         const resp = await thisDb.collection(table).findOneAndDelete(query);
         if (resp) {
@@ -266,7 +266,7 @@ router.post("/update", async (req, res) => {
                     setFields[key] = value;
                 }
             }
-            query = { my_round: round_id, user_id: new ObjectID(user_id) };
+            query = { id: round_id, user_id: new ObjectID(user_id) };
             const collectionDb = thisDb.collection(table);
 
             result = await collectionDb.updateOne(
