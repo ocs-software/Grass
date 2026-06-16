@@ -540,6 +540,7 @@ router.post("/entry", async (req, res) => {
                 old_values = {};
             }
 
+            console.log(old_values);
             for (const [key, value] of Object.entries(entry_obj)) {
                 if (key !== "tourncode" && key !== "season" && key != "tour_id") {
                     if (old_values[`entries.$.${key}`] == null || old_values[`entries.$.${key}`] != value) {
