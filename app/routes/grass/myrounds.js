@@ -310,7 +310,7 @@ router.post("/update", async (req, res) => {
             action: "myrounds/update",
             error: e,
             query,
-            payload: data,
+            payload: req.body,
             table: table
         });
 
