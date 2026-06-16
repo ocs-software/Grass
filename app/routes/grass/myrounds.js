@@ -117,6 +117,20 @@ router.post("/delete", async (req, res) => {
             errMess = "Round ID not sent.";
         }
 
+        if (!data.token) {
+            errMess = "Token not sent.";
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+
+        if (!user) {
+            errMess = "User not found."
+        }
+
+        if (data.token != user.token) {
+            errMess = "Token sent does not match with user.";
+        }
+
         if (!errMess) {
             await logError({
                 thisDb,
@@ -185,7 +199,6 @@ router.post("/update", async (req, res) => {
         const data = req.body;
         let obj_keys = [];
         
-
         if (typeof data !== "object") {
             await logError({
                 thisDb,
@@ -216,6 +229,20 @@ router.post("/update", async (req, res) => {
             errMess = "Round ID is missing";
         }
 
+        if (!data.token) {
+            errMess = "Token not sent.";
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+
+        if (!user) {
+            errMess = "User not found."
+        }
+
+        if (data.token != user.token) {
+            errMess = "Token sent does not match with user.";
+        }
+
         if (errMess !== "") {
             await logError({
                 thisDb,
@@ -231,6 +258,12 @@ router.post("/update", async (req, res) => {
 
             res.status(400).send({ message: errMess, data: data });
         } else {
+            const setFields = {};
+            for (const [key, value] of data) {
+                if (key != "user_id" && key != "my_round" && key != "token") {
+                    setFields[key] = value;
+                }
+            }
             query = { my_round: my_round, user_id: new ObjectID(user_id) };
             const collectionDb = thisDb.collection(table);
 
@@ -239,7 +272,7 @@ router.post("/update", async (req, res) => {
                 [
                     {
                         $set: {
-                            ...data, // only set fields sent by form
+                            ...setFields, // only set fields sent by form
                             updated_at: new Date(),
                             created_at: {
                                 $ifNull: ["$created_at", "$$NOW"] // if record does not exist, add field created;
