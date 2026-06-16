@@ -78,6 +78,7 @@ router.post("/get", async (req, res) => {
 });
 
 router.post("/delete", async (req, res) => {
+    // delete tournament record.
     const db = req.db;
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
