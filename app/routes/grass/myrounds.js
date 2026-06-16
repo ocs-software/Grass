@@ -220,12 +220,13 @@ router.post("/update", async (req, res) => {
 
         const user_id = data.user_id;
         const my_round = data.my_round;
+        const round_id = my_round.id;
 
         if (user_id === null || user_id === "") {
             errMess = "User ID is missing";
         }
 
-        if (my_round === null || my_round === "") {
+        if (round_id === null || round_id === "") {
             errMess = "Round ID is missing";
         }
 
@@ -260,12 +261,12 @@ router.post("/update", async (req, res) => {
             return;
         } else {
             const setFields = {};
-            for (const [key, value] of data) {
-                if (key != "user_id" && key != "my_round" && key != "token") {
+            for (const [key, value] of my_round) {
+                if (key != "user_id" && key != "id" && key != "token") {
                     setFields[key] = value;
                 }
             }
-            query = { my_round: my_round, user_id: new ObjectID(user_id) };
+            query = { my_round: round_id, user_id: new ObjectID(user_id) };
             const collectionDb = thisDb.collection(table);
 
             result = await collectionDb.updateOne(
@@ -304,7 +305,7 @@ router.post("/update", async (req, res) => {
                 return;
             } 
         }
-        res.status(200).send({status: "OK", data: data);
+        res.status(200).send({status: "OK", data: data});
     } catch (e) {
         await logError({
             thisDb,
