@@ -439,6 +439,7 @@ router.post("/entry", async (req, res) => {
         
         const entry_obj = {};
 
+        // add process count(we may be trying to update a batch of entries)
         if (res?.pcount && res?.pcount > 0) {
             res.pcount++;
         } else {
@@ -449,6 +450,7 @@ router.post("/entry", async (req, res) => {
             };
         }
 
+        // check if it is a valid object
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
@@ -464,21 +466,13 @@ router.post("/entry", async (req, res) => {
             return res;
         }
 
+        // remove some fields that are not necessary inside the entry
         for (const key of obj_keys) {
             const value = data[key];
             if (typeof value !== "object") {
                 if (key != "tour_code" && key != "tourncode" && key != "season") {
                     entry_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
                 }
-            } else {
-                /* const other_data = value;
-                const other_keys = Object.keys(other_data);
-                if (other_keys.length > 0) {
-                    for (const okey of other_keys) {
-                        const ovalue = other_data[okey];
-                        other_obj[okey] = typeof ovalue === "string" ? ovalue.replace(/\|'/g, "'") : ovalue;
-                    }
-                } */
             }
         }
         
@@ -514,11 +508,13 @@ router.post("/entry", async (req, res) => {
             query = { tour_code: data.tour_code, season: season, tourncode: tourn_code };
             const tournsDb = thisDb.collection(table);
 
+            // find the tournament
             let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
 
             let old_values = {};
             const setFields = {};
             let result;
+            // Tournament not found
             if (!tourn) {
                 errMess = "Tournament not found";
                 await logError({
@@ -534,21 +530,26 @@ router.post("/entry", async (req, res) => {
                 return res;
             }
             
+            // Tournament found, now check if we already have the entry
             old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id && entry.user_id.equals(player_id)) : {};
 
+            // no entry found
             if (old_values == null) {
                 old_values = {};
             }
 
+            // now we check if something have changed so we do not update the same values over and over
             for (const [key, value] of Object.entries(entry_obj)) {
                 if (key !== "tourncode" && key !== "season" && key != "tour_id") {
-                    if (old_values[key] == null || !old_values[key].equals(value)) {
+                    if (old_values[key] == null || // "".equals" is used to check the "player_id" which is a ObjectId, everything else will test against "!==""
+                        (old_values[key]?.equals ? !old_values[key].equals(value) : old_values[key] !== value)) {
                         setFields[`entries.$.${key}`] = value;
                     }
                 }
             }
 
             if (Object.keys(old_values).length > 0) {
+            // we have the entry already
                 if (Object.keys(setFields).length <= 0) {
                     res.fcount++;
                     res.messages.push("Nothing to change");
@@ -560,6 +561,7 @@ router.post("/entry", async (req, res) => {
 
                 result = await tournsDb.updateOne(query, {$set: setFields});
             } else {
+                // no entry found, create one.
                 entry_obj.updated = new Date();
                 result = await tournsDb.updateOne(query, {
                     $push: { 
@@ -580,6 +582,7 @@ router.post("/entry", async (req, res) => {
                 return res;
             } 
 
+            // save the changes on the log table.
             endImport(thisDb, old_values, entry_obj, true, tourn_code, data.tour_code, season);
             return res;
         }
