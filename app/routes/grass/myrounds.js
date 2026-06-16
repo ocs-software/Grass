@@ -235,12 +235,12 @@ router.post("/update", async (req, res) => {
 
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
-        if (!user) {
+        if (user === null) {
             errMess = "User not found."
-        }
-
-        if (data.token != user.token) {
-            errMess = "Token sent does not match with user.";
+        } else {
+            if (data.token != user.token) {
+                errMess = "Token sent does not match with user.";
+            }
         }
 
         if (errMess !== "") {
