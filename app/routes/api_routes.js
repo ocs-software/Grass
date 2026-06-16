@@ -32,6 +32,9 @@ module.exports = function (app, db) {
   const grasstourns = require('./grass/tourns');
   app.use("/tourns", grasstourns);
 
+  const grassmyrounds = require('./grass/myrounds');
+  app.use("/rounds", grassmyrounds);
+
   /*
   const grassplayer = require('./grass/player');
   app.use("/table", grassplayer);
