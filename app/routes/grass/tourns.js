@@ -543,7 +543,7 @@ router.post("/entry", async (req, res) => {
             console.log(old_values);
             for (const [key, value] of Object.entries(entry_obj)) {
                 if (key !== "tourncode" && key !== "season" && key != "tour_id") {
-                    if (old_values[`entries.$.${key}`] == null || old_values[`entries.$.${key}`] != value) {
+                    if (old_values[key] == null || old_values[key] != value) {
                         setFields[`entries.$.${key}`] = value;
                     }
                 }
@@ -558,6 +558,8 @@ router.post("/entry", async (req, res) => {
                 setFields.updated = new Date();
                 query["entries.$.user_id"] = player_id;
 
+                console.log("query", query);
+                console.log("setFields", setFields);
                 result = await tournsDb.updateOne(query, {$set: setFields});
             } else {
                 result = await tournsDb.updateOne(query, {
