@@ -257,6 +257,7 @@ router.post("/update", async (req, res) => {
             res.res_json = res_json;
 
             res.status(400).send({ message: errMess, data: data });
+            return;
         } else {
             const setFields = {};
             for (const [key, value] of data) {
@@ -300,9 +301,10 @@ router.post("/update", async (req, res) => {
                 res.res_json = res_json;
 
                 res.status(400).send({ message: "My Round not updated/inserted.", data: data });
+                return;
             } 
         }
-        res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages});
+        res.status(200).send({status: "OK", data: data);
     } catch (e) {
         await logError({
             thisDb,
