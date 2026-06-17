@@ -358,29 +358,37 @@ router.post("/update", async (req, res) => {
         const collectionDb = thisDb.collection(table);
 
         const query = {user_id: data.user_id, round_id: data.my_round.id};
+        if (data.id_course != null) {
+            query.id_course = data.id_course;
+        }
+        if (data.id_courseTeeType != null) {
+            query.id_course = data.id_courseTeeType;
+        }
+        if (data.id_courseTeeColor != null) {
+            query.id_course = data.id_courseTeeType;
+        }
 
         const my_round = data.my_round;
 
+        let old_hole = 0;
+        let setFields = {};
+        let stat_saved = {};
+
         for (const stats of my_round.hole_stats) {
-            query.hole = stats.hole;
-            query.strokes = stats.strokes;
-
-            const stat_saved = collectionDb.findOne(query);
-
-            if (stat_saved) {
-                const changed_fields = {};
-                for (const [key, value] of Object.entries(stats)) {
-                    if (stat_saved[key] == null || stat_saved[key] != value) {
-                        changed_fields[key] = value;
-                    }
+            if (stats.hole != old_hole) {
+                if (old_hole != 0) {
+                    await saveStat(thisDb, suffix, setFields, query);
                 }
-
-                if (Object.keys(changed_fields).length > 0) {
-                    await saveStat(thisDb, suffix, changed_fields, query);
-                }
-            } else {
-                await saveStat(thisDb, suffix, stats, query);
+                query.hole = stats.hole;
+                stat_saved = await collectionDb.findOne(query);
+                old_hole = stats.hole;
             }
+
+            setFields.strokes.push(stats);
+        }
+
+        if (Object.keys(setFields).length > 0) {
+            await saveStat(thisDb, suffix, setFields, query);
         }
     }
 
