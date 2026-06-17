@@ -384,6 +384,9 @@ router.post("/update", async (req, res) => {
                 old_hole = stats.hole;
             }
 
+            if (setFields.strokes == null) {
+                setFields.strokes = [];
+            }
             setFields.strokes.push(stats);
         }
 
