@@ -68,6 +68,18 @@ router.post("/get", async (req, res) => {
             }
         }
 
+        if (data.id_course) {
+            query.id_course = data.id_course;
+        }
+
+        if (data.id_courseTeeType) {
+            query.id_courseTeeType = data.id_courseTeeType;
+        }
+
+        if (data.id_courseTeeColor) {
+            query.id_courseTeeColor = data.id_courseTeeColor;
+        }
+
         const item = await thisDb.collection(table).find(query).toArray();
         if (item.length > 0) {
             let res_json = { status: "OK", };
@@ -166,6 +178,7 @@ router.post("/delete", async (req, res) => {
             }).catch(err => {
                 console.error("Change log failed:", err)
             });
+            await deleteStats(data.user_id, data.my_round.id);
         }
 
         res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
@@ -186,6 +199,14 @@ router.post("/delete", async (req, res) => {
         res.res_json = res_json;
 
         res.status(400).send({ message: "Error in Deleting data.", data: e });
+    }
+
+    async function deleteStats(user_id, round_id, thisDb, suffix) {
+        const table = "stats" + suffix;
+
+        const query = {user_id: user_id, round_id: round_id};
+
+        await thisDb.collection(table).deleteMany(query);
     }
 });
 
@@ -307,7 +328,9 @@ router.post("/update", async (req, res) => {
 
                 res.status(400).send({ message: "My Round not updated/inserted.", data: data });
                 return;
-            } 
+            } else {
+                updateStats(data, thisDb, suffix);
+            }
         }
         res.status(200).send({status: "OK", data: data});
     } catch (e) {
@@ -328,7 +351,61 @@ router.post("/update", async (req, res) => {
 
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
-});
 
+    async function updateStats(data, thisDb, suffix) {
+        const table = "stats" + suffix;
+
+        const collectionDb = thisDb.collection(table);
+
+        const query = {user_id: data.user_id, round_id: data.my_round.id};
+
+        const my_round = data.my_round;
+
+        for (const stats of my_round.hole_stats) {
+            query.hole = stats.hole;
+            query.strokes = stats.strokes;
+
+            const stat_saved = collectionDb.findOne(query);
+
+            if (stat_saved) {
+                const changed_fields = {};
+                for (const [key, value] of Object.entries(stats)) {
+                    if (stat_saved[key] == null || stat_saved[key] != value) {
+                        changed_fields[key] = value;
+                    }
+                }
+
+                if (Object.keys(changed_fields).length > 0) {
+                    await saveStat(thisDb, suffix, changed_fields, query);
+                }
+            } else {
+                await saveStat(thisDb, suffix, stats, query);
+            }
+        }
+    }
+
+    async function saveStat(thisDb, suffix, setFields, query) {
+        const statsDB = thisDb.collection("stats" + suffix);
+        const tablesDB = thisDb.collection("table");
+
+        for (const field of Object.keys(query)) {
+            delete setFields[field];
+        }
+
+        await statsDB.updateOne(query, 
+            {
+                $set: {
+                    ...setFields,
+                    updated_at: new Date()
+                },
+                $setOnInsert: {
+                    ...query,
+                    created_at: new Date()
+                }
+            },
+            { upsert: true }
+        );
+    }
+});
 
 module.exports = router;
