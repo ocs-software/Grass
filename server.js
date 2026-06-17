@@ -13,36 +13,41 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(Log);
 
-/*
-const apps = express();
-const http = require('http').Server(apps);
-*/
-
 const db = {
 	url: database_url
 }
 
-MongoClient.connect(db.url, (err, database) => {
-	if (err) return console.log(err)
+async function initializeIndexes(database, suffix) {
+    const dbConn = database.db("grass"); // if you're using MongoClient
 
-	/*
-	var io = require('socket.io')(http, { maxHttpBufferSize: 1e8, pingTimeout: 20000, pingInterval: 25000, perMessageDeflate: false });
-	io.on('connection', function (client) {
-		client.on("connect", function (data) {
-			console.log('Connect');
-		});
-		client.on("something", function (data) {
-			console.log('something ' + data[1] + ' ' + data[0]);
-			client.emit('ok', "OK")
-			client.broadcast.emit(data[1], data[0]);
-		});
-	});
-	http.listen(8080, () => {
-		console.log('Socket live on port 8080');
-	});
-	*/
+    const myroundsDb = dbConn.collection("myrounds" + suffix);
 
-	// require('./app/routes')(app, database, io);
+    await myroundsDb.createIndex(
+        { user_id: 1, id: 1 },
+        { unique: true }
+    );
+
+    await myroundsDb.createIndex(
+        { user_id: 1, date: -1 }
+    );
+
+    await myroundsDb.createIndex(
+        { user_id: 1, course_id: 1, date: -1 }
+    );
+
+    console.log("Indexes initialized");
+}
+
+MongoClient.connect(db.url, async (err, database) => {
+	if (err) 
+		return console.log(err)
+
+	const { getAppConfig } = require("./app/config/app_config");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
+	await initializeIndexes(database, suffix);
+
 	require('./app/routes')(app, database);
 	app.listen(port, () => {
 		console.log('GRASS- v1.0');

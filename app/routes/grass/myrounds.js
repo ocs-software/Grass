@@ -68,6 +68,18 @@ router.post("/get", async (req, res) => {
             }
         }
 
+        if (data.id_course) {
+            query.id_course = data.id_course;
+        }
+
+        if (data.id_courseTeeType) {
+            query.id_courseTeeType = data.id_courseTeeType;
+        }
+
+        if (data.id_courseTeeColor) {
+            query.id_courseTeeColor = data.id_courseTeeColor;
+        }
+
         const item = await thisDb.collection(table).find(query).toArray();
         if (item.length > 0) {
             let res_json = { status: "OK", };
@@ -376,15 +388,6 @@ router.post("/update", async (req, res) => {
         const statsDB = thisDb.collection("stats" + suffix);
         const tablesDB = thisDb.collection("table");
 
-        for (const [key, value] of Object.entries(setFields)) {
-            if (key != "hole" && key != "strokes") {
-                if (["position", "outcome"].includes(key.toLowerCase())) {
-                    const data = await getTableDetails(tablesDB, key, value);
-                    setFields[key + "_desc"] = data.desc;
-                }
-            }
-        }
-
         for (const field of Object.keys(query)) {
             delete setFields[field];
         }
@@ -402,42 +405,6 @@ router.post("/update", async (req, res) => {
             },
             { upsert: true }
         );
-    }
-
-    async function getTableDetails(collectionDb, key, value) {
-        const query = {table_id: "OPTIONS"};
-
-        const result = await collectionDb.findOne(query);
-
-        const res = {};
-
-        if (result == null) {
-            res.desc = "Not found(" + key + "-" + value + ").";
-            return res;
-        } else {
-            let fieldName = "";
-            if (key == "position") {
-                fieldName = "as_pos";
-            }
-            if (key == "outcome") {
-                fieldName = "as_oos";
-            }
-            if (fieldName == "") {
-                res.desc = "Field unknow (" + key + ").";
-                return res;
-            }
-
-            for (const as of result[fieldName]) {
-                if (as.code == value) {
-                    res = as;
-                }
-            }
-
-            if (res.desc == null) {
-                res.desc = key + " not found.";
-                return res;
-            }
-        }
     }
 });
 
