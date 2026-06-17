@@ -166,6 +166,7 @@ router.post("/delete", async (req, res) => {
             }).catch(err => {
                 console.error("Change log failed:", err)
             });
+            await deleteStats(data.user_id, data.my_round.id);
         }
 
         res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
@@ -186,6 +187,14 @@ router.post("/delete", async (req, res) => {
         res.res_json = res_json;
 
         res.status(400).send({ message: "Error in Deleting data.", data: e });
+    }
+
+    async function deleteStats(user_id, round_id, thisDb, suffix) {
+        const table = "stats" + suffix;
+
+        const query = {user_id: user_id, round_id: round_id};
+
+        await thisDb.collection(table).deleteMany(query);
     }
 });
 
@@ -307,7 +316,9 @@ router.post("/update", async (req, res) => {
 
                 res.status(400).send({ message: "My Round not updated/inserted.", data: data });
                 return;
-            } 
+            } else {
+                updateStats(data, thisDb, suffix);
+            }
         }
         res.status(200).send({status: "OK", data: data});
     } catch (e) {
@@ -328,7 +339,106 @@ router.post("/update", async (req, res) => {
 
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
-});
 
+    async function updateStats(data, thisDb, suffix) {
+        const table = "stats" + suffix;
+
+        const collectionDb = thisDb.collection(table);
+
+        const query = {user_id: data.user_id, round_id: data.my_round.id};
+
+        const my_round = data.my_round;
+
+        for (const stats of my_round.hole_stats) {
+            query.hole = stats.hole;
+            query.strokes = stats.strokes;
+
+            const stat_saved = collectionDb.findOne(query);
+
+            if (stat_saved) {
+                const changed_fields = {};
+                for (const [key, value] of Object.entries(stats)) {
+                    if (stat_saved[key] == null || stat_saved[key] != value) {
+                        changed_fields[key] = value;
+                    }
+                }
+
+                if (Object.keys(changed_fields).length > 0) {
+                    await saveStat(thisDb, suffix, changed_fields, query);
+                }
+            } else {
+                await saveStat(thisDb, suffix, stats, query);
+            }
+        }
+    }
+
+    async function saveStat(thisDb, suffix, setFields, query) {
+        const statsDB = thisDb.collection("stats" + suffix);
+        const tablesDB = thisDb.collection("table");
+
+        for (const [key, value] of Object.entries(setFields)) {
+            if (key != "hole" && key != "strokes") {
+                if (["position", "outcome"].includes(key.toLowerCase())) {
+                    const data = await getTableDetails(tablesDB, key, value);
+                    setFields[key + "_desc"] = data.desc;
+                }
+            }
+        }
+
+        for (const field of Object.keys(query)) {
+            delete setFields[field];
+        }
+
+        await statsDB.updateOne(query, 
+            {
+                $set: {
+                    ...setFields,
+                    updated_at: new Date()
+                },
+                $setOnInsert: {
+                    ...query,
+                    created_at: new Date()
+                }
+            },
+            { upsert: true }
+        );
+    }
+
+    async function getTableDetails(collectionDb, key, value) {
+        const query = {table_id: "OPTIONS"};
+
+        const result = await collectionDb.findOne(query);
+
+        const res = {};
+
+        if (result == null) {
+            res.desc = "Not found(" + key + "-" + value + ").";
+            return res;
+        } else {
+            let fieldName = "";
+            if (key == "position") {
+                fieldName = "as_pos";
+            }
+            if (key == "outcome") {
+                fieldName = "as_oos";
+            }
+            if (fieldName == "") {
+                res.desc = "Field unknow (" + key + ").";
+                return res;
+            }
+
+            for (const as of result[fieldName]) {
+                if (as.code == value) {
+                    res = as;
+                }
+            }
+
+            if (res.desc == null) {
+                res.desc = key + " not found.";
+                return res;
+            }
+        }
+    }
+});
 
 module.exports = router;
