@@ -21,6 +21,7 @@ async function initializeIndexes(database, suffix) {
     const dbConn = database.db("grass"); // if you're using MongoClient
 
     const myroundsDb = dbConn.collection("myrounds" + suffix);
+    const statsDb = dbConn.collection("stats" + suffix);
 
     await myroundsDb.createIndex(
         { user_id: 1, id: 1 },
@@ -32,7 +33,28 @@ async function initializeIndexes(database, suffix) {
     );
 
     await myroundsDb.createIndex(
-        { user_id: 1, course_id: 1, date: -1 }
+        { user_id: 1, id_course: 1, date: -1 }
+    );
+
+    await statsDb.createIndex(
+        { user_id: 1, id: 1 },
+        { unique: true }
+    );
+
+    await statsDb.createIndex(
+        { user_id: 1, date: -1 }
+    );
+
+    await statsDb.createIndex(
+        { user_id: 1, id_course: 1, date: -1 }
+    );
+
+    await statsDb.createIndex(
+        {id_course: 1, date: -1 }
+    );
+
+    await statsDb.createIndex(
+        {id_course: 1 }
     );
 
     console.log("Indexes initialized");
