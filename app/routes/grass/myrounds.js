@@ -228,6 +228,7 @@ router.post("/delete", async (req, res) => {
 
     async function deleteStats(user_id, round_id, thisDb, suffix) {
         const table = "stats" + suffix;
+        console.log("test");
 
         const query = {user_id: user_id, round_id: round_id};
 
