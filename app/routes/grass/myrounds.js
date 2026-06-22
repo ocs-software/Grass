@@ -135,7 +135,26 @@ router.post("/delete", async (req, res) => {
             errMess = "User ID not sent.";
         }
 
-        if (!data.my_round.id) {
+        if (data.round_id) {
+            if (data.my_round) {
+                if (!data.my_round.id) {
+                    data.my_round.id = data.round_id;
+                }
+            } else {
+                data.my_round = {};
+                data.my_round.id = data.round_id;
+            }
+        } else {
+            if (data.my_round) {
+                if (!data.my_round?.id) {
+                    errMess = "Round ID not sent.";
+                }
+            } else {
+                errMess = "Round ID not sent.";
+            }
+        }
+
+        if (!data.my_round?.id) {
             errMess = "Round ID not sent.";
         }
 
