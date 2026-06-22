@@ -168,7 +168,7 @@ router.post("/delete", async (req, res) => {
             errMess = "User not found.";
         }
 
-        if (data.token != user.token) {
+        if (user && data.token != user.token) {
             errMess = "Token sent does not match with user.";
         }
 
@@ -198,7 +198,7 @@ router.post("/delete", async (req, res) => {
                 channel: "myrounds/delete",
                 resp,
                 newData: {},
-                my_round: my_round,
+                my_round: data.my_round,
                 user_id: data.user_id,
             }).catch(err => {
                 console.error("Change log failed:", err)
