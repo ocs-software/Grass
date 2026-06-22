@@ -146,7 +146,7 @@ router.post("/delete", async (req, res) => {
             }
         } else {
             if (data.my_round) {
-                if (!data.my_round?.id) {
+                if (!data.my_round.id) {
                     errMess = "Round ID not sent.";
                 }
             } else {
@@ -165,7 +165,7 @@ router.post("/delete", async (req, res) => {
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            errMess = "User not found."
+            errMess = "User not found.";
         }
 
         if (data.token != user.token) {
