@@ -80,6 +80,10 @@ router.post("/get", async (req, res) => {
             query.id_courseTeeColor = data.id_courseTeeColor;
         }
 
+        id (data.hole) {
+            query.hole = data.hole;
+        }
+
         const item = await thisDb.collection(table).find(query).toArray();
         if (item.length > 0) {
             let res_json = { status: "OK", };
