@@ -59,6 +59,60 @@ router.post("/get", async (req, res) => {
             return;
         }
 
+
+/* db.scores.aggregate([
+  {
+    $match: {
+      tour: "PGA" // optional
+    }
+  },
+  {
+    $facet: {
+      player: [
+        { $match: { user_id: playerId } },
+        {
+          $group: {
+            _id: "$user_id",
+            average: { $avg: "$score" },
+            rounds: { $sum: 1 }
+          }
+        }
+      ],
+      overall: [
+        {
+          $group: {
+            _id: null,
+            average: { $avg: "$score" },
+            rounds: { $sum: 1 }
+          }
+        }
+      ],
+      ranking: [
+        {
+          $group: {
+            _id: "$user_id",
+            average: { $avg: "$score" },
+            rounds: { $sum: 1 }
+          }
+        },
+        {
+          $setWindowFields: {
+            sortBy: { average: 1 },
+            output: {
+              rank: { $rank: {} }
+            }
+          }
+        },
+        {
+          $match: {
+            _id: playerId
+          }
+        }
+      ]
+    }
+  }
+]); */
+
         if (data.user_id) {
             query.user_id = new ObjectID(data.user_id);
         }

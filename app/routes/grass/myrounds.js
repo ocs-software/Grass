@@ -128,6 +128,8 @@ router.post("/delete", async (req, res) => {
 
     const data = req.body;
 
+    let query = "";
+
     try {
         if (!data.user_id) {
             errMess = "User ID not sent.";
