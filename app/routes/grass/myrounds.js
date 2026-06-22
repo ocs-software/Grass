@@ -312,7 +312,7 @@ router.post("/update", async (req, res) => {
         } else {
             const setFields = {};
             for (const [key, value] of Object.entries(my_round)) {
-                if (key != "user_id" && key != "id" && key != "token") {
+                if (key != "user_id" && key != "id" && key != "_id" && key != "token") {
                     setFields[key] = value;
                 }
             }
