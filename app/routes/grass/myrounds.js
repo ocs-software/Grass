@@ -80,7 +80,7 @@ router.post("/get", async (req, res) => {
             query.id_courseTeeColor = data.id_courseTeeColor;
         }
 
-        id (data.hole) {
+        if (data.hole) {
             query.hole = data.hole;
         }
 
