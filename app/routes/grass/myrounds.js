@@ -172,7 +172,7 @@ router.post("/delete", async (req, res) => {
             errMess = "Token sent does not match with user.";
         }
 
-        if (!errMess) {
+        if (errMess !== "") {
             await logError({
                 thisDb,
                 type: "validation",
