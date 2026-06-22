@@ -203,7 +203,7 @@ router.post("/delete", async (req, res) => {
             }).catch(err => {
                 console.error("Change log failed:", err)
             });
-            await deleteStats(data.user_id, data.my_round.id);
+            await deleteStats(data.user_id, data.my_round.id, thisDb, suffix);
         }
 
         res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
