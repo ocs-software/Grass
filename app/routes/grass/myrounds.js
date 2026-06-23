@@ -388,7 +388,7 @@ router.post("/update", async (req, res) => {
 
         const collectionDb = thisDb.collection(table);
 
-        const query = {user_id: data.user_id, id: data.my_round.id};
+        const query = {user_id: data.user_id, round_id: data.my_round.id};
         if (data.id_course != null) {
             query.id_course = data.id_course;
         }

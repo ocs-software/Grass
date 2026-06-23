@@ -38,8 +38,12 @@ async function initializeIndexes(database, suffix) {
     );
 
     await statsDb.createIndex(
-        { user_id: 1, id: 1 },
+        { user_id: 1, round_id: 1, hole: 1 },
         { unique: true }
+    );
+
+    await statsDb.createIndex(
+        { user_id: 1, round_id: 1 }
     );
 
     await statsDb.createIndex(
