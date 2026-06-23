@@ -7,7 +7,7 @@ const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
 const { logDocumentChange } = require("../../logs/changeLogger");
-const { enqueueRankingRebuild } = require("../../util/rankingRound");
+const { enqueueRankingRebuild, rebuildRankingDocuments } = require("../../util/rankingRound");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -450,7 +450,7 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            await enqueueRankingRebuild({thisDb, suffix, criteria: {}});
+            await rebuildRankingDocuments({thisDb, suffix, criteria: {}});
         }
     }
 });
