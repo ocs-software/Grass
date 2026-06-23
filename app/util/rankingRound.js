@@ -57,7 +57,7 @@ async function rebuildRankingDocuments({
     criteria = {},
     sourceCollection = "myrounds",
     rankingCollection = "ranking_cache",
-    scoreField = "myround.total_score",
+    scoreField = "total_score",
     lowerIsBetter = true
 }) {
     const match = buildMatch(criteria);
