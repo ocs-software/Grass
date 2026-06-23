@@ -86,7 +86,7 @@ router.post("/get", async (req, res) => {
         res.status(400).send(resultError);
     }
 
-    function createErrorObj(errMess, {fields}) {
+    async function createErrorObj(errMess, {fields}) {
         const res_json = {};
         res_json.status = "FAILED";
         res_json.message = errMess;
