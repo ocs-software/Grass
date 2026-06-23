@@ -7,7 +7,7 @@ const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
 const { logDocumentChange } = require("../../logs/changeLogger");
-const { rankingRound } = require("../../util/rankingRound");
+const { enqueueRankingRebuild } = require("../../util/rankingRound");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -236,7 +236,7 @@ router.post("/delete", async (req, res) => {
         await thisDb.collection(table).deleteMany(query);
 
         if (completed) {
-            await rankingRound.enqueueRankingRebuild({thisDb, suffix, criteria: {}});
+            await enqueueRankingRebuild({thisDb, suffix, criteria: {}});
         }
     }
 });
@@ -408,7 +408,7 @@ router.post("/update", async (req, res) => {
         for (const stats of my_round.hole_stats) {
             if (stats.hole != old_hole) {
                 if (old_hole != 0) {
-                    await saveStat(thisDb, suffix, setFields, query, data.user_id, my_round.complete);
+                    await saveStat(thisDb, suffix, setFields, query, data.user_id, false);
                     setFields = {};
                 }
                 query.hole = stats.hole;
@@ -450,7 +450,7 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            await rankingRound.enqueueRankingRebuild({thisDb, suffix, criteria: {}});
+            await enqueueRankingRebuild({thisDb, suffix, criteria: {}});
         }
     }
 });
