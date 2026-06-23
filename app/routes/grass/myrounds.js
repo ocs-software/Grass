@@ -409,6 +409,7 @@ router.post("/update", async (req, res) => {
             if (stats.hole != old_hole) {
                 if (old_hole != 0) {
                     await saveStat(thisDb, suffix, setFields, query, data.user_id);
+                    setFields = {};
                 }
                 query.hole = stats.hole;
                 stat_saved = await collectionDb.findOne(query);
