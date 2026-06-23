@@ -408,7 +408,7 @@ router.post("/update", async (req, res) => {
         for (const stats of my_round.hole_stats) {
             if (stats.hole != old_hole) {
                 if (old_hole != 0) {
-                    await saveStat(thisDb, suffix, setFields, query, data.user_id);
+                    await saveStat(thisDb, suffix, setFields, query, data.user_id, my_round.complete);
                     setFields = {};
                 }
                 query.hole = stats.hole;
@@ -423,7 +423,7 @@ router.post("/update", async (req, res) => {
         }
 
         if (Object.keys(setFields).length > 0) {
-            await saveStat(thisDb, suffix, setFields, query, data.user_id, data.complete);
+            await saveStat(thisDb, suffix, setFields, query, data.user_id, my_round.complete);
         }
     }
 
