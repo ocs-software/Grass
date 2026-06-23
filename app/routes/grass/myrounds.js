@@ -7,6 +7,7 @@ const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
 const { logDocumentChange } = require("../../logs/changeLogger");
+const { rankingRound } = require("../../util/rankingRound");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -226,13 +227,17 @@ router.post("/delete", async (req, res) => {
         res.status(400).send({ message: "Error in Deleting data.", data: e });
     }
 
-    async function deleteStats(user_id, round_id, thisDb, suffix) {
+    async function deleteStats(user_id, round_id, thisDb, suffix, completed) {
         const table = "stats" + suffix;
         console.log("test");
 
         const query = {user_id: user_id, round_id: round_id};
 
         await thisDb.collection(table).deleteMany(query);
+
+        if (completed) {
+            await rankingRound.rebuildRankingDocuments(thisDb, suffix);
+        }
     }
 });
 
@@ -403,7 +408,7 @@ router.post("/update", async (req, res) => {
         for (const stats of my_round.hole_stats) {
             if (stats.hole != old_hole) {
                 if (old_hole != 0) {
-                    await saveStat(thisDb, suffix, setFields, query);
+                    await saveStat(thisDb, suffix, setFields, query, data.user_id);
                 }
                 query.hole = stats.hole;
                 stat_saved = await collectionDb.findOne(query);
@@ -417,11 +422,11 @@ router.post("/update", async (req, res) => {
         }
 
         if (Object.keys(setFields).length > 0) {
-            await saveStat(thisDb, suffix, setFields, query);
+            await saveStat(thisDb, suffix, setFields, query, data.user_id, data.complete);
         }
     }
 
-    async function saveStat(thisDb, suffix, setFields, query) {
+    async function saveStat(thisDb, suffix, setFields, query, user_id, completed) {
         const statsDB = thisDb.collection("stats" + suffix);
         const tablesDB = thisDb.collection("table");
 
@@ -442,6 +447,10 @@ router.post("/update", async (req, res) => {
             },
             { upsert: true }
         );
+
+        if (completed) {
+            await rankingRound.rebuildRankingDocuments(thisDb, suffix);
+        }
     }
 });
 

@@ -11,7 +11,7 @@ const { logDocumentChange } = require("../../logs/changeLogger");
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass")
-    let query;
+    let query = "";
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     let table = "stats" + suffix;
@@ -36,7 +36,7 @@ router.post("/get", async (req, res) => {
             errMess = "User not found."
         }
 
-        if (data.token != user.token) {
+        if (user && data.token != user.token) {
             errMess = "Token sent does not match with user.";
         }
 
@@ -49,7 +49,7 @@ router.post("/get", async (req, res) => {
             await logError({
                 thisDb,
                 type: "validation",
-                action: "tourns/get",
+                action: "stats/get",
                 error: res_json.message,
                 table: table,
                 payload: req.body,
@@ -59,83 +59,63 @@ router.post("/get", async (req, res) => {
             return;
         }
 
+        query = {user_id: user._id};
 
-/* db.scores.aggregate([
-  {
-    $match: {
-      tour: "PGA" // optional
-    }
-  },
-  {
-    $facet: {
-      player: [
-        { $match: { user_id: playerId } },
-        {
-          $group: {
-            _id: "$user_id",
-            average: { $avg: "$score" },
-            rounds: { $sum: 1 }
-          }
-        }
-      ],
-      overall: [
-        {
-          $group: {
-            _id: null,
-            average: { $avg: "$score" },
-            rounds: { $sum: 1 }
-          }
-        }
-      ],
-      ranking: [
-        {
-          $group: {
-            _id: "$user_id",
-            average: { $avg: "$score" },
-            rounds: { $sum: 1 }
-          }
-        },
-        {
-          $setWindowFields: {
-            sortBy: { average: 1 },
-            output: {
-              rank: { $rank: {} }
+        if (data.filter) {
+            for (const [key, value] of Object.entries(filter)) {
+                query[key] = value;
             }
-          }
-        },
-        {
-          $match: {
-            _id: playerId
-          }
-        }
-      ]
-    }
-  }
-]); */
-
-        if (data.user_id) {
-            query.user_id = new ObjectID(data.user_id);
         }
 
-        if (data.round_id) {
-            query.id = data.round_id;
-        }
+        const aggregate = [];
 
-        if (data.id_course) {
-            query.id_course = data.id_course;
-        }
+        aggregate.push({$match: {
+            query
+        }});
 
-        if (data.id_courseTeeType) {
-            query.id_courseTeeType = data.id_courseTeeType;
-        }
-
-        if (data.id_courseTeeColor) {
-            query.id_courseTeeColor = data.id_courseTeeColor;
-        }
-
-        if (data.hole) {
-            query.hole = data.hole;
-        }
+        aggregate.push({
+            $facet: {
+                player: [
+                    { $match: { user_id: user._id }},
+                    { $group: {
+                        _id: "$user_id",
+                        average: { $avg: "$score" },
+                        rounds: { $sum: 1 }
+                    }}
+                ],
+                overall: [
+                    { $group: 
+                        {
+                            _id: "null",
+                            average: { $avg: "$score" },
+                            rounds: { $sum: 1 }
+                        }
+                    }
+                ],
+                ranking: [
+                    {
+                        $group: {
+                            _id: "$user_id",
+                            average: { $avg: "$score" },
+                            rounds: { $sum: 1 }
+                        }
+                    },
+                    {
+                        $setWindowFields: {
+                            sortBy: { average: 1 },
+                            output: {
+                                rank: { $rank: {} }
+                            }
+                        }
+                    },
+                    {
+                        $match: {
+                            _id: user._id
+                        }
+                    }
+                ]
+            }
+        };
 
         const item = await thisDb.collection(table).find(query).toArray();
         if (item.length > 0) {
