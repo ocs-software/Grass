@@ -81,7 +81,7 @@ async function rebuildRankingDocuments({
     thisDb,
     suffix = "",
     criteria = {},
-    sourceCollection = "round_scores",
+    sourceCollection = "myrounds",
     rankingCollection = "ranking_cache",
     scoreField = "total_score",
     lowerIsBetter = true
