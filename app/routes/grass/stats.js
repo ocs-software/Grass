@@ -115,7 +115,7 @@ router.post("/get", async (req, res) => {
                     }
                 ]
             }
-        };
+        });
 
         const item = await thisDb.collection(table).find(query).toArray();
         if (item.length > 0) {
