@@ -236,7 +236,7 @@ router.post("/delete", async (req, res) => {
         await thisDb.collection(table).deleteMany(query);
 
         if (completed) {
-            await rankingRound.rebuildRankingDocuments(thisDb, suffix);
+            await rankingRound.enqueueRankingRebuild({thisDb, suffix, criteria: {}});
         }
     }
 });
@@ -450,7 +450,7 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            await rankingRound.rebuildRankingDocuments(thisDb, suffix);
+            await rankingRound.enqueueRankingRebuild({thisDb, suffix, criteria: {}});
         }
     }
 });

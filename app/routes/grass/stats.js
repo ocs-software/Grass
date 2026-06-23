@@ -7,14 +7,13 @@ const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
 const { logDocumentChange } = require("../../logs/changeLogger");
+const { rankingRound } = require("../../util/rankingRound");
 
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass")
-    let query = "";
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
-    let table = "stats" + suffix;
 
     try {
         const data = req.body;
@@ -24,130 +23,79 @@ router.post("/get", async (req, res) => {
 
         if (!data.user_id) {
             errMess = "Player ID not sent.";
+            return res.send(createErrorObj(errMess, {thisDb,
+                type: "validation",
+                action: "tourns/get",
+                error: errMess,
+                table: table,
+                payload: req.body}));
         }
 
         if (!data.token) {
             errMess = "Token not sent.";
+            return res.send(createErrorObj(errMess, {thisDb,
+                type: "validation",
+                action: "tourns/get",
+                error: errMess,
+                table: table,
+                payload: req.body}));
         }
 
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
             errMess = "User not found."
-        }
-
-        if (user && data.token != user.token) {
-            errMess = "Token sent does not match with user.";
-        }
-
-        if (errMess != "") {
-            res_json.status = "FAILED";
-            res_json.message = errMess;
-            res.res_json = res_json;
-            res_json.stats = [];
-
-            await logError({
-                thisDb,
+            return res.send(createErrorObj(errMess, {thisDb,
                 type: "validation",
-                action: "stats/get",
-                error: res_json.message,
+                action: "tourns/get",
+                error: errMess,
                 table: table,
-                payload: req.body,
-            });
-
-            res.send({ res_jon });
-            return;
+                payload: req.body}));
         }
 
-        query = {user_id: user._id};
-
-        if (data.filter) {
-            for (const [key, value] of Object.entries(filter)) {
-                query[key] = value;
-            }
+        if (data.token != user.token) {
+            errMess = "Token sent does not match with user.";
+            return res.send(createErrorObj(errMess, {thisDb,
+                type: "validation",
+                action: "tourns/get",
+                error: errMess,
+                table: table,
+                payload: req.body}));
         }
 
-        const aggregate = [];
-
-        aggregate.push({$match: {
-            query
-        }});
-
-        aggregate.push({
-            $facet: {
-                player: [
-                    { $match: { user_id: user._id }},
-                    { $group: {
-                        _id: "$user_id",
-                        average: { $avg: "$score" },
-                        rounds: { $sum: 1 }
-                    }}
-                ],
-                overall: [
-                    { $group: 
-                        {
-                            _id: "null",
-                            average: { $avg: "$score" },
-                            rounds: { $sum: 1 }
-                        }
-                    }
-                ],
-                ranking: [
-                    {
-                        $group: {
-                            _id: "$user_id",
-                            average: { $avg: "$score" },
-                            rounds: { $sum: 1 }
-                        }
-                    },
-                    {
-                        $setWindowFields: {
-                            sortBy: { average: 1 },
-                            output: {
-                                rank: { $rank: {} }
-                            }
-                        }
-                    },
-                    {
-                        $match: {
-                            _id: user._id
-                        }
-                    }
-                ]
-            }
+        const report = await getPlayerReport({
+                thisDb,
+                suffix,
+                userId: data.user_id,
+                criteria: {
+                    tour: "PGA",
+                    season: 2026
+                }
         });
 
-        const item = await thisDb.collection(table).find(query).toArray();
-        if (item.length > 0) {
-            let res_json = { status: "OK", };
-            res_json.message = "Rounds(s) Found";
-            res_json.stats = item;
-            res.send({ res_json })
-        } else {
-            let res_json = { status: "FAILED", };
-            res_json.message = "No round Found";
-            res_json.stats = [];
-            res.send({ res_json })
-        }
+        res.send(report);
     } catch (e) {
-        await logError({
-            thisDb,
+        const resultError = createErrorObj((e.message ? e.message : "Error in creating stats."), {thisDb,
             type: "other",
-            action: "stats/get",
+            action: "stats/delete",
             error: e,
-            table: table,
-            payload: req.body,
             query,
-        });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in stats Data.";
-        res.res_json = res_json;
-        res_json.stats = [];
-        res.send({ res_jon });
+            payload: data,
+            table: table});
+
+        res.status(400).send(resultError);
     }
 
+    function createErrorObj(errMess, {fields}) {
+        const res_json = {};
+        res_json.status = "FAILED";
+        res_json.message = errMess;
+        res_json.myrounds = [];
+
+        await logError({fields});
+        
+        return res_json;
+    }
 });
 
 router.post("/delete", async (req, res) => {

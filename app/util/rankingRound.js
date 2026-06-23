@@ -1,21 +1,37 @@
 const crypto = require("crypto");
 
+/**
+ * Make object stringify stable so same criteria always creates same hash.
+ */
 function stableStringify(obj) {
-    return JSON.stringify(
-        Object.keys(obj).sort().reduce((acc, key) => {
-            acc[key] = obj[key];
-            return acc;
-        }, {})
-    );
+    if (!obj || typeof obj !== "object") {
+        return JSON.stringify(obj);
+    }
+
+    if (Array.isArray(obj)) {
+        return JSON.stringify(obj.map(stableStringify));
+    }
+
+    const sorted = {};
+
+    Object.keys(obj).sort().forEach((key) => {
+        sorted[key] = obj[key];
+    });
+
+    return JSON.stringify(sorted);
 }
 
 function buildFilterHash(criteria) {
     return crypto
         .createHash("sha1")
-        .update(stableStringify(criteria))
+        .update(stableStringify(criteria || {}))
         .digest("hex");
 }
 
+/**
+ * Build MongoDB $match from API criteria.
+ * Add/remove allowed fields as needed.
+ */
 function buildMatch(criteria = {}) {
     const match = {};
 
@@ -27,11 +43,16 @@ function buildMatch(criteria = {}) {
         "round_id",
         "division",
         "gender",
-        "country"
+        "country",
+        "state"
     ];
 
     for (const field of allowedFilters) {
-        if (criteria[field] !== undefined && criteria[field] !== null && criteria[field] !== "") {
+        if (
+            criteria[field] !== undefined &&
+            criteria[field] !== null &&
+            criteria[field] !== ""
+        ) {
             match[field] = criteria[field];
         }
     }
@@ -51,11 +72,16 @@ function buildMatch(criteria = {}) {
     return match;
 }
 
+/**
+ * Rebuild ranking documents for a specific criteria set.
+ *
+ * Source collection should usually be round_scores, not hole_scores.
+ */
 async function rebuildRankingDocuments({
     thisDb,
     suffix = "",
     criteria = {},
-    sourceCollection = "myrounds",
+    sourceCollection = "round_scores",
     rankingCollection = "ranking_cache",
     scoreField = "total_score",
     lowerIsBetter = true
@@ -64,18 +90,18 @@ async function rebuildRankingDocuments({
     const filterHash = buildFilterHash(match);
 
     const source = thisDb.collection(sourceCollection + suffix);
-    const rankings = thisDb.collection(rankingCollection + suffix);
-
     const sortDirection = lowerIsBetter ? 1 : -1;
 
     const pipeline = [
         { $match: match },
+
         {
             $project: {
                 user_id: 1,
                 score: `$${scoreField}`
             }
         },
+
         {
             $group: {
                 _id: "$user_id",
@@ -86,6 +112,7 @@ async function rebuildRankingDocuments({
                 rounds: { $sum: 1 }
             }
         },
+
         {
             $setWindowFields: {
                 sortBy: { average_score: sortDirection },
@@ -94,6 +121,7 @@ async function rebuildRankingDocuments({
                 }
             }
         },
+
         {
             $addFields: {
                 user_id: "$_id",
@@ -102,6 +130,7 @@ async function rebuildRankingDocuments({
                 calculated_at: "$$NOW"
             }
         },
+
         {
             $project: {
                 _id: 0,
@@ -117,6 +146,7 @@ async function rebuildRankingDocuments({
                 calculated_at: 1
             }
         },
+
         {
             $merge: {
                 into: rankingCollection + suffix,
@@ -133,9 +163,219 @@ async function rebuildRankingDocuments({
         status: "OK",
         filter_hash: filterHash,
         criteria: match
+    };
+}
+
+/**
+ * Enqueue a ranking rebuild instead of rebuilding directly inside API request.
+ */
+async function enqueueRankingRebuild({
+    thisDb,
+    suffix = "",
+    criteria = {},
+    jobsCollection = "ranking_jobs"
+}) {
+    const match = buildMatch(criteria);
+    const filterHash = buildFilterHash(match);
+
+    await thisDb.collection(jobsCollection + suffix).updateOne(
+        { filter_hash: filterHash },
+        {
+            $set: {
+                filter_hash: filterHash,
+                criteria: match,
+                status: "pending",
+                updated_at: new Date()
+            },
+            $setOnInsert: {
+                created_at: new Date()
+            }
+        },
+        { upsert: true }
+    );
+
+    return {
+        status: "QUEUED",
+        filter_hash: filterHash,
+        criteria: match
+    };
+}
+
+/**
+ * Process one pending ranking job.
+ * Call this from a cron/background worker.
+ */
+async function processOneRankingJob({
+    thisDb,
+    suffix = "",
+    jobsCollection = "ranking_jobs",
+    sourceCollection = "round_scores",
+    rankingCollection = "ranking_cache",
+    scoreField = "total_score",
+    lowerIsBetter = true
+}) {
+    const jobs = thisDb.collection(jobsCollection + suffix);
+
+    const jobResult = await jobs.findOneAndUpdate(
+        { status: "pending" },
+        {
+            $set: {
+                status: "running",
+                started_at: new Date()
+            }
+        },
+        {
+            sort: { updated_at: 1 },
+            returnDocument: "after"
+        }
+    );
+
+    const job = jobResult && jobResult.value;
+
+    if (!job) {
+        return {
+            status: "NO_PENDING_JOBS"
+        };
+    }
+
+    try {
+        await rebuildRankingDocuments({
+            thisDb,
+            suffix,
+            criteria: job.criteria || {},
+            sourceCollection,
+            rankingCollection,
+            scoreField,
+            lowerIsBetter
+        });
+
+        await jobs.updateOne(
+            { _id: job._id },
+            {
+                $set: {
+                    status: "completed",
+                    completed_at: new Date()
+                }
+            }
+        );
+
+        return {
+            status: "COMPLETED",
+            filter_hash: job.filter_hash
+        };
+    } catch (err) {
+        await jobs.updateOne(
+            { _id: job._id },
+            {
+                $set: {
+                    status: "failed",
+                    error: err.message,
+                    failed_at: new Date()
+                }
+            }
+        );
+
+        throw err;
     }
 }
 
+/**
+ * Report using live stats + cached ranking.
+ */
+async function getPlayerReport({
+    thisDb,
+    suffix = "",
+    userId,
+    criteria = {},
+    sourceCollection = "round_scores",
+    rankingCollection = "ranking_cache",
+    scoreField = "total_score"
+}) {
+    const match = buildMatch(criteria);
+    const filterHash = buildFilterHash(match);
+
+    const source = thisDb.collection(sourceCollection + suffix);
+    const rankings = thisDb.collection(rankingCollection + suffix);
+
+    const [liveStats] = await source.aggregate([
+        { $match: match },
+
+        {
+            $project: {
+                user_id: 1,
+                score: `$${scoreField}`
+            }
+        },
+
+        {
+            $facet: {
+                player: [
+                    { $match: { user_id: userId } },
+                    {
+                        $group: {
+                            _id: "$user_id",
+                            average_score: { $avg: "$score" },
+                            min_score: { $min: "$score" },
+                            max_score: { $max: "$score" },
+                            total_score: { $sum: "$score" },
+                            rounds: { $sum: 1 }
+                        }
+                    }
+                ],
+
+                overall: [
+                    {
+                        $group: {
+                            _id: null,
+                            average_score: { $avg: "$score" },
+                            min_score: { $min: "$score" },
+                            max_score: { $max: "$score" },
+                            total_score: { $sum: "$score" },
+                            rounds: { $sum: 1 },
+                            players: { $addToSet: "$user_id" }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            average_score: 1,
+                            min_score: 1,
+                            max_score: 1,
+                            total_score: 1,
+                            rounds: 1,
+                            players_count: { $size: "$players" }
+                        }
+                    }
+                ]
+            }
+        },
+
+        {
+            $project: {
+                player: { $arrayElemAt: ["$player", 0] },
+                overall: { $arrayElemAt: ["$overall", 0] }
+            }
+        }
+    ], { allowDiskUse: true }).toArray();
+
+    const ranking = await rankings.findOne({
+        filter_hash: filterHash,
+        user_id: userId
+    });
+
+    return {
+        criteria: match,
+        filter_hash: filterHash,
+        player: liveStats && liveStats.player ? liveStats.player : null,
+        overall: liveStats && liveStats.overall ? liveStats.overall : null,
+        ranking: ranking || null
+    };
+}
+
+/**
+ * Optional: fully live report including ranking.
+ * Use only for smaller filtered datasets or admin/debug.
+ */
 async function getPlayerReportOnTheFly({
     thisDb,
     suffix = "",
@@ -150,14 +390,16 @@ async function getPlayerReportOnTheFly({
 
     const source = thisDb.collection(sourceCollection + suffix);
 
-    const pipeline = [
+    const [result] = await source.aggregate([
         { $match: match },
+
         {
             $project: {
                 user_id: 1,
                 score: `$${scoreField}`
             }
         },
+
         {
             $facet: {
                 player: [
@@ -165,10 +407,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: "$user_id",
-                            total_score: { $sum: "$score" },
                             average_score: { $avg: "$score" },
                             min_score: { $min: "$score" },
                             max_score: { $max: "$score" },
+                            total_score: { $sum: "$score" },
                             rounds: { $sum: 1 }
                         }
                     }
@@ -178,10 +420,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: null,
-                            total_score: { $sum: "$score" },
                             average_score: { $avg: "$score" },
                             min_score: { $min: "$score" },
                             max_score: { $max: "$score" },
+                            total_score: { $sum: "$score" },
                             rounds: { $sum: 1 },
                             players: { $addToSet: "$user_id" }
                         }
@@ -189,10 +431,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $project: {
                             _id: 0,
-                            total_score: 1,
                             average_score: 1,
                             min_score: 1,
                             max_score: 1,
+                            total_score: 1,
                             rounds: 1,
                             players_count: { $size: "$players" }
                         }
@@ -215,11 +457,7 @@ async function getPlayerReportOnTheFly({
                             }
                         }
                     },
-                    {
-                        $match: {
-                            _id: userId
-                        }
-                    },
+                    { $match: { _id: userId } },
                     {
                         $project: {
                             _id: 0,
@@ -232,6 +470,7 @@ async function getPlayerReportOnTheFly({
                 ]
             }
         },
+
         {
             $project: {
                 player: { $arrayElemAt: ["$player", 0] },
@@ -239,98 +478,21 @@ async function getPlayerReportOnTheFly({
                 ranking: { $arrayElemAt: ["$ranking", 0] }
             }
         }
-    ];
+    ], { allowDiskUse: true }).toArray();
 
-    const result = await source.aggregate(pipeline, { allowDiskUse: true }).toArray();
-
-    return result[0] || {
+    return result || {
         player: null,
         overall: null,
         ranking: null
     };
 }
-    
-async function getPlayerReport({
-    thisDb,
-    suffix = "",
-    userId,
-    criteria = {},
-    sourceCollection = "round_scores",
-    rankingCollection = "ranking_cache",
-    scoreField = "total_score"
-}) {
-    const match = buildMatch(criteria);
-    const filterHash = buildFilterHash(match);
 
-    const source = thisDb.collection(sourceCollection + suffix);
-    const rankings = thisDb.collection(rankingCollection + suffix);
-
-    const [liveStats] = await source.aggregate([
-        { $match: match },
-        {
-            $project: {
-                user_id: 1,
-                score: `$${scoreField}`
-            }
-        },
-        {
-            $facet: {
-                player: [
-                    { $match: { user_id: userId } },
-                    {
-                        $group: {
-                            _id: "$user_id",
-                            average_score: { $avg: "$score" },
-                            min_score: { $min: "$score" },
-                            max_score: { $max: "$score" },
-                            rounds: { $sum: 1 }
-                        }
-                    }
-                ],
-                overall: [
-                    {
-                        $group: {
-                            _id: null,
-                            average_score: { $avg: "$score" },
-                            min_score: { $min: "$score" },
-                            max_score: { $max: "$score" },
-                            rounds: { $sum: 1 },
-                            players: { $addToSet: "$user_id" }
-                        }
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            average_score: 1,
-                            min_score: 1,
-                            max_score: 1,
-                            rounds: 1,
-                            players_count: { $size: "$players" }
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $project: {
-                player: { $arrayElemAt: ["$player", 0] },
-                overall: { $arrayElemAt: ["$overall", 0] }
-            }
-        }
-    ]).toArray();
-
-    const ranking = await rankings.findOne({
-        filter_hash: filterHash,
-        user_id: userId
-    });
-
-    return {
-        criteria: match,
-        filter_hash: filterHash,
-        player: liveStats?.player || null,
-        overall: liveStats?.overall || null,
-        ranking: ranking || null
-    };
-}
-
-module.exports = { rebuildRankingDocuments,  getPlayerReport};
+module.exports = {
+    buildMatch,
+    buildFilterHash,
+    rebuildRankingDocuments,
+    enqueueRankingRebuild,
+    processOneRankingJob,
+    getPlayerReport,
+    getPlayerReportOnTheFly
+};

@@ -11,10 +11,11 @@ function getAppConfig() {
     appUrl: process.env.APP_URL || null,
     live: appEnv != "development",
     suffix: appEnv === "development" ? "_dev" : "",
+    database_name: "grass", 
 
     stripe: {
       skey: process.env.STRIPE_KEY
-    }
+    },
   };
 }
 

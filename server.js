@@ -67,6 +67,14 @@ async function initializeIndexes(database, suffix) {
         { unique: true }
     );
 
+    await rankingDb.createIndex(
+        { status: 1, updated_at: 1 }
+    );
+
+    await rankingDb.createIndex(
+        { status: 1, updated_at: 1 }
+    );
+    
     console.log("Indexes initialized");
 }
 
