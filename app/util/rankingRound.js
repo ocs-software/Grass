@@ -425,10 +425,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: "$user_id",
-                            average_score: { $avg: "$" + scoreField },
-                            min_score: { $min: "$" + scoreField },
-                            max_score: { $max: "$" + scoreField },
-                            total_score: { $sum: "$" + scoreField },
+                            average_score: { $avg: "$score" },
+                            min_score: { $min: "$score" },
+                            max_score: { $max: "$score" },
+                            total_score: { $sum: "$score" },
                             rounds: { $sum: 1 }
                         }
                     }
@@ -438,10 +438,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: null,
-                            average_score: { $avg: "$" + scoreField },
-                            min_score: { $min: "$" + scoreField },
-                            max_score: { $max: "$" + scoreField },
-                            total_score: { $sum: "$" + scoreField },
+                            average_score: { $avg: "$score" },
+                            min_score: { $min: "$score" },
+                            max_score: { $max: "$score" },
+                            total_score: { $sum: "$score" },
                             rounds: { $sum: 1 },
                             players: { $addToSet: "$user_id" }
                         }
@@ -463,7 +463,7 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: "$user_id",
-                            average_score: { $avg: "$" + scoreField },
+                            average_score: { $avg: "$score" },
                             rounds: { $sum: 1 }
                         }
                     },
@@ -543,19 +543,18 @@ async function recordCriteriaUsage({
 function getScoreProjectionStages(scoreField) {
     if (scoreField.startsWith("hole_stats.")) {
         const subField = scoreField.replace("hole_stats.", "");
-        const fieldName = "$" + scoreField;
 
         return [
             { $unwind: "$hole_stats" },
             {
                 $project: {
                     user_id: 1,
-                    ${fieldName}: 1
+                    score: `$hole_stats.${subField}`
                 }
             },
             {
                 $match: {
-                    ${fieldName}: {
+                    score: {
                         $ne: null
                     }
                 }
@@ -567,7 +566,7 @@ function getScoreProjectionStages(scoreField) {
         {
             $project: {
                 user_id: 1,
-                score: fieldName
+                score: `$${scoreField}`
             }
         },
         {
