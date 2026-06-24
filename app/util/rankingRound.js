@@ -92,15 +92,12 @@ async function rebuildRankingDocuments({
     const source = thisDb.collection(sourceCollection + suffix);
     const sortDirection = lowerIsBetter ? 1 : -1;
 
+    const scoreStages = getScoreProjectionStages(scoreField);
+
     const pipeline = [
         { $match: match },
 
-        {
-            $project: {
-                user_id: 1,
-                score: `$${scoreField}`
-            }
-        },
+        ...scoreStages,
 
         {
             $group: {
@@ -414,15 +411,12 @@ async function getPlayerReportOnTheFly({
 
     const source = thisDb.collection(sourceCollection + suffix);
 
+    const scoreStages = getScoreProjectionStages(scoreField);
+
     const [result] = await source.aggregate([
         { $match: match },
 
-        {
-            $project: {
-                user_id: 1,
-                score: `$${scoreField}`
-            }
-        },
+        ...scoreStages,
 
         {
             $facet: {
@@ -544,6 +538,45 @@ async function recordCriteriaUsage({
     );
 
     return filterHash;
+}
+
+function getScoreProjectionStages(scoreField) {
+    if (scoreField.startsWith("hole_stats.")) {
+        const subField = scoreField.replace("hole_stats.", "");
+
+        return [
+            { $unwind: "$hole_stats" },
+            {
+                $project: {
+                    user_id: 1,
+                    score: `$hole_stats.${subField}`
+                }
+            },
+            {
+                $match: {
+                    score: {
+                        $ne: null
+                    }
+                }
+            }
+        ];
+    }
+
+    return [
+        {
+            $project: {
+                user_id: 1,
+                score: `$${scoreField}`
+            }
+        },
+        {
+            $match: {
+                score: {
+                    $ne: null
+                }
+            }
+        }
+    ];
 }
 
 module.exports = {

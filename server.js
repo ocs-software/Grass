@@ -23,6 +23,7 @@ async function initializeIndexes(database, suffix) {
     const myroundsDb = dbConn.collection("myrounds" + suffix);
     const statsDb = dbConn.collection("stats" + suffix);
     const rankingDb = dbConn.collection("ranking_cache" + suffix);
+    const criteriaDb = dbConn.collection("stats_criteria_usage" + suffix);
 
     await myroundsDb.createIndex(
         { user_id: 1, id: 1 },
@@ -73,6 +74,15 @@ async function initializeIndexes(database, suffix) {
 
     await rankingDb.createIndex(
         { status: 1, updated_at: 1 }
+    );
+
+    await criteriaDb.createIndex(
+        { filter_hash: 1 },
+        { unique: true }
+    );
+
+    await criteriaDb.createIndex(
+        { usage_count: -1, last_used_at: -1 }
     );
     
     console.log("Indexes initialized");
