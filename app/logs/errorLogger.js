@@ -1,52 +1,44 @@
 const { getAppConfig } = require("../config/app_config");
 
 async function logError({
-  thisDb,
-  type = "other",
-  action = "unknown",
-  error,
+    thisDb,
+    errMess,
+    type = "other",
+    action = "unknown",
+    error,
 
-  // optional context
-  query,
-  payload,
-  user,
-  extra,
-  table,
-  functionName
+    query,
+    payload,
+    user,
+    extra,
+    table,
+    functionName
 }) {
-  try {
-    const appConfig = getAppConfig();
-    const suffix = appConfig.suffix;
+    if (!thisDb) {
+        console.error("logError missing thisDb");
+        return;
+    }
 
-    const errorLogs = thisDb.collection(`error_logs${suffix}`);
+    const errorDoc = {
+        type,
+        action,
+        message: errMess || "Unknown error",
+        created_at: new Date()
+    };
 
-    const context = {};
+    if (error) {
+        errorDoc.error = error.message || String(error);
+        errorDoc.stack = error.stack || null;
+    }
 
-    if (query !== undefined) context.query = query;
-    if (payload !== undefined) context.payload = payload;
-    if (user !== undefined) context.user = user;
-    if (extra !== undefined) context.extra = extra;
-    if (table !== undefined) context.table = table;
-    if (functionName !== undefined) context.functionName = functionName;
+    if (query !== undefined) errorDoc.query = query;
+    if (payload !== undefined) errorDoc.payload = payload;
+    if (user !== undefined) errorDoc.user = user;
+    if (extra !== undefined) errorDoc.extra = extra;
+    if (table !== undefined) errorDoc.table = table;
+    if (functionName !== undefined) errorDoc.functionName = functionName;
 
-    await errorLogs.insertOne({
-      type,
-      action,
-      context,
-
-      error: {
-        message: error?.message || String(error),
-        name: error?.name || null,
-        stack: error?.stack || null,
-        code: error?.code || null
-      },
-
-      created_at: new Date()
-    });
-
-  } catch (logErr) {
-    console.error("Error logger failed:", logErr);
-  }
+    await thisDb.collection("error_logs").insertOne(errorDoc);
 }
 
 module.exports = { logError };

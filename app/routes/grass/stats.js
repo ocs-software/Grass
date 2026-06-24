@@ -8,6 +8,7 @@ const { getAppConfig } = require("../../config/app_config");
 const { logError } = require("../../logs/errorLogger");
 const { logDocumentChange } = require("../../logs/changeLogger");
 const { rankingRound } = require("../../util/rankingRound");
+const { sendError } = require("../../util/commonFunctions");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -18,44 +19,51 @@ router.post("/get", async (req, res) => {
 
     try {
         const res_json = {};
-        let errMess = "";
 
         if (!data.user_id) {
-            errMess = "Player ID not sent.";
-            return res.send(createErrorObj(errMess, {thisDb,
+            return await sendError(res, 400, {
+                thisDb,
+                errMess: "User ID not sent.",
                 type: "validation",
                 action: "stats/get",
-                error: errMess,
-                payload: req.body}));
+                payload: data,
+                functionName: "stats/get"
+            });
         }
 
         if (!data.token) {
-            errMess = "Token not sent.";
-            return res.send(createErrorObj(errMess, {thisDb,
+            return await sendError(res, 400, {
+                thisDb,
+                errMess: "Token not sent.",
                 type: "validation",
                 action: "stats/get",
-                error: errMess,
-                payload: req.body}));
+                payload: data,
+                functionName: "stats/get"
+            });
         }
 
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            errMess = "User not found."
-            return res.send(createErrorObj(errMess, {thisDb,
+            return await sendError(res, 404, {
+                thisDb,
+                errMess: "User not found.",
                 type: "validation",
                 action: "stats/get",
-                error: errMess,
-                payload: req.body}));
+                user: data.user_id,
+                payload: data
+            });
         }
 
         if (data.token != user.token) {
-            errMess = "Token sent does not match with user.";
-            return res.send(createErrorObj(errMess, {thisDb,
+            return await sendError(res, 404, {
+                thisDb,
+                errMess: "Token sent does not match with user.",
                 type: "validation",
                 action: "stats/get",
-                error: errMess,
-                payload: req.body}));
+                user: data.user_id,
+                payload: data
+            });
         }
         const criteria = data.criteria || {};
         const scoreField = data.fieldSelected || "total_score";
@@ -65,12 +73,15 @@ router.post("/get", async (req, res) => {
             Array.isArray(criteria) ||
             Object.keys(criteria).length < 1
         ) {
-            errMess = "No filter sent. This operation can only be done with something to filter for.";
-            return res.send(createErrorObj(errMess, {thisDb,
+            errMess = "";
+            return await sendError(res, 400, {
+                thisDb,
+                errMess: "No filter sent. This operation can only be done with something to filter for.",
                 type: "validation",
                 action: "stats/get",
-                error: errMess,
-                payload: req.body}));
+                payload: data,
+                functionName: "stats/get"
+            });
         }
 
         if (data.fieldSelected) {
@@ -87,26 +98,16 @@ router.post("/get", async (req, res) => {
 
         res.send(report);
     } catch (e) {
-        const resultError = createErrorObj((e.message ? e.message : "Error in creating stats report."), {thisDb,
+        return await sendError(res, 400, {
+            thisDb,
+            errMess: e.message || "Error in creating stats report.",
             type: "other",
             action: "stats/get",
             error: e,
-            payload: data});
-
-        res.status(400).send(resultError);
-    }
-
-    async function createErrorObj(errMess, {fields}) {
-        const res_json = {};
-        res_json.status = "FAILED";
-        res_json.message = errMess;
-        res_json.myrounds = [];
-
-        await logError({fields});
-        
-        return res_json;
+            payload: data,
+            functionName: "stats/get"
+        });
     }
 });
-
 
 module.exports = router;
