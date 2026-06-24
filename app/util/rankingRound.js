@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+let ObjectID = require('mongodb').ObjectID;
 
 /**
  * Make object stringify stable so same criteria always creates same hash.
