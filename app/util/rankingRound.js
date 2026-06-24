@@ -543,18 +543,19 @@ async function recordCriteriaUsage({
 function getScoreProjectionStages(scoreField) {
     if (scoreField.startsWith("hole_stats.")) {
         const subField = scoreField.replace("hole_stats.", "");
+        const fieldName = "$" + scoreField;
 
         return [
             { $unwind: "$hole_stats" },
             {
                 $project: {
                     user_id: 1,
-                    `$hole_stats.${subField}`: 1
+                    ${fieldName}: 1
                 }
             },
             {
                 $match: {
-                    `$hole_stats.${subField}`: {
+                    ${fieldName}: {
                         $ne: null
                     }
                 }
@@ -566,7 +567,7 @@ function getScoreProjectionStages(scoreField) {
         {
             $project: {
                 user_id: 1,
-                score: `$${scoreField}`
+                score: fieldName
             }
         },
         {
