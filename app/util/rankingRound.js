@@ -555,7 +555,7 @@ function getScoreProjectionStages(scoreField) {
             {
                 $match: {
                     score: {
-                        $nin: [null, 0]
+                        $nin: [null, 0, "", false]
                     }
                 }
             }
@@ -572,7 +572,7 @@ function getScoreProjectionStages(scoreField) {
         {
             $match: {
                 score: {
-                    $nin: [null, 0]
+                    $nin: [null, 0, "", false]
                 }
             }
         }

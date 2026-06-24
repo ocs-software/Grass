@@ -95,6 +95,18 @@ router.post("/get", async (req, res) => {
                 scoreField: fieldSelected
         });
 
+        logDocumentChange({
+                thisDb,
+                table: "",
+                channel: "stats/get",
+                resp: report,
+                newData: {},
+                my_round: "",
+                user_id: data.user_id,
+            }).catch(err => {
+                console.error("Change log failed:", err)
+            });
+
         res.send(report);
     } catch (e) {
         return await sendError(res, 400, {
