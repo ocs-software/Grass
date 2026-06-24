@@ -236,7 +236,9 @@ router.post("/delete", async (req, res) => {
         await thisDb.collection(table).deleteMany(query);
 
         if (completed) {
-            // await enqueueRankingRebuild({thisDb, suffix, criteria: {}});
+            // TODO: use this when we are going to escalate and have more than one instance.
+            //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
+            // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
             await rebuildRankingDocuments({thisDb, suffix, criteria: {}});
         }
     }
@@ -451,7 +453,9 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            // await enqueueRankingRebuild({thisDb, suffix, criteria: {}});
+            // TODO: use this when we are going to escalate and have more than one instance.
+            //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
+            // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
             await rebuildRankingDocuments({thisDb, suffix, criteria: {}});
         }
     }
