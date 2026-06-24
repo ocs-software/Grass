@@ -498,6 +498,8 @@ async function getPlayerReportOnTheFly({
         }
     ], { allowDiskUse: true }).toArray();
 
+    console.log("result", result);
+
     return result || {
         player: null,
         overall: null,
