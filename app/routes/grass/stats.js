@@ -14,10 +14,9 @@ router.post("/get", async (req, res) => {
     const thisDb = db.db("grass")
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
+    const data = req.body;
 
     try {
-        const data = req.body;
-
         const res_json = {};
         let errMess = "";
 
@@ -90,9 +89,8 @@ router.post("/get", async (req, res) => {
     } catch (e) {
         const resultError = createErrorObj((e.message ? e.message : "Error in creating stats."), {thisDb,
             type: "other",
-            action: "stats/delete",
+            action: "stats/get",
             error: e,
-            query,
             payload: data,
             table: table});
 
