@@ -326,7 +326,7 @@ async function getPlayerReport({
         {
             $facet: {
                 player: [
-                    { $match: { user_id: new ObjectId(userId) } },
+                    { $match: { user_id: new ObjectID(userId) } },
                     {
                         $group: {
                             _id: "$user_id",
@@ -376,7 +376,7 @@ async function getPlayerReport({
 
     const ranking = await rankings.findOne({
         filter_hash: filterHash,
-        user_id: new ObjectId(userId)
+        user_id: new ObjectID(userId)
     });
 
     return {
@@ -424,7 +424,7 @@ async function getPlayerReportOnTheFly({
         {
             $facet: {
                 player: [
-                    { $match: { user_id: new ObjectId(userId) } },
+                    { $match: { user_id: new ObjectID(userId) } },
                     {
                         $group: {
                             _id: "$user_id",
@@ -478,7 +478,7 @@ async function getPlayerReportOnTheFly({
                             }
                         }
                     },
-                    { $match: { _id: new ObjectId(userId) } },
+                    { $match: { _id: new ObjectID(userId) } },
                     {
                         $project: {
                             _id: 0,
