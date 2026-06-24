@@ -425,10 +425,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: "$user_id",
-                            average_score: { $avg: "$score" },
-                            min_score: { $min: "$score" },
-                            max_score: { $max: "$score" },
-                            total_score: { $sum: "$score" },
+                            average_score: { $avg: "$" + scoreField },
+                            min_score: { $min: "$" + scoreField },
+                            max_score: { $max: "$" + scoreField },
+                            total_score: { $sum: "$" + scoreField },
                             rounds: { $sum: 1 }
                         }
                     }
@@ -438,10 +438,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: null,
-                            average_score: { $avg: "$score" },
-                            min_score: { $min: "$score" },
-                            max_score: { $max: "$score" },
-                            total_score: { $sum: "$score" },
+                            average_score: { $avg: "$" + scoreField },
+                            min_score: { $min: "$" + scoreField },
+                            max_score: { $max: "$" + scoreField },
+                            total_score: { $sum: "$" + scoreField },
                             rounds: { $sum: 1 },
                             players: { $addToSet: "$user_id" }
                         }
@@ -463,7 +463,7 @@ async function getPlayerReportOnTheFly({
                     {
                         $group: {
                             _id: "$user_id",
-                            average_score: { $avg: "$score" },
+                            average_score: { $avg: "$" + scoreField },
                             rounds: { $sum: 1 }
                         }
                     },
@@ -549,12 +549,12 @@ function getScoreProjectionStages(scoreField) {
             {
                 $project: {
                     user_id: 1,
-                    score: `$hole_stats.${subField}`
+                    `$hole_stats.${subField}`: 1
                 }
             },
             {
                 $match: {
-                    score: {
+                    `$hole_stats.${subField}`: {
                         $ne: null
                     }
                 }
