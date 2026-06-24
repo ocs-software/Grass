@@ -87,12 +87,11 @@ router.post("/get", async (req, res) => {
 
         res.send(report);
     } catch (e) {
-        const resultError = createErrorObj((e.message ? e.message : "Error in creating stats."), {thisDb,
+        const resultError = createErrorObj((e.message ? e.message : "Error in creating stats report."), {thisDb,
             type: "other",
             action: "stats/get",
             error: e,
-            payload: data,
-            table: table});
+            payload: data});
 
         res.status(400).send(resultError);
     }
