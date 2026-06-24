@@ -87,8 +87,6 @@ router.post("/get", async (req, res) => {
             fieldSelected = data.fieldSelected;
         }
 
-        console.log("criteria", criteria);
-
         const report = await getPlayerReportOnTheFly({
                 thisDb,
                 suffix,

@@ -59,14 +59,16 @@ function buildMatch(criteria = {}) {
     }
 
     if (criteria.date_from || criteria.date_to) {
-        match.played_at = {};
+        match.created_at = {};
 
         if (criteria.date_from) {
-            match.played_at.$gte = new Date(criteria.date_from);
+            match.created_at.$gte = new Date(criteria.date_from);
         }
 
         if (criteria.date_to) {
-            match.played_at.$lte = new Date(criteria.date_to);
+            const endDate = new Date(criteria.date_to);
+            endDate.setUTCHours(23, 59, 999);
+            match.created_at.$lte = endDate;
         }
     }
 
@@ -413,8 +415,6 @@ async function getPlayerReportOnTheFly({
     const source = thisDb.collection(sourceCollection + suffix);
 
     const scoreStages = getScoreProjectionStages(scoreField);
-    console.log("match", match);
-    console.log("scoreStages", scoreStages);
 
     const [result] = await source.aggregate([
         { $match: match },
@@ -500,8 +500,6 @@ async function getPlayerReportOnTheFly({
             }
         }
     ], { allowDiskUse: true }).toArray();
-
-    console.log("result", result);
 
     return result || {
         player: null,
