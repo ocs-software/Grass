@@ -249,6 +249,24 @@ async function processOneRankingJob({
             lowerIsBetter
         });
 
+        const popularCriteria = await thisDb
+            .collection("stats_criteria_usage" + suffix)
+            .find({
+                usage_count: { $gte: 50 }
+            })
+            .sort({ usage_count: -1 })
+            .limit(20)
+            .toArray();
+
+        for (const item of popularCriteria) {
+            await rebuildRankingDocuments({
+                thisDb,
+                suffix,
+                criteria: item.criteria,
+                scoreField: item.scoreField || "total_score"
+            });
+        }
+
         await jobs.updateOne(
             { _id: job._id },
             {
@@ -385,6 +403,12 @@ async function getPlayerReportOnTheFly({
     scoreField = "total_score",
     lowerIsBetter = true
 }) {
+    await recordCriteriaUsage({
+        thisDb,
+        suffix,
+        criteria,
+        scoreField
+    });
     const match = buildMatch(criteria);
     const sortDirection = lowerIsBetter ? 1 : -1;
 
@@ -485,6 +509,41 @@ async function getPlayerReportOnTheFly({
         overall: null,
         ranking: null
     };
+}
+
+async function recordCriteriaUsage({
+    thisDb,
+    suffix = "",
+    criteria = {},
+    scoreField = "total_score",
+    collection = "stats_criteria_usage"
+}) {
+    const match = buildMatch(criteria);
+    const filterHash = buildFilterHash({
+        match,
+        scoreField
+    });
+
+    await thisDb.collection(collection + suffix).updateOne(
+        { filter_hash: filterHash },
+        {
+            $set: {
+                filter_hash: filterHash,
+                criteria: match,
+                scoreField,
+                last_used_at: new Date()
+            },
+            $inc: {
+                usage_count: 1
+            },
+            $setOnInsert: {
+                created_at: new Date()
+            }
+        },
+        { upsert: true }
+    );
+
+    return filterHash;
 }
 
 module.exports = {

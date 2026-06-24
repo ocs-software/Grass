@@ -25,9 +25,8 @@ router.post("/get", async (req, res) => {
             errMess = "Player ID not sent.";
             return res.send(createErrorObj(errMess, {thisDb,
                 type: "validation",
-                action: "tourns/get",
+                action: "stats/get",
                 error: errMess,
-                table: table,
                 payload: req.body}));
         }
 
@@ -35,9 +34,8 @@ router.post("/get", async (req, res) => {
             errMess = "Token not sent.";
             return res.send(createErrorObj(errMess, {thisDb,
                 type: "validation",
-                action: "tourns/get",
+                action: "stats/get",
                 error: errMess,
-                table: table,
                 payload: req.body}));
         }
 
@@ -47,9 +45,8 @@ router.post("/get", async (req, res) => {
             errMess = "User not found."
             return res.send(createErrorObj(errMess, {thisDb,
                 type: "validation",
-                action: "tourns/get",
+                action: "stats/get",
                 error: errMess,
-                table: table,
                 payload: req.body}));
         }
 
@@ -57,20 +54,36 @@ router.post("/get", async (req, res) => {
             errMess = "Token sent does not match with user.";
             return res.send(createErrorObj(errMess, {thisDb,
                 type: "validation",
-                action: "tourns/get",
+                action: "stats/get",
                 error: errMess,
-                table: table,
+                payload: req.body}));
+        }
+        const criteria = data.criteria || {};
+        const scoreField = data.fieldSelected || "total_score";
+
+        if (!criteria ||
+            typeof criteria !== "object" ||
+            Array.isArray(criteria) ||
+            Object.keys(criteria).length < 1
+        ) {
+            errMess = "No filter sent. This operation can only be done with something to filter for.";
+            return res.send(createErrorObj(errMess, {thisDb,
+                type: "validation",
+                action: "stats/get",
+                error: errMess,
                 payload: req.body}));
         }
 
-        const report = await getPlayerReport({
+        if (data.fieldSelected) {
+            fieldSelected = data.fieldSelected;
+        }
+
+        const report = await getPlayerReportOnTheFly({
                 thisDb,
                 suffix,
                 userId: data.user_id,
-                criteria: {
-                    tour: "PGA",
-                    season: 2026
-                }
+                criteria,
+                scoreField: fieldSelected
         });
 
         res.send(report);
