@@ -1,3 +1,5 @@
+const { logError } = require("../logs/errorLogger");
+
 async function sendError(res, statusCode, fields = {}) {
     const errMess = fields.errMess || fields.message || "Unknown error";
 

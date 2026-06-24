@@ -5,7 +5,6 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
-const { logError } = require("../../logs/errorLogger");
 const { logDocumentChange } = require("../../logs/changeLogger");
 const { rankingRound } = require("../../util/rankingRound");
 const { sendError } = require("../../util/commonFunctions");
