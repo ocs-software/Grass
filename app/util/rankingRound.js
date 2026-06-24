@@ -325,7 +325,7 @@ async function getPlayerReport({
         {
             $facet: {
                 player: [
-                    { $match: { user_id: userId } },
+                    { $match: { user_id: new ObjectId(userId) } },
                     {
                         $group: {
                             _id: "$user_id",
@@ -375,7 +375,7 @@ async function getPlayerReport({
 
     const ranking = await rankings.findOne({
         filter_hash: filterHash,
-        user_id: userId
+        user_id: new ObjectId(userId)
     });
 
     return {
@@ -412,6 +412,8 @@ async function getPlayerReportOnTheFly({
     const source = thisDb.collection(sourceCollection + suffix);
 
     const scoreStages = getScoreProjectionStages(scoreField);
+    console.log("match", match);
+    console.log("scoreStages", scoreStages);
 
     const [result] = await source.aggregate([
         { $match: match },
@@ -421,7 +423,7 @@ async function getPlayerReportOnTheFly({
         {
             $facet: {
                 player: [
-                    { $match: { user_id: userId } },
+                    { $match: { user_id: new ObjectId(userId) } },
                     {
                         $group: {
                             _id: "$user_id",
@@ -475,7 +477,7 @@ async function getPlayerReportOnTheFly({
                             }
                         }
                     },
-                    { $match: { _id: userId } },
+                    { $match: { _id: new ObjectId(userId) } },
                     {
                         $project: {
                             _id: 0,
