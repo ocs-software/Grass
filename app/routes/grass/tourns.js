@@ -5,7 +5,7 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
-const { sendError } = require("../../logs/commonFunctions");
+const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
 
 router.post("/get", async (req, res) => {
