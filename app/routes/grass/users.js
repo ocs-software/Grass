@@ -983,12 +983,12 @@ router.post("/new", async (req, res) => {
 
         let errMess = "";
 
-        if (emailemail === null || emailemail === "") {
+        if (email === null || email === "") {
             errMess = "Email Address Missing";
         }
 
         if (errMess == "") {
-            if (!validateEmail(emailemail)) {
+            if (!validateEmail(email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
