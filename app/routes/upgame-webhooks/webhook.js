@@ -14,10 +14,11 @@ const check_post_data = require('../../middleware/upgame_webhook_middleware');
 router.post("/validate-score", async (req, res) => {
     try {
         const { user_email, user_firstname, user_surname } = req.body;
+        const email = user_email.trim().toLowerCase();
         response.data = req.body;
 
         var errMess = "";
-        if (user_email === null || user_email === "") {
+        if (email === null || email === "") {
             errMess = "Email Address Missing";
         }
         if (user_firstname === null || user_firstname === "") {

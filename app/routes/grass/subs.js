@@ -334,6 +334,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     async function updateCustID(email, cust_id) {
         try {
             table = "users" + suffix;
+            email = email.trim().toLowerCase();
             query = { user_email: email };
             const users = thisDb.collection(table);
 
@@ -393,15 +394,16 @@ router.get("/user/active", async (req, res) => {
         const appConfig = getAppConfig();
         const suffix = appConfig.suffix;
         const { user_email, token } = req.query;
+        const email = user_email.trim().toLowerCase();
 
         let errMess = '';
 
-        if (user_email === null || user_email === '') {
+        if (email === null || email === '') {
             errMess = 'Email Missing';
         }
 
         if (errMess == '') {
-            if (!validateEmail(user_email)) {
+            if (!validateEmail(email)) {
                 errMess = 'Invalid Email Sent';
             }
         }
@@ -412,7 +414,7 @@ router.get("/user/active", async (req, res) => {
                 type: "validation",
                 action: "subs/user/active",
                 error: errMess,
-                payload: user_email,
+                payload: email,
             });
             let res_json = {status: 'FAILED'};
 
@@ -420,7 +422,8 @@ router.get("/user/active", async (req, res) => {
 
             res.send({ res_json });
         } else {
-            query = { user_email: user_email };
+            user_email = email.trim().toLowerCase();
+            query = { user_email: email };
             table = "users" + suffix;
 
             // get Account details to check
@@ -476,7 +479,7 @@ router.get("/user/active", async (req, res) => {
                     action: "subs/user/active",
                     error: res_json.message,
                     payload: users,
-                    user: user_email,
+                    user: email,
                     table: table,
                     query
                 });

@@ -215,6 +215,7 @@ router.post('/check', async (req, res) => {
     let table;
     let query;
     const { user_email, token } = req.body;
+    const email = user_email.trim().toLowerCase();
         
     try {
         let errMess = '';
@@ -245,11 +246,11 @@ router.post('/check', async (req, res) => {
             return res.send({ res_json });
         }
         else {
-            query = { user_email: user_email };
+            query = { user_email: email };
             table = "users" + suffix;
 
             // get Account details to check if Owner or Sub Account
-            const result = await getUserData(table, thisDb, suffix, "A", user_email);
+            const result = await getUserData(table, thisDb, suffix, "A", email);
             const account = result.data;
             query = result.query;
             // const account = await thisDb.collection(table).find(query).toArray();
@@ -258,7 +259,7 @@ router.post('/check', async (req, res) => {
                     account[0].sub_accounts = [];
                     account[0].venues = [];
                     // Owner or Sub-account
-                    owner = user_email;
+                    owner = email;
 
                     if (account[0].linked_from != "" && account[0].linked_from != null) {
                         // we are a Sub-account but need to use Owner email to get Venues
@@ -274,7 +275,7 @@ router.post('/check', async (req, res) => {
                     let res_json = {status: "VERIFIED"};
 
                     res_json.message = "Account Found";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res_json.data = account[0];
                     res.res_json = res_json;
 
@@ -283,7 +284,7 @@ router.post('/check', async (req, res) => {
                 } else {
                     let res_json = {status: "CHECKED"};
                     res_json.message = "Invalid Token Sent";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res_json.data = account[0];
                     res.res_json = res_json;
 
@@ -293,7 +294,7 @@ router.post('/check', async (req, res) => {
                         action: "users/check",
                         error: res_json.message,
                         payload: req.body,
-                        user: user_email,
+                        user: email,
                         table: table,
                     });
 
@@ -309,7 +310,7 @@ router.post('/check', async (req, res) => {
                     action: "users/check",
                     error: res_json.message,
                     payload: req.body,
-                    user: user_email,
+                    user: email,
                     table: table,
                 });
 
@@ -326,7 +327,7 @@ router.post('/check', async (req, res) => {
             payload: req.body,
             query,
             table,
-            user: user_email,
+            user: email,
         });
 
         let res_json = {status: "FAILED"};
@@ -349,6 +350,7 @@ router.post("/delete", async (req, res) => {
     let query;
     
     const { user_email, token, sub_account } = req.body;
+    const email = user_email.trim().toLowerCase();
 
     try {
         let errMess = "";
@@ -360,7 +362,7 @@ router.post("/delete", async (req, res) => {
         // let serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
         let serverToken = process.env.POSTMARK;
 
-        if (user_email === null || user_email === "") {
+        if (email === null || email === "") {
             errMess = "Email Address Missing";
         }
 
@@ -375,7 +377,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (errMess == "") {
-            if (!validateEmail(user_email)) {
+            if (!validateEmail(email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
@@ -399,7 +401,7 @@ router.post("/delete", async (req, res) => {
             if (token == process.env.TOKEN)
                 superToken = true;
 
-            query = { user_email: user_email };
+            query = { user_email: email };
             table = "users" + suffix;
 
             const item = await thisDb.collection(table).find(query).toArray();
@@ -412,7 +414,7 @@ router.post("/delete", async (req, res) => {
                         query = { user_email: sub_acc };
                         const sub_accs = await thisDb.collection(table).find(query).toArray();
                         if (sub_accs.length > 0) {
-                            if (sub_accs[0].linked_from != user_email) {
+                            if (sub_accs[0].linked_from != email) {
                                 let res_json = {status: "FAILED"};
                                 res_json.message = "Only the Owner can delete this Sub-Account";
 
@@ -424,7 +426,7 @@ router.post("/delete", async (req, res) => {
                                     payload: req.body,
                                     query,
                                     table,
-                                    user: user_email,
+                                    user: email,
                                 });
 
                                 res.send({ res_json });
@@ -477,7 +479,7 @@ router.post("/delete", async (req, res) => {
                                     oldDoc: sub_accs[0],
                                     newData: {},
                                     user_id: sub_accs[0]?._id,
-                                    user_email: user_email
+                                    user_email: email
                                 }).catch(err => {
                                     console.error("Change log failed:", err)
                                 });
@@ -491,25 +493,25 @@ router.post("/delete", async (req, res) => {
                         }
                     } else {
                         // delete owner account
-                        query = { user_email: user_email };
+                        query = { user_email: email };
                         const old_user = await thisDb.collection(table).findOne(query);
 
                         let del = await thisDb.collection(table).deleteOne(query);
                         let res_json = {status: "OK"};
 
-                        res_json.message = "Account Deleted: " + user_email;
+                        res_json.message = "Account Deleted: " + email;
                         res.res_json = res_json;
 
                         res.send({ res_json });
 
                         if (!superToken) {
                             message = "Your Account has been deleted , with any Sub-accounts , Venues or Courses you may of created.";
-                            templatemodel = { "username": ownername, "subject": "Account Deleted", "account_number": user_email, "important_00": "Account Deleted", "info": [{ "infol": message }] };
+                            templatemodel = { "username": ownername, "subject": "Account Deleted", "account_number": email, "important_00": "Account Deleted", "info": [{ "infol": message }] };
                             client = new postmark.ServerClient(serverToken);
 
                             client.sendEmailWithTemplate({
                                 "From": "admin@thegrass.app",
-                                "To": user_email,
+                                "To": email,
                                 "TemplateAlias": "Default",
                                 "TrackOpens": true,
                                 "TemplateModel": templatemodel,
@@ -528,7 +530,7 @@ router.post("/delete", async (req, res) => {
                             old_user,
                             newData: {},
                             user_id: old_user?._id,
-                            user_email: user_email
+                            user_email: email
                         }).catch(err => {
                             console.error("Change log failed:", err)
                         });
@@ -541,7 +543,7 @@ router.post("/delete", async (req, res) => {
                                 old,
                                 newData: {},
                                 user_id: old?._id,
-                                user_email: user_email
+                                user_email: email
                             }).catch(err => {
                                 console.error("Change log failed:", err)
                             });
@@ -558,7 +560,7 @@ router.post("/delete", async (req, res) => {
                         payload: req.body,
                         query,
                         table,
-                        user: user_email,
+                        user: email,
                     });
 
                     res.send({ res_json });
@@ -575,7 +577,7 @@ router.post("/delete", async (req, res) => {
                     payload: req.body,
                     query,
                     table,
-                    user: user_email,
+                    user: email,
                 });
 
                 res.send({ res_json });
@@ -591,7 +593,7 @@ router.post("/delete", async (req, res) => {
             payload: req.body,
             query,
             table,
-            user: user_email,
+            user: email,
         });
 
         let res_json = {status: "FAILED"};
@@ -613,16 +615,16 @@ router.post("/logon", async (req, res) => {
     let query;
 
     const { user_email, token } = req.body;
-
+    const email = user_email.trim().toLowerCase();
     let errMess = "";
 
     try {
-        if (user_email === null || user_email === "") {
+        if (email === null || email === "") {
             errMess = "Email Address Missing";
         }
 
         if (errMess == "") {
-            if (!validateEmail(user_email)) {
+            if (!validateEmail(email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
@@ -655,7 +657,7 @@ router.post("/logon", async (req, res) => {
             //     method: 'uuidv4',
             // });
             table = "users" + suffix;
-            const result = await getUserData(table, thisDb, suffix, "A", user_email);
+            const result = await getUserData(table, thisDb, suffix, "A", email);
             const item = result.data;
             query = result.query;
             // zero index of item 'item[0]' below is because we are using 'toArray' function
@@ -665,7 +667,7 @@ router.post("/logon", async (req, res) => {
                     let res_json = {status: "OK"};
 
                     res_json.message = "Account Found.";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res_json.token = user_token;
                     res_json.data = item;
 
@@ -680,7 +682,7 @@ router.post("/logon", async (req, res) => {
                         },
                     };
 
-                    query = { user_email: user_email };
+                    query = { user_email: email };
                     const result = await thisDb.collection(table).updateOne(query, newvalues);
 
                     const username = item[0].user_firstname + " " + item[0].user_surname;
@@ -691,7 +693,7 @@ router.post("/logon", async (req, res) => {
 
                     client.sendEmailWithTemplate({
                         "From": "admin@thegrass.app",
-                        "To": user_email,
+                        "To": email,
                         "TemplateAlias": "VerifyAccount",
                         "TrackOpens": true,
                         "TemplateModel": templatemodel
@@ -700,7 +702,7 @@ router.post("/logon", async (req, res) => {
                     let res_json = {status: "WARNING"};
 
                     res_json.message = "Verified Reset. Verify Email Sent.";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res_json.token = user_token;
                     res_json.old_token = item[0].token;
                     res_json.data = item;
@@ -720,7 +722,7 @@ router.post("/logon", async (req, res) => {
                     payload: req.body,
                     query,
                     table,
-                    user: user_email,
+                    user: email,
                 });
 
                 res.send({ res_json });
@@ -735,7 +737,7 @@ router.post("/logon", async (req, res) => {
             payload: req.body,
             query,
             table,
-            user: user_email,
+            user: email,
         });
 
         let res_json = {status: "FAILED"};
@@ -757,16 +759,17 @@ router.post("/logout", async (req, res) => {
     let query;
 
     const { user_email, token } = req.body;
+    const email = user_email.trim().toLowerCase();
 
     try {
         let errMess = "";
 
-        if (user_email == null || user_email == "") {
+        if (email == null || email == "") {
             errMess = "Email Address Missing";
         }
 
         if (errMess == "") {
-            if (!validateEmail(user_email)) {
+            if (!validateEmail(email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
@@ -790,7 +793,7 @@ router.post("/logout", async (req, res) => {
             res.send({ res_json });
         }
         else {
-            query = { user_email: user_email };
+            query = { user_email: email };
 
             table = "users" + suffix;
             const item = await thisDb.collection(table).find(query).toArray();
@@ -812,7 +815,7 @@ router.post("/logout", async (req, res) => {
                     let res_json = {status: "WARNING"};
 
                     res_json.message = "Verified Reset. Logged Out.";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res_json.data = item;
 
                     res.res_json = res_json;
@@ -827,7 +830,7 @@ router.post("/logout", async (req, res) => {
                         payload: req.body,
                         query,
                         table,
-                        user: user_email,
+                        user: email,
                     });
                     let res_json = {status: "FAILED"};
 
@@ -845,7 +848,7 @@ router.post("/logout", async (req, res) => {
                     payload: req.body,
                     query,
                     table,
-                    user: user_email,
+                    user: email,
                 });
 
                 let res_json = {status: "FAILED"};
@@ -865,7 +868,7 @@ router.post("/logout", async (req, res) => {
             payload: req.body,
             query,
             table,
-            user: user_email,
+            user: email,
         });
 
         let res_json = {status: "FAILED"};
@@ -887,7 +890,7 @@ router.get('/verify/:useremail', async (req, res) => {
     let table;
     let query;
 
-    const user_details = req.params.useremail;
+    const user_details = req.params.useremail.trim().toLowerCase();
 
     try {
         const user_array = user_details.split("~")
@@ -972,18 +975,19 @@ router.post("/new", async (req, res) => {
     let query;
 
     const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
+    const email = user_email.trim().toLowerCase();
 
     try {
         response.data = req.body;
 
         let errMess = "";
 
-        if (user_email === null || user_email === "") {
+        if (emailemail === null || emailemail === "") {
             errMess = "Email Address Missing";
         }
 
         if (errMess == "") {
-            if (!validateEmail(user_email)) {
+            if (!validateEmail(emailemail)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
@@ -1030,7 +1034,7 @@ router.post("/new", async (req, res) => {
         }
         else {
             // Check if email already exists
-            query = { user_email: user_email };
+            query = { user_email: email };
             table = "users" + suffix;
             const item = await thisDb.collection(table).find(query).toArray();
             if (item.length > 0) {
@@ -1042,7 +1046,7 @@ router.post("/new", async (req, res) => {
                     res_json.message = "Sub-Account Already Exists.";
                 }
 
-                res_json.user_email = user_email;
+                res_json.user_email = email;
                 res_json.token = user_token;
 
                 res.res_json = res_json;
@@ -1061,7 +1065,7 @@ router.post("/new", async (req, res) => {
                 if (linked_email != "") {
                     // trying to add a new Sub-account, send email to owner
                     message = "A Sub-account with this email Already Exists.";
-                    templatemodel = { "username": username, "subject": "Sub-Account Exists", "account_number": user_email, "important_00": "Sub-Account Exists", "info": [{ "infol": message }] };
+                    templatemodel = { "username": username, "subject": "Sub-Account Exists", "account_number": email, "important_00": "Sub-Account Exists", "info": [{ "infol": message }] };
 
                     client.sendEmailWithTemplate({
                         "From": "admin@thegrass.app",
@@ -1078,7 +1082,7 @@ router.post("/new", async (req, res) => {
 
                     client.sendEmailWithTemplate({
                         "From": "admin@thegrass.app",
-                        "To": user_email,
+                        "To": email,
                         "TemplateAlias": "VerifyAccount",
                         "TrackOpens": true,
                         "TemplateModel": templatemodel
@@ -1087,7 +1091,7 @@ router.post("/new", async (req, res) => {
             } else {
                 // Create New Account Details
                 query = {
-                    user_email: user_email,
+                    user_email: email,
                     user_firstname: user_firstname,
                     user_surname: user_surname,
                     linked_from: linked_email,
@@ -1106,7 +1110,7 @@ router.post("/new", async (req, res) => {
 
                 res_json.message = "User Created.";
                 res_json.token = user_token;
-                res_json.user_email = user_email;
+                res_json.user_email = email;
 
                 res.res_json = res_json;
                 res.send({ res_json });
@@ -1119,7 +1123,7 @@ router.post("/new", async (req, res) => {
                 if (linked_email != "") {
                     // adding a new Sub-account
                     message = "A new Sub-account has been created for: " + username;
-                    templatemodel = { "username": username, "subject": "Sub-Account Created", "account_number": user_email, "important_00": "Sub-Account Created", "info": [{ "infol": message }] };
+                    templatemodel = { "username": username, "subject": "Sub-Account Created", "account_number": email, "important_00": "Sub-Account Created", "info": [{ "infol": message }] };
 
                     client.sendEmailWithTemplate({
                         "From": "admin@thegrass.app",
@@ -1152,7 +1156,7 @@ router.post("/new", async (req, res) => {
 
                 client.sendEmailWithTemplate({
                     "From": "admin@thegrass.app",
-                    "To": user_email,
+                    "To": email,
                     "TemplateAlias": "VerifyAccount",
                     "TrackOpens": true,
                     "TemplateModel": templatemodel
@@ -1165,7 +1169,7 @@ router.post("/new", async (req, res) => {
                     oldDoc: {},
                     newData: query,
                     user_id: result.insertedId,
-                    user_email: user_email
+                    user_email: email
                 }).catch(err => {
                     console.error("Change log failed:", err)
                 });
@@ -1175,12 +1179,12 @@ router.post("/new", async (req, res) => {
         await logError({
             thisDb,
             type: "other",
-            action: "users/update",
+            action: "users/new",
             error: e,
             payload: req.body,
             query,
             table,
-            user: user_email,
+            user: email,
         });
 
         let res_json = {status: "FAILED"};
@@ -1220,17 +1224,18 @@ router.post("/update", async (req, res) => {
             linked_from,
             token,
         } = req.body;
+        const email = user_email.trim().toLowerCase();
 
         response.data = req.body;
 
         var errMess = "";
 
-        if (user_email === null || user_email === "") {
+        if (email === null || email === "") {
             errMess = "Email Address Missing";
         }
 
         if (errMess == "") {
-            if (!validateEmail(user_email)) {
+            if (!validateEmail(email)) {
                 errMess = "Invalid Email Address Sent";
             }
         }
@@ -1274,7 +1279,7 @@ router.post("/update", async (req, res) => {
                 superToken = true;
 
             // Check if email already exists
-            query = { user_email: user_email };
+            query = { user_email: email };
             table = "users" + suffix;
 
             const item = await thisDb.collection(table).find(query).toArray();
@@ -1319,7 +1324,7 @@ router.post("/update", async (req, res) => {
                         oldDoc: item[0],
                         newData: new_values.$set,
                         user_id: item[0]._id,
-                        user_email: user_email
+                        user_email: email
                     }).catch(err => {
                         console.error("Change log failed:", err)
                     });
@@ -1336,7 +1341,7 @@ router.post("/update", async (req, res) => {
                     let res_json = {status: "FAILED"};
 
                     res_json.message = "Invalid Token Sent. Another Device has Logged on.";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res.res_json = res_json;
 
                     res.send({ res_json });
@@ -1354,7 +1359,7 @@ router.post("/update", async (req, res) => {
                 let res_json = {status: "FAILED"};
 
                 res_json.message = "Email Does Not Exist";
-                res_json.user_email = user_email;
+                res_json.user_email = email;
                 res.res_json = res_json;
 
                 res.send({ res_json });
@@ -1369,7 +1374,7 @@ router.post("/update", async (req, res) => {
             payload: req.body,
             query,
             table,
-            user: user_email,
+            user: email,
         });
 
         let res_json = {status: "FAILED"};
@@ -1397,12 +1402,13 @@ router.post("/golfbag", async (req, res) => {
             golf_bag,
             token,
         } = req.body;
+        const email = user_email.trim().toLowerCase();
 
         response.data = req.body;
 
         var errMess = "";
 
-        if (user_email === null || user_email === "") {
+        if (email === null || email === "") {
             errMess = "Email Address Missing";
         }
 
@@ -1436,7 +1442,7 @@ router.post("/golfbag", async (req, res) => {
                 superToken = true;
 
             // Check if email already exists
-            query = { user_email: user_email };
+            query = { user_email: email };
             table = "users" + suffix;
 
             const item = await thisDb.collection(table).find(query).toArray();
@@ -1472,7 +1478,7 @@ router.post("/golfbag", async (req, res) => {
                         oldDoc: item[0],
                         newData: new_values.$set,
                         user_id: item[0]._id,
-                        user_email: user_email
+                        user_email: email
                     }).catch(err => {
                         console.error("Change log failed:", err)
                     });
@@ -1484,13 +1490,13 @@ router.post("/golfbag", async (req, res) => {
                         error: "Invalid Token Sent. Another Device has Logged on.",
                         payload: token,
                         table: table,
-                        user: user_email,
+                        user: email,
                         query,
                     });
                     let res_json = {status: "FAILED"};
 
                     res_json.message = "Invalid Token Sent. Another Device has Logged on.";
-                    res_json.user_email = user_email;
+                    res_json.user_email = email;
                     res.res_json = res_json;
 
                     res.send({ res_json });
@@ -1504,13 +1510,13 @@ router.post("/golfbag", async (req, res) => {
                     error: "Email Does not Exist",
                     payload: req.body,
                     table: table,
-                    user: user_email,
+                    user: email,
                     query,
                 });
                 let res_json = {status: "FAILED"};
 
                 res_json.message = "Email Does Not Exist";
-                res_json.user_email = user_email;
+                res_json.user_email = email;
                 res.res_json = res_json;
 
                 res.send({ res_json });
@@ -1547,7 +1553,7 @@ router.post("/deleteTour", async (req, res) => {
 
     try {
         const data = req.body;
-        const user_email = data.user_email;
+        const user_email = data.user_email.trim().toLowerCase();
         let query = "";
 
         var errMess = "";
@@ -1713,7 +1719,7 @@ router.post("/import", async (req, res) => {
         
         var errMess = "";
 
-        const user_email = user_obj.user_email;
+        const user_email = user_obj.user_email.trim().toLowerCase();
 
         if (user_email === null || user_email === "") {
             errMess = "Email Address Missing";
@@ -1907,7 +1913,7 @@ router.post("/import", async (req, res) => {
     function endImport(thisDb, old_user_obj, user_obj, old_tour_obj, tour_obj, user_changed, tour_changed) {
         Promise.resolve()
             .then(async () => {
-                const user_email = old_user_obj?.user_email ?? user_obj?.user_email;
+                const user_email = (old_user_obj?.user_email ?? user_obj?.user_email).trim().toLowerCase();
 
                 let table = "users" + suffix;
 

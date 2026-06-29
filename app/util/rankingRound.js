@@ -626,7 +626,8 @@ async function getPlayerReportOnTheFly({
         overall: null,
         overallPeers: null,
         ranking: null,
-        rankingPeers: null
+        rankingPeers: null,
+        match: match
     };
 }
 

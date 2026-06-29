@@ -24,6 +24,15 @@ async function initializeIndexes(database, suffix) {
     const statsDb = dbConn.collection("stats" + suffix);
     const rankingDb = dbConn.collection("ranking_cache" + suffix);
     const criteriaDb = dbConn.collection("stats_criteria_usage" + suffix);
+    const usersDb = dbConn.collection("users" + suffix);
+
+    await usersDb.createIndex(
+        { user_email: 1 },
+        {
+            unique: true,
+            name: "user_email_unique"
+        }
+    );
 
     await myroundsDb.createIndex(
         { user_id: 1, id: 1 },
