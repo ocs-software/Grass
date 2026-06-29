@@ -46,7 +46,7 @@ const message =
     '<tr>' +
     '<td style="width: 33%;"></td>' +
     '<td style="width: 33%;">' +
-    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/pinpos/PinPos_POS.png" />' +
+    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/thegrass/grass-logo.png" />' +
     '</td>' +
     '<td style="width: 33%;"></td>' +
     '</tr>' +
@@ -95,7 +95,7 @@ const errmessage =
     '<tr>' +
     '<td style="width: 33%;"></td>' +
     '<td style="width: 33%;">' +
-    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/pinpos/PinPos_POS.png" />' +
+    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/thegrass/grass-logo.png" />' +
     '</td>' +
     '<td style="width: 33%;"></td>' +
     '</tr>' +
@@ -143,7 +143,7 @@ const tokenmessage =
     '<tr>' +
     '<td style="width: 33%;"></td>' +
     '<td style="width: 33%;">' +
-    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/pinpos/PinPos_POS.png" />' +
+    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/thegrass/grass-logo.png" />' +
     '</td>' +
     '<td style="width: 33%;"></td>' +
     '</tr>' +
@@ -191,7 +191,7 @@ const missingmessage =
     '<tr>' +
     '<td style="width: 33%;"></td>' +
     '<td style="width: 33%;">' +
-    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/pinpos/PinPos_POS.png" />' +
+    '<img style="width: 100%; padding-top: 1vw" class="logo" src="https://vms-images.ams3.cdn.digitaloceanspaces.com/thegrass/grass-logo.png" />' +
     '</td>' +
     '<td style="width: 33%;"></td>' +
     '</tr>' +
