@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 let ObjectID = require('mongodb').ObjectID;
-const { getAppConfig } = require("../../config/app_config");
+const { getAppConfig } = require("../config/app_config");
 
 /**
  * Make object stringify stable so same criteria always creates same hash.
