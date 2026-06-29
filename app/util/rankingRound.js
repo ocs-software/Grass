@@ -75,6 +75,67 @@ function buildMatch(criteria = {}) {
     return match;
 }
 
+function buildPeerMatch(peerCriteria = {}) {
+    const match = {};
+
+    const allowedPeerFilters = [
+        "player_type",
+        "gender",
+        "division",
+        "country",
+        "state"
+    ];
+
+    for (const field of allowedPeerFilters) {
+        if (
+            peerCriteria[field] !== undefined &&
+            peerCriteria[field] !== null &&
+            peerCriteria[field] !== ""
+        ) {
+            match[`user.${field}`] = peerCriteria[field];
+        }
+    }
+
+    if (peerCriteria.age_min || peerCriteria.age_max) {
+        match["user.age"] = {};
+
+        if (peerCriteria.age_min) {
+            match["user.age"].$gte = Number(peerCriteria.age_min);
+        }
+
+        if (peerCriteria.age_max) {
+            match["user.age"].$lte = Number(peerCriteria.age_max);
+        }
+    }
+
+    return match;
+}
+
+function getPeerLookupStages({ suffix = "", peerCriteria = {} }) {
+    const peerMatch = buildPeerMatch(peerCriteria);
+
+    if (Object.keys(peerMatch).length === 0) {
+        return [];
+    }
+
+    return [
+        {
+            $lookup: {
+                from: "users" + suffix,
+                localField: "_id",
+                foreignField: "_id",
+                as: "user"
+            }
+        },
+        {
+            $unwind: "$user"
+        },
+        {
+            $match: peerMatch
+        }
+    ];
+}
+
 /**
  * Rebuild ranking documents for a specific criteria set.
  *
@@ -399,6 +460,7 @@ async function getPlayerReportOnTheFly({
     suffix = "",
     userId,
     criteria = {},
+    peerCriteria = {},
     sourceCollection = "round_scores",
     scoreField = "total_score",
     lowerIsBetter = true
@@ -415,6 +477,7 @@ async function getPlayerReportOnTheFly({
     const source = thisDb.collection(sourceCollection + suffix);
 
     const scoreStages = getScoreProjectionStages(scoreField);
+    const peerStages = getPeerLookupStages({ suffix, peerCriteria })
 
     const [result] = await source.aggregate([
         { $match: match },
@@ -488,6 +551,61 @@ async function getPlayerReportOnTheFly({
                             rank: 1
                         }
                     }
+                ],
+                overallPeers: [
+                    {
+                        $group: {
+                            _id: "$user_id",
+                            total_score: { $sum: "$score" },
+                            records: { $sum: 1 },
+                            average_score: { $avg: "$score" }
+                        }
+                    },
+                    ...peerStages,
+                    {
+                        $group: {
+                            _id: null,
+                            total_score: { $sum: "$total_score" },
+                            records: { $sum: "$records" },
+                            players_count: { $sum: 1 },
+                            average_score: { $avg: "$average_score" }
+                        }
+                    }
+                ],
+
+                rankingPeers: [
+                    {
+                        $group: {
+                            _id: "$user_id",
+                            average_score: { $avg: "$score" },
+                            total_score: { $sum: "$score" },
+                            records: { $sum: 1 }
+                        }
+                    },
+                    ...peerStages,
+                    {
+                        $setWindowFields: {
+                            sortBy: { average_score: sortDirection },
+                            output: {
+                                rank: { $rank: {} }
+                            }
+                        }
+                    },
+                    {
+                        $match: {
+                            _id: userId
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            user_id: "$_id",
+                            average_score: 1,
+                            total_score: 1,
+                            records: 1,
+                            rank: 1
+                        }
+                    }
                 ]
             }
         },
@@ -496,7 +614,9 @@ async function getPlayerReportOnTheFly({
             $project: {
                 player: { $arrayElemAt: ["$player", 0] },
                 overall: { $arrayElemAt: ["$overall", 0] },
-                ranking: { $arrayElemAt: ["$ranking", 0] }
+                overallPeers: { $arrayElemAt: ["$overall", 0] },
+                ranking: { $arrayElemAt: ["$ranking", 0] },
+                rankingPeers: { $arrayElemAt: ["$ranking", 0] }
             }
         }
     ], { allowDiskUse: true }).toArray();
@@ -504,7 +624,9 @@ async function getPlayerReportOnTheFly({
     return result || {
         player: null,
         overall: null,
-        ranking: null
+        overallPeers: null,
+        ranking: null,
+        rankingPeers: null
     };
 }
 

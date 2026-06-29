@@ -65,6 +65,7 @@ router.post("/get", async (req, res) => {
             });
         }
         const criteria = data.criteria || {};
+        const peerCriteria = data.peerCriteria || {};
         const scoreField = data.fieldSelected || "total_score";
 
         if (!criteria ||
@@ -92,6 +93,7 @@ router.post("/get", async (req, res) => {
                 suffix,
                 userId: data.user_id,
                 criteria,
+                peerCriteria,
                 scoreField: fieldSelected
         });
 
