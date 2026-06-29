@@ -385,12 +385,11 @@ router.post("/update", async (req, res) => {
         );
 
         if (result.matchedCount === 0 && !result.upsertedId) {
-            return await sendError(res, 400, {
+            return await sendError(res, 204, {
                 thisDb,
                 errMess: "My Round not updated/inserted.",
                 type: "other",
                 action: "myrounds/update",
-                error: e,
                 payload: req.body,
                 table: table,
                 query: query,

@@ -475,85 +475,84 @@ router.post("/entry", async (req, res) => {
         const player_id = await getPlayerId(data.tour_code, data.user_email.trim().toLowerCase(), thisDb, suffix);
         entry_obj.user_id = player_id;
 
-            table = "tourns" + suffix;
+        table = "tourns" + suffix;
 
-            query = { tour_code: data.tour_code, season: season, tourncode: tourn_code };
-            const tournsDb = thisDb.collection(table);
+        query = { tour_code: data.tour_code, season: season, tourncode: tourn_code };
+        const tournsDb = thisDb.collection(table);
 
-            // find the tournament
-            let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
+        // find the tournament
+        let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
 
-            let old_values = {};
-            const setFields = {};
-            let result;
-            // Tournament not found
-            if (!tourn) {
-                return await sendError(res, 204, {
-                    thisDb,
-                    errMess: "No tournament entry found.",
-                    type: "validation",
-                    action: "tourns/entry",
-                    payload: data,
-                    functionName: "tourns/entry/processData"
-                });
-            }
-            
-            // Tournament found, now check if we already have the entry
-            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id && entry.user_id.equals(player_id)) : {};
-
-            // no entry found
-            if (old_values == null) {
-                old_values = {};
-            }
-
-            // now we check if something have changed so we do not update the same values over and over
-            for (const [key, value] of Object.entries(entry_obj)) {
-                if (key !== "tourncode" && key !== "season" && key != "tour_id") {
-                    if (old_values[key] == null || // "".equals" is used to check the "player_id" which is a ObjectId, everything else will test against "!==""
-                        (old_values[key]?.equals ? !old_values[key].equals(value) : old_values[key] !== value)) {
-                        setFields[`entries.$.${key}`] = value;
-                    }
-                }
-            }
-
-            if (Object.keys(old_values).length > 0) {
-            // we have the entry already
-                if (Object.keys(setFields).length <= 0) {
-                    res.fcount++;
-                    res.messages.push("Nothing to change");
-                    return res;
-                }
-                setFields.updated = new Date();
-                setFields[`entries.$.updated`] = new Date();
-                query["entries.user_id"] = player_id;
-
-                result = await tournsDb.updateOne(query, {$set: setFields});
-            } else {
-                // no entry found, create one.
-                entry_obj.updated = new Date();
-                result = await tournsDb.updateOne(query, {
-                    $push: { 
-                        entries: {
-                            ...entry_obj
-                        }
-                    },
-                    $set: {
-                        updated: new Date()
-                    }
-                });
-            }
-
-            if (result.matchedCount === 0 && !result.upsertedId) {
-                // Failed
-                res.fcount++;
-                res.messages.push({message: "No Tournament Document found/inserted"});
-                return res;
-            } 
-
-            // save the changes on the log table.
-            endImport(thisDb, old_values, entry_obj, true, tourn_code, data.tour_code, season);
-            return res;
+        let old_values = {};
+        const setFields = {};
+        let result;
+        // Tournament not found
+        if (!tourn) {
+            return await sendError(res, 204, {
+                thisDb,
+                errMess: "No tournament entry found.",
+                type: "validation",
+                action: "tourns/entry",
+                payload: data,
+                functionName: "tourns/entry/processData"
+            });
         }
+        
+        // Tournament found, now check if we already have the entry
+        old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id && entry.user_id.equals(player_id)) : {};
+
+        // no entry found
+        if (old_values == null) {
+            old_values = {};
+        }
+
+        // now we check if something have changed so we do not update the same values over and over
+        for (const [key, value] of Object.entries(entry_obj)) {
+            if (key !== "tourncode" && key !== "season" && key != "tour_id") {
+                if (old_values[key] == null || // "".equals" is used to check the "player_id" which is a ObjectId, everything else will test against "!==""
+                    (old_values[key]?.equals ? !old_values[key].equals(value) : old_values[key] !== value)) {
+                    setFields[`entries.$.${key}`] = value;
+                }
+            }
+        }
+
+        if (Object.keys(old_values).length > 0) {
+        // we have the entry already
+            if (Object.keys(setFields).length <= 0) {
+                res.fcount++;
+                res.messages.push("Nothing to change");
+                return res;
+            }
+            setFields.updated = new Date();
+            setFields[`entries.$.updated`] = new Date();
+            query["entries.user_id"] = player_id;
+
+            result = await tournsDb.updateOne(query, {$set: setFields});
+        } else {
+            // no entry found, create one.
+            entry_obj.updated = new Date();
+            result = await tournsDb.updateOne(query, {
+                $push: { 
+                    entries: {
+                        ...entry_obj
+                    }
+                },
+                $set: {
+                    updated: new Date()
+                }
+            });
+        }
+
+        if (result.matchedCount === 0 && !result.upsertedId) {
+            // Failed
+            res.fcount++;
+            res.messages.push({message: "No Tournament Document found/inserted"});
+            return res;
+        } 
+
+        // save the changes on the log table.
+        endImport(thisDb, old_values, entry_obj, true, tourn_code, data.tour_code, season);
+        return res;
     }
 
     function endImport(thisDb, old_obj, new_obj, changed, tourncode, tour_code, season) {
