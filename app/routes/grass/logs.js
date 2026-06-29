@@ -4,7 +4,7 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
-const { logError } = require("../../logs/errorLogger");
+const { sendError } = require("../../util/commonFunctions");
 
 router.get("/user", async (req, res) => {
     let query;
@@ -24,18 +24,14 @@ router.get("/user", async (req, res) => {
         }
 
         if (errMess !== "") {
-            await logError({
+            return await sendError(res, 201, {
                 thisDb,
+                errMess: errMess,
                 type: "validation",
                 action: "logs/user",
-                error: errMess,
                 payload: req.body,
+                functionName: "logs/user"
             });
-            let res_json = {
-                status: "FAILED",
-            }
-            res_json.message = errMess;
-            res.send({ res_json });
         } else {
             // let query = { user_email: user };
             query = { $or: [{ user_email: user }, { owner: user }] };
@@ -57,22 +53,15 @@ router.get("/user", async (req, res) => {
             }
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in getting log.",
             type: "other",
             action: "logs/user",
             error: e,
-            query,
-            payload: req.query,
-            table: table,
+            payload: data,
+            functionName: "logs/user"
         });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in getting logs for Account.";
-        res.res_json = res_json;
-        res_json.user_email = user;
-        res.status(400).send({ message: res_json.message, data: e });
     }
 });
 module.exports = router;

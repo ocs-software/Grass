@@ -5,7 +5,7 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
-const { logError } = require("../../logs/errorLogger");
+const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
 const { enqueueRankingRebuild, rebuildRankingDocuments } = require("../../util/rankingRound");
 
@@ -21,43 +21,51 @@ router.post("/get", async (req, res) => {
         const data = req.body;
 
         const res_json = {};
-        let errMess = "";
 
         if (!data.user_id) {
-            errMess = "Player ID not sent.";
+            return await sendError(res, 201, {
+                thisDb,
+                errMess: "User ID not sent.",
+                type: "validation",
+                action: "myrounds/get",
+                payload: data,
+                functionName: "myrounds/get"
+            });
         }
 
         if (!data.token) {
-            errMess = "Token not sent.";
+            return await sendError(res, 202, {
+                thisDb,
+                errMess: "Token not sent.",
+                type: "validation",
+                action: "myrounds/get",
+                payload: data,
+                functionName: "myrounds/get"
+            });
         }
 
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            errMess = "User not found."
+            return await sendError(res, 204, {
+                thisDb,
+                errMess: "User not found.",
+                type: "validation",
+                action: "myrounds/get",
+                user: data.user_id,
+                payload: data
+            });
         }
 
         if (data.token != user.token) {
-            errMess = "Token sent does not match with user.";
-        }
-
-        if (errMess != "") {
-            res_json.status = "FAILED";
-            res_json.message = errMess;
-            res.res_json = res_json;
-            res_json.myrounds = [];
-
-            await logError({
+            return await sendError(res, 203, {
                 thisDb,
+                errMess: "Token sent does not match with user.",
                 type: "validation",
-                action: "tourns/get",
-                error: res_json.message,
-                table: table,
-                payload: req.body,
+                action: "myrounds/get",
+                user: data.user_id,
+                payload: data
             });
-
-            res.send({ res_jon });
-            return;
         }
 
         query = { user_id: new ObjectID(data.user_id) };
@@ -98,22 +106,17 @@ router.post("/get", async (req, res) => {
             res.send({ res_json })
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in getting myrounds data.",
             type: "other",
             action: "myrounds/get",
             error: e,
-            table: table,
             payload: req.body,
-            query,
+            table: table,
+            query: query,
+            functionName: "myrounds/get"
         });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in MyRounds Data.";
-        res.res_json = res_json;
-        res_json.myrounds = [];
-        res.send({ res_jon });
     }
 
 });
@@ -125,7 +128,6 @@ router.post("/delete", async (req, res) => {
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
     const table = "myrounds" + suffix;
-    let errMess = "";
 
     const data = req.body;
 
@@ -133,7 +135,14 @@ router.post("/delete", async (req, res) => {
 
     try {
         if (!data.user_id) {
-            errMess = "User ID not sent.";
+            return await sendError(res, 201, {
+                thisDb,
+                errMess: "User ID not sent.",
+                type: "validation",
+                action: "myrounds/delete",
+                payload: data,
+                functionName: "myrounds/delete"
+            });
         }
 
         if (data.round_id) {
@@ -148,45 +157,71 @@ router.post("/delete", async (req, res) => {
         } else {
             if (data.my_round) {
                 if (!data.my_round.id) {
-                    errMess = "Round ID not sent.";
+                    return await sendError(res, 206, {
+                        thisDb,
+                        errMess: "Round ID not sent.",
+                        type: "validation",
+                        action: "myrounds/delete",
+                        payload: data,
+                        functionName: "myrounds/delete"
+                    });
                 }
             } else {
-                errMess = "Round ID not sent.";
+                return await sendError(res, 206, {
+                    thisDb,
+                    errMess: "Round ID not sent.",
+                    type: "validation",
+                    action: "myrounds/delete",
+                    payload: data,
+                    functionName: "myrounds/delete"
+                });
             }
         }
 
         if (errMess == "" && !data.my_round.id) {
-            errMess = "Round ID not sent.";
+            return await sendError(res, 206, {
+                thisDb,
+                errMess: "Round ID not sent.",
+                type: "validation",
+                action: "myrounds/delete",
+                payload: data,
+                functionName: "myrounds/delete"
+            });
         }
 
         if (!data.token) {
-            errMess = "Token not sent.";
+            return await sendError(res, 202, {
+                thisDb,
+                errMess: "Token not sent.",
+                type: "validation",
+                action: "myrounds/delete",
+                payload: data,
+                functionName: "myrounds/delete"
+            });
         }
 
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            errMess = "User not found.";
+            return await sendError(res, 204, {
+                thisDb,
+                errMess: "User not found",
+                type: "validation",
+                action: "myrounds/delete",
+                payload: data,
+                functionName: "myrounds/delete"
+            });
         }
 
         if (user && data.token != user.token) {
-            errMess = "Token sent does not match with user.";
-        }
-
-        if (errMess !== "") {
-            await logError({
+            return await sendError(res, 203, {
                 thisDb,
+                errMess: "Token sent does not match with user.",
                 type: "validation",
                 action: "myrounds/delete",
-                error: errMess,
-                payload: req.body,
+                payload: data,
+                functionName: "myrounds/delete"
             });
-            let res_json = {status: "FAILED"};
-
-            res_json.message = errMess;
-
-            res.send({ res_json });
-            return;
         }
 
         const query = {id: data.my_round.id, user_id: new ObjectID(data.user_id) };
@@ -209,27 +244,21 @@ router.post("/delete", async (req, res) => {
 
         res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in deleting myrounds data.",
             type: "other",
             action: "myrounds/delete",
             error: e,
-            query,
-            payload: data,
-            table: table
+            payload: req.body,
+            table: table,
+            query: query,
+            functionName: "myrounds/delete"
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Deleting data.";
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Deleting data.", data: e });
     }
 
     async function deleteStats(user_id, round_id, thisDb, suffix, completed) {
         const table = "stats" + suffix;
-        console.log("test");
 
         const query = {user_id: user_id, round_id: round_id};
 
@@ -259,131 +288,130 @@ router.post("/update", async (req, res) => {
         let obj_keys = [];
         
         if (typeof data !== "object") {
-            await logError({
+            return await sendError(res, 207, {
                 thisDb,
+                errMess: "Invalid data sent.",
                 type: "validation",
                 action: "myrounds/update",
-                error: "Invalid data sent",
                 payload: data,
+                functionName: "myrounds/update"
             });
-            let res_json = {status: "FAILED"};
-
-            res_json.message = "Invalid data sent.";
-            res.res_json = res_json;
-
-            res.status(400).send({ message: "Invalid data sent.", data: data });
-            return;
         }
-        
-        var errMess = "";
 
         const user_id = data.user_id;
         const my_round = data.my_round;
         const round_id = my_round.id;
 
         if (user_id === null || user_id === "") {
-            errMess = "User ID is missing";
+            return await sendError(res, 201, {
+                thisDb,
+                errMess: "User ID not sent.",
+                type: "validation",
+                action: "myrounds/update",
+                payload: data,
+                functionName: "myrounds/update"
+            });
         }
 
         if (round_id === null || round_id === "") {
-            errMess = "Round ID is missing";
+            return await sendError(res, 206, {
+                thisDb,
+                errMess: "Round ID not sent.",
+                type: "validation",
+                action: "myrounds/update",
+                payload: data,
+                functionName: "myrounds/update"
+            });
         }
 
         if (!data.token) {
-            errMess = "Token not sent.";
+            return await sendError(res, 202, {
+                thisDb,
+                errMess: "Token not sent.",
+                type: "validation",
+                action: "myrounds/delete",
+                payload: data,
+                functionName: "myrounds/delete"
+            });
         }
 
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (user === null) {
-            errMess = "User not found."
+            return await sendError(res, 204, {
+                thisDb,
+                errMess: "User not found",
+                type: "validation",
+                action: "myrounds/delete",
+                payload: data,
+                functionName: "myrounds/delete"
+            });
         } else {
             if (data.token != user.token) {
-                errMess = "Token sent does not match with user.";
+                return await sendError(res, 203, {
+                    thisDb,
+                    errMess: "Token sent does not match with user.",
+                    type: "validation",
+                    action: "myrounds/update",
+                    payload: data,
+                    functionName: "myrounds/update"
+                });
             }
         }
 
-        if (errMess !== "") {
-            await logError({
-                thisDb,
-                type: "validation",
-                action: "myrounds/update",
-                error: errMess,
-                payload: data,
-            });
-            let res_json = {status: "FAILED"};
-
-            res_json.message = errMess;
-            res.res_json = res_json;
-
-            res.status(400).send({ message: errMess, data: data });
-            return;
-        } else {
-            const setFields = {};
-            for (const [key, value] of Object.entries(my_round)) {
-                if (key != "user_id" && key != "id" && key != "_id" && key != "token") {
-                    setFields[key] = value;
-                }
+        const setFields = {};
+        for (const [key, value] of Object.entries(my_round)) {
+            if (key != "user_id" && key != "id" && key != "_id" && key != "token") {
+                setFields[key] = value;
             }
-            query = { id: round_id, user_id: new ObjectID(user_id) };
-            const collectionDb = thisDb.collection(table);
+        }
+        query = { id: round_id, user_id: new ObjectID(user_id) };
+        const collectionDb = thisDb.collection(table);
 
-            result = await collectionDb.updateOne(
-                query,
-                [
-                    {
-                        $set: {
-                            ...setFields, // only set fields sent by form
-                            updated_at: new Date(),
-                            created_at: {
-                                $ifNull: ["$created_at", "$$NOW"] // if record does not exist, add field created;
-                            }
+        result = await collectionDb.updateOne(
+            query,
+            [
+                {
+                    $set: {
+                        ...setFields, // only set fields sent by form
+                        updated_at: new Date(),
+                        created_at: {
+                            $ifNull: ["$created_at", "$$NOW"] // if record does not exist, add field created;
                         }
                     }
-                ],
-                { upsert: true }
-            );
+                }
+            ],
+            { upsert: true }
+        );
 
-            if (result.matchedCount === 0 && !result.upsertedId) {
-                await logError({
-                    thisDb,
-                    type: "other",
-                    action: "myrounds/update",
-                    error: "My Round not updated/inserted.",
-                    query,
-                    payload: data,
-                    table: table
-                });
-
-                let res_json = {status: "FAILED"};
-
-                res_json.message = "My Round not updated/inserted.";
-                res.res_json = res_json;
-
-                res.status(400).send({ message: "My Round not updated/inserted.", data: data });
-                return;
-            } else {
-                updateStats(data, thisDb, suffix);
-            }
+        if (result.matchedCount === 0 && !result.upsertedId) {
+            return await sendError(res, 400, {
+                thisDb,
+                errMess: "My Round not updated/inserted.",
+                type: "other",
+                action: "myrounds/update",
+                error: e,
+                payload: req.body,
+                table: table,
+                query: query,
+                functionName: "myrounds/update"
+            });
+        } else {
+            updateStats(data, thisDb, suffix);
         }
         res.status(200).send({status: "OK", data: data});
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in updating myrounds data.",
             type: "other",
             action: "myrounds/update",
             error: e,
-            query,
             payload: req.body,
-            table: table
+            table: table,
+            query: query,
+            functionName: "myrounds/update"
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Fetching data.";
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
     async function updateStats(data, thisDb, suffix) {

@@ -6,7 +6,7 @@ let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const Stripe = require("stripe");
 const { getAppConfig } = require("../../config/app_config");
-const { logError } = require("../../logs/errorLogger");
+const { sendError } = require("../../util/commonFunctions");
 
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     let event;
@@ -101,16 +101,15 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 break;
       }
     } catch (err) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: err.message || "Error in subs wehook.",
             type: "other",
             action: "subs/webhook",
             error: err,
-            query,
             payload: event,
-            table: table,
+            functionName: "subs/webhook"
         });
-        return res.sendStatus(500);
     }
 
     async function check_line(line, customer, basic, period_end) { 
@@ -229,17 +228,16 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 }
             }
         } catch (err) {
-            await logError({
+            return await sendError(res, 400, {
                 thisDb,
+                errMess: err.message,
                 type: "other",
-                action: "subs/grantAccess",
+                action: "subs/webhook",
                 error: err,
-                query,
                 payload: plan,
-                table: table,
-                user: user,
+                query: query,
+                functionName: "subs/grantAccess"
             });
-            return 423;
         }
     }
 
@@ -317,17 +315,16 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 }
             }
         } catch (err) {
-            await logError({
+            return await sendError(res, 400, {
                 thisDb,
+                errMess: err.message,
                 type: "other",
-                action: "subs/revokeAccess",
+                action: "subs/webhook",
                 error: err,
-                query,
                 payload: plan,
-                table: table,
-                user: user,
+                query: query,
+                functionName: "subs/revokeAccess"
             });
-            return 422;
         }
     }
 
@@ -341,17 +338,15 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             const item = await users.find(query).toArray();
 
             if (item.length === 0) {
-                await logError({
+                return await sendError(res, 204, {
                     thisDb,
+                    errMess: "User not found.",
                     type: "validation",
-                    action: "subs/updateCustID",
-                    error: "User not found",
-                    query,
+                    action: "subs/webhook",
                     payload: cust_id,
-                    table: table,
-                    user: email,
+                    query: email,
+                    functionName: "subs/updateCustID"
                 });
-                return 420;
             }
 
             const result = await users.updateOne(
@@ -370,17 +365,16 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             return 200;
 
         } catch (err) {
-            await logError({
+            return await sendError(res, 400, {
                 thisDb,
+                errMess: err.message,
                 type: "other",
-                action: "subs/updateCustID",
+                action: "subs/webhook",
                 error: err,
-                query,
                 payload: cust_id,
-                table: table,
-                user: email,
+                query: query,
+                functionName: "subs/updateCustID"
             });
-            return 501;
         }
     }
 });
@@ -396,115 +390,89 @@ router.get("/user/active", async (req, res) => {
         const { user_email, token } = req.query;
         const email = user_email.trim().toLowerCase();
 
-        let errMess = '';
-
         if (email === null || email === '') {
-            errMess = 'Email Missing';
-        }
-
-        if (errMess == '') {
-            if (!validateEmail(email)) {
-                errMess = 'Invalid Email Sent';
-            }
-        }
-
-        if (errMess !== '') {
-            await logError({
+            return await sendError(res, 210, {
                 thisDb,
+                errMess: "Email missing.",
                 type: "validation",
                 action: "subs/user/active",
-                error: errMess,
-                payload: email,
+                payload: req.query,
+                functionName: "subs/user/active"
             });
-            let res_json = {status: 'FAILED'};
+        }
 
-            res_json.message = errMess;
+        if (!validateEmail(email)) {
+            return await sendError(res, 211, {
+                thisDb,
+                errMess: "Invalid Email sent.",
+                type: "validation",
+                action: "subs/user/active",
+                payload: req.query,
+                functionName: "subs/user/active"
+            });
+        }
 
-            res.send({ res_json });
-        } else {
-            user_email = email.trim().toLowerCase();
-            query = { user_email: email };
-            table = "users" + suffix;
+        user_email = email.trim().toLowerCase();
+        query = { user_email: email };
+        table = "users" + suffix;
 
-            // get Account details to check
-            const users = await thisDb.collection(table).find(query).toArray();
+        // get Account details to check
+        const users = await thisDb.collection(table).find(query).toArray();
 
-            if (users.length > 0) {
-                const user = users[0];
-                if (user.token == token) {
-                    query = {user_id: user._id, status: "Active"};
-                    table = "subs" + suffix;
-                    const subs = await thisDb.collection(table).findOne(query);
-                    if (!subs) {
-                        let res_json = {status: "OK"};
+        if (users.length > 0) {
+            const user = users[0];
+            if (user.token == token) {
+                query = {user_id: user._id, status: "Active"};
+                table = "subs" + suffix;
+                const subs = await thisDb.collection(table).findOne(query);
+                if (!subs) {
+                    let res_json = {status: "OK"};
 
-                        res_json.plan = "Basic";
-                        res_json.type = "B";
-                        res.res_json = res_json;
+                    res_json.plan = "Basic";
+                    res_json.type = "B";
+                    res.res_json = res_json;
 
-                        res.send({ res_json });
-                    } else {
-                        let res_json = {status: "OK"};
-
-                        res_json.plan = subs.plan_name;
-                        res_json.type = subs.plan_type;
-                        res.res_json = res_json;
-
-                        res.send({ res_json });
-                    }
+                    res.send({ res_json });
                 } else {
-                    let res_json = {status: "FAILED"};
+                    let res_json = {status: "OK"};
 
-                    res_json.message = "Invalid Token Sent. Another Device has Logged on.";
-                    await logError({
-                        thisDb,
-                        type: "validation",
-                        action: "subs/user/active",
-                        error: res_json.message,
-                        payload: user,
-                        user: user._id,
-                        table: table,
-                        query
-                    });
+                    res_json.plan = subs.plan_name;
+                    res_json.type = subs.plan_type;
+                    res.res_json = res_json;
 
                     res.send({ res_json });
                 }
             } else {
-                let res_json = {status: "FAILED"};
-                res_json.message = "Account Not Found";
-
-                await logError({
+                return await sendError(res, 203, {
                     thisDb,
+                    errMess: "Token sent does not match with user.",
                     type: "validation",
                     action: "subs/user/active",
-                    error: res_json.message,
-                    payload: users,
-                    user: email,
-                    table: table,
-                    query
+                    payload: user,
+                    functionName: "subs/user/active"
                 });
-
-                res.send({ res_json });
             }
+        } else {
+            return await sendError(res, 204, {
+                thisDb,
+                errMess: "User not found",
+                type: "validation",
+                action: "subs/user/active",
+                payload: users,
+                user: email,
+                functionName: "subs/user/active"
+            });
         }
     } catch (err) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: err.message,
             type: "other",
-            action: "subs/updateCustID",
+            action: "subs/webhook",
             error: err,
-            query,
-            payload: cust_id,
-            table: table,
-            user: email,
+            payload: req.query,
+            functionName: "subs/user/active"
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in getting Subscription Type.";
-        res.res_json = res_json;
-
-        res.status(421).send({ message: "Error in getting Subscription Type.", data: err });
     }
 
     function validateEmail(email) {
@@ -594,19 +562,17 @@ router.get("/search", async (req, res) => {
         });
 
     } catch (err) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: err.message,
             type: "other",
             action: "subs/search",
             error: err,
-            query,
-            table: table,
-        });
-
-        return res.status(502).json({
-            success: false,
-            message: "Error searching subscriptions"
+            payload: cust_id,
+            query: query,
+            functionName: "subs/search"
         });
     }
 });
+
 module.exports = router;
