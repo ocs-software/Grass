@@ -215,7 +215,8 @@ router.post('/check', async (req, res) => {
     let table;
     let query;
     const { user_email, token } = req.body;
-    const email = user_email.trim().toLowerCase();
+    
+    const email = user_email ? user_email.trim().toLowerCase() : null;
         
     try {
         let errMess = '';
@@ -350,7 +351,7 @@ router.post("/delete", async (req, res) => {
     let query;
     
     const { user_email, token, sub_account } = req.body;
-    const email = user_email.trim().toLowerCase();
+    const email = user_email ? user_email.trim().toLowerCase() : null;
 
     try {
         let errMess = "";
@@ -615,7 +616,7 @@ router.post("/logon", async (req, res) => {
     let query;
 
     const { user_email, token } = req.body;
-    const email = user_email.trim().toLowerCase();
+    const email = user_email ? user_email.trim().toLowerCase() : null;
     let errMess = "";
 
     try {
@@ -759,7 +760,7 @@ router.post("/logout", async (req, res) => {
     let query;
 
     const { user_email, token } = req.body;
-    const email = user_email.trim().toLowerCase();
+    const email = user_email ? user_email.trim().toLowerCase() : null;
 
     try {
         let errMess = "";
@@ -975,7 +976,7 @@ router.post("/new", async (req, res) => {
     let query;
 
     const { user_email, user_firstname, user_surname, linked_from, user_token } = req.body;
-    const email = user_email.trim().toLowerCase();
+    const email = user_email ? user_email.trim().toLowerCase() : null;
 
     try {
         response.data = req.body;
@@ -1224,7 +1225,8 @@ router.post("/update", async (req, res) => {
             linked_from,
             token,
         } = req.body;
-        const email = user_email.trim().toLowerCase();
+
+        const email = user_email ? user_email.trim().toLowerCase() : null;
 
         response.data = req.body;
 
@@ -1402,7 +1404,8 @@ router.post("/golfbag", async (req, res) => {
             golf_bag,
             token,
         } = req.body;
-        const email = user_email.trim().toLowerCase();
+        
+        const email = user_email ? user_email.trim().toLowerCase() : null;
 
         response.data = req.body;
 
