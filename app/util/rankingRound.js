@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 let ObjectID = require('mongodb').ObjectID;
+const { getAppConfig } = require("../../config/app_config");
 
 /**
  * Make object stringify stable so same criteria always creates same hash.
@@ -34,77 +35,86 @@ function buildFilterHash(criteria) {
  * Add/remove allowed fields as needed.
  */
 function buildMatch(criteria = {}) {
-    const match = {};
+    const rootMatch = {};
+    const holeStatsMatch = {};
 
-    const allowedFilters = [
-        "tour",
-        "season",
-        "course_id",
-        "event_id",
-        "round_id",
-        "division",
-        "gender",
-        "country",
-        "state"
-    ];
+    for (const [key, value] of Object.entries(criteria)) {
 
-    for (const field of allowedFilters) {
-        if (
-            criteria[field] !== undefined &&
-            criteria[field] !== null &&
-            criteria[field] !== ""
-        ) {
-            match[field] = criteria[field];
+        if (key === "date_from" || key === "date_to") {
+            continue;
         }
+
+        const config = getCriteriaConfig(key);
+
+        rootMatch[config] = value;
     }
 
     if (criteria.date_from || criteria.date_to) {
-        match.created_at = {};
+        rootMatch.played_at = {};
 
         if (criteria.date_from) {
-            match.created_at.$gte = new Date(criteria.date_from);
+            rootMatch.played_at.$gte = new Date(criteria.date_from);
         }
 
         if (criteria.date_to) {
             const endDate = new Date(criteria.date_to);
-            endDate.setUTCHours(23, 59, 999);
-            match.created_at.$lte = endDate;
+            endDate.setUTCHours(23, 59, 59, 999);
+
+            rootMatch.played_at.$lte = endDate;
         }
     }
 
-    return match;
+    return {
+        rootMatch,
+        holeStatsMatch
+    };
+}
+
+function getStatConfig(stat) {
+    const config = getAppConfig().STAT_MAP[stat];
+
+    if (!config) {
+        throw new Error("Invalid stat selected.");
+    }
+
+    return config;
+}
+
+function getCriteriaConfig(key) {
+    const config = getAppConfig().CRITERIA_MAP[key];
+
+    if (!config) {
+        throw new Error("Invalid criteria selected.");
+    }
+
+    return config;
 }
 
 function buildPeerMatch(peerCriteria = {}) {
     const match = {};
 
-    const allowedPeerFilters = [
-        "player_type",
-        "gender",
-        "division",
-        "country",
-        "state"
-    ];
-
-    for (const field of allowedPeerFilters) {
-        if (
-            peerCriteria[field] !== undefined &&
-            peerCriteria[field] !== null &&
-            peerCriteria[field] !== ""
-        ) {
-            match[`user.${field}`] = peerCriteria[field];
-        }
-    }
-
-    if (peerCriteria.age_min || peerCriteria.age_max) {
-        match["user.age"] = {};
-
-        if (peerCriteria.age_min) {
-            match["user.age"].$gte = Number(peerCriteria.age_min);
+    for (const [publicKey, value] of Object.entries(peerCriteria)) {
+        if (value === undefined || value === null || value === "") {
+            continue;
         }
 
-        if (peerCriteria.age_max) {
-            match["user.age"].$lte = Number(peerCriteria.age_max);
+        const config = getAppConfig().PEER_CRITERIA_MAP[publicKey];
+
+        if (!config) {
+            continue; // or throw error
+        }
+
+        const mongoField = `user.${config.field}`;
+        const finalValue = config.type === "number" ? Number(value) : value;
+
+        if (config.operator) {
+            if (!match[mongoField]) {
+                match[mongoField] = {};
+            }
+
+            match[mongoField][config.operator] = finalValue;
+        } else {
+            match[mongoField] = finalValue;
         }
     }
 
@@ -150,16 +160,18 @@ async function rebuildRankingDocuments({
     scoreField = "total_score",
     lowerIsBetter = true
 }) {
-    const match = buildMatch(criteria);
+    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
     const filterHash = buildFilterHash(match);
 
     const source = thisDb.collection(sourceCollection + suffix);
     const sortDirection = lowerIsBetter ? 1 : -1;
 
-    const scoreStages = getScoreProjectionStages(scoreField);
+    const statConfig = getStatConfig(data.stat || "total_score");
+
+    const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
 
     const pipeline = [
-        { $match: match },
+       { $match: rootMatch },
 
         ...scoreStages,
 
@@ -236,7 +248,7 @@ async function enqueueRankingRebuild({
     criteria = {},
     jobsCollection = "ranking_jobs"
 }) {
-    const match = buildMatch(criteria);
+    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
     const filterHash = buildFilterHash(match);
 
     await thisDb.collection(jobsCollection + suffix).updateOne(
@@ -370,14 +382,14 @@ async function getPlayerReport({
     rankingCollection = "ranking_cache",
     scoreField = "total_score"
 }) {
-    const match = buildMatch(criteria);
+    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
     const filterHash = buildFilterHash(match);
 
     const source = thisDb.collection(sourceCollection + suffix);
     const rankings = thisDb.collection(rankingCollection + suffix);
 
     const [liveStats] = await source.aggregate([
-        { $match: match },
+        { $match: rootMatch },
 
         {
             $project: {
@@ -471,16 +483,18 @@ async function getPlayerReportOnTheFly({
         criteria,
         scoreField
     });
-    const match = buildMatch(criteria);
+    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
     const sortDirection = lowerIsBetter ? 1 : -1;
 
     const source = thisDb.collection(sourceCollection + suffix);
+    const statConfig = getStatConfig(data.stat || "total_score");
 
-    const scoreStages = getScoreProjectionStages(scoreField);
+    const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
+
     const peerStages = getPeerLookupStages({ suffix, peerCriteria })
 
     const [result] = await source.aggregate([
-        { $match: match },
+        { $match: rootMatch },
 
         ...scoreStages,
 
@@ -593,7 +607,7 @@ async function getPlayerReportOnTheFly({
                     },
                     {
                         $match: {
-                            _id: userId
+                            _id: new ObjectID(userId)
                         }
                     },
                     {
@@ -614,9 +628,9 @@ async function getPlayerReportOnTheFly({
             $project: {
                 player: { $arrayElemAt: ["$player", 0] },
                 overall: { $arrayElemAt: ["$overall", 0] },
-                overallPeers: { $arrayElemAt: ["$overall", 0] },
+                overallPeers: { $arrayElemAt: ["$overallPeers", 0] },
                 ranking: { $arrayElemAt: ["$ranking", 0] },
-                rankingPeers: { $arrayElemAt: ["$ranking", 0] }
+                rankingPeers: { $arrayElemAt: ["$rankingPeers", 0] }
             }
         }
     ], { allowDiskUse: true }).toArray();
@@ -638,7 +652,7 @@ async function recordCriteriaUsage({
     scoreField = "total_score",
     collection = "stats_criteria_usage"
 }) {
-    const match = buildMatch(criteria);
+    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
     const filterHash = buildFilterHash({
         match,
         scoreField
@@ -666,23 +680,25 @@ async function recordCriteriaUsage({
     return filterHash;
 }
 
-function getScoreProjectionStages(scoreField) {
-    if (scoreField.startsWith("hole_stats.")) {
-        const subField = scoreField.replace("hole_stats.", "");
-
+function getScoreProjectionStages(statConfig, holeStatsMatch = {}) {
+    if (statConfig.source === "hole_stats") {
         return [
             { $unwind: "$hole_stats" },
+
+            ...(Object.keys(holeStatsMatch).length
+                ? [{ $match: holeStatsMatch }]
+                : []),
+
             {
                 $project: {
                     user_id: 1,
-                    score: `$hole_stats.${subField}`
+                    score: `$hole_stats.${statConfig.field}`
                 }
             },
+
             {
                 $match: {
-                    score: {
-                        $nin: [null, 0, "", false]
-                    }
+                    score: { $nin: [null, 0, "", false] }
                 }
             }
         ];
@@ -692,14 +708,12 @@ function getScoreProjectionStages(scoreField) {
         {
             $project: {
                 user_id: 1,
-                score: `$${scoreField}`
+                score: `$${statConfig.field}`
             }
         },
         {
             $match: {
-                score: {
-                    $nin: [null, 0, "", false]
-                }
+                score: { $nin: [null, 0, "", false] }
             }
         }
     ];
