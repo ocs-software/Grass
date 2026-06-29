@@ -4,7 +4,6 @@ const winston_mongo_options = {
     db: process.env.WINSTON_MONGODB_URL,
     collection: "grass-log",
     tryReconnect: true,
-    options: { useNewUrlParser: true, useUnifiedTopology: true }
     // expireAfterSeconds: 2592000
 }
 const logger = winston.createLogger({
