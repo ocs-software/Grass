@@ -10,7 +10,7 @@ const { generateApiKey } = require('generate-api-key');
 const clientSocket = require('socket.io-client');
 let ObjectID = require('mongodb').ObjectID;
 const { getAppConfig } = require("../../config/app_config");
-const { logError } = require("../../logs/errorLogger");
+const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
 
 const message =
@@ -219,125 +219,102 @@ router.post('/check', async (req, res) => {
     const email = user_email ? user_email.trim().toLowerCase() : null;
         
     try {
-        let errMess = '';
         let owner = '';
 
         if (user_email === null || user_email === '') {
-            errMess = 'Email Missing';
-        }
-
-        if (errMess == '') {
-            if (!validateEmail(user_email)) {
-                errMess = 'Invalid Email Sent';
-            }
-        }
-
-        if (errMess !== '') {
-            await logError({
+            return await sendError(res, 210, {
                 thisDb,
+                errMess: "Email missing.",
                 type: "validation",
                 action: "users/check",
-                error: errMess,
-                payload: req.body,
+                payload: req.query,
+                functionName: "users/check"
             });
-            let res_json = {status: 'FAILED'};
-
-            res_json.message = errMess;
-
-            return res.send({ res_json });
         }
-        else {
-            query = { user_email: email };
-            table = "users" + suffix;
 
-            // get Account details to check if Owner or Sub Account
-            const result = await getUserData(table, thisDb, suffix, "A", email);
-            const account = result.data;
-            query = result.query;
-            // const account = await thisDb.collection(table).find(query).toArray();
-            if (account.length > 0) {
-                if (account[0].token == token) {
-                    account[0].sub_accounts = [];
-                    account[0].venues = [];
-                    // Owner or Sub-account
-                    owner = email;
+        if (!validateEmail(user_email)) {
+            return await sendError(res, 211, {
+                thisDb,
+                errMess: "Invalid Email sent.",
+                type: "validation",
+                action: "users/check",
+                payload: req.query,
+                functionName: "users/check"
+            });
+        }
 
-                    if (account[0].linked_from != "" && account[0].linked_from != null) {
-                        // we are a Sub-account but need to use Owner email to get Venues
-                        owner = account[0].linked_from;
-                    } else {
-                        // Owner. Get any sub-accounts
-                        query = { linked_from: owner };
-                        const subs = await thisDb.collection(table).find(query).toArray();
-                        if (subs.length > 0) {
-                            account[0].sub_accounts = subs;
-                        }
-                    }
-                    let res_json = {status: "VERIFIED"};
+        query = { user_email: email };
+        table = "users" + suffix;
 
-                    res_json.message = "Account Found";
-                    res_json.user_email = email;
-                    res_json.data = account[0];
-                    res.res_json = res_json;
+        // get Account details to check if Owner or Sub Account
+        const result = await getUserData(table, thisDb, suffix, "A", email);
+        const account = result.data;
+        query = result.query;
+        // const account = await thisDb.collection(table).find(query).toArray();
+        if (account.length > 0) {
+            if (account[0].token == token) {
+                account[0].sub_accounts = [];
+                account[0].venues = [];
+                // Owner or Sub-account
+                owner = email;
 
-                    res.send({ res_json });
-
+                if (account[0].linked_from != "" && account[0].linked_from != null) {
+                    // we are a Sub-account but need to use Owner email to get Venues
+                    owner = account[0].linked_from;
                 } else {
-                    let res_json = {status: "CHECKED"};
-                    res_json.message = "Invalid Token Sent";
-                    res_json.user_email = email;
-                    res_json.data = account[0];
-                    res.res_json = res_json;
-
-                    await logError({
-                        thisDb,
-                        type: "validation",
-                        action: "users/check",
-                        error: res_json.message,
-                        payload: req.body,
-                        user: email,
-                        table: table,
-                    });
-
-                    return res.send({ res_json });
+                    // Owner. Get any sub-accounts
+                    query = { linked_from: owner };
+                    const subs = await thisDb.collection(table).find(query).toArray();
+                    if (subs.length > 0) {
+                        account[0].sub_accounts = subs;
+                    }
                 }
-            } else {
-                let res_json = {status: "ERROR"};
-                res_json.message = "Account Not Found";
+                let res_json = {status: "VERIFIED"};
 
-                await logError({
+                res_json.message = "Account Found";
+                res_json.user_email = email;
+                res_json.data = account[0];
+                res.res_json = res_json;
+
+                res.send({ res_json });
+
+            } else {
+                return await sendError(res, 203, {
                     thisDb,
+                    errMess: "Token sent does not match with user.",
                     type: "validation",
                     action: "users/check",
-                    error: res_json.message,
-                    payload: req.body,
-                    user: email,
-                    table: table,
+                    user: data.user_id,
+                    payload: data,
+                    status: "CHECKED",
+                    data: account[0],
+                    user_email: email
                 });
-
-                return res.send({ res_json });
             }
+        } else {
+            return await sendError(res, 204, {
+                thisDb,
+                errMess: "Account not foundr.",
+                type: "validation",
+                action: "users/check",
+                user: data.user_id,
+                payload: req.body,
+                status: "ERROR",
+                user: email
+            });
         }
     }
     catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message,
             type: "other",
             action: "users/check",
             error: e,
             payload: req.body,
-            query,
-            table,
-            user: email,
+            functionName: "users/check",
+            user: email
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Checking Email.";
-        // res_json.data = e;
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Checking Email.", data: e });
     }
 });
 
