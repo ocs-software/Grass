@@ -23,7 +23,7 @@ router.post("/get", async (req, res) => {
         const res_json = {};
 
         if (!data.user_id) {
-            return await sendError(res, 201, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User ID not sent.",
                 type: "validation",
@@ -34,7 +34,7 @@ router.post("/get", async (req, res) => {
         }
 
         if (!data.token) {
-            return await sendError(res, 202, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -47,7 +47,7 @@ router.post("/get", async (req, res) => {
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found.",
                 type: "validation",
@@ -58,7 +58,7 @@ router.post("/get", async (req, res) => {
         }
 
         if (data.token != user.token) {
-            return await sendError(res, 203, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token sent does not match with user.",
                 type: "validation",
@@ -135,7 +135,7 @@ router.post("/delete", async (req, res) => {
 
     try {
         if (!data.user_id) {
-            return await sendError(res, 201, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User ID not sent.",
                 type: "validation",
@@ -157,7 +157,7 @@ router.post("/delete", async (req, res) => {
         } else {
             if (data.my_round) {
                 if (!data.my_round.id) {
-                    return await sendError(res, 206, {
+                    return await sendError(res, 200, {
                         thisDb,
                         errMess: "Round ID not sent.",
                         type: "validation",
@@ -167,7 +167,7 @@ router.post("/delete", async (req, res) => {
                     });
                 }
             } else {
-                return await sendError(res, 206, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Round ID not sent.",
                     type: "validation",
@@ -179,7 +179,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (errMess == "" && !data.my_round.id) {
-            return await sendError(res, 206, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Round ID not sent.",
                 type: "validation",
@@ -190,7 +190,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (!data.token) {
-            return await sendError(res, 202, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -203,7 +203,7 @@ router.post("/delete", async (req, res) => {
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found",
                 type: "validation",
@@ -214,7 +214,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (user && data.token != user.token) {
-            return await sendError(res, 203, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token sent does not match with user.",
                 type: "validation",
@@ -288,7 +288,7 @@ router.post("/update", async (req, res) => {
         let obj_keys = [];
         
         if (typeof data !== "object") {
-            return await sendError(res, 207, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Invalid data sent.",
                 type: "validation",
@@ -303,7 +303,7 @@ router.post("/update", async (req, res) => {
         const round_id = my_round.id;
 
         if (user_id === null || user_id === "") {
-            return await sendError(res, 201, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User ID not sent.",
                 type: "validation",
@@ -314,7 +314,7 @@ router.post("/update", async (req, res) => {
         }
 
         if (round_id === null || round_id === "") {
-            return await sendError(res, 206, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Round ID not sent.",
                 type: "validation",
@@ -325,7 +325,7 @@ router.post("/update", async (req, res) => {
         }
 
         if (!data.token) {
-            return await sendError(res, 202, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -338,7 +338,7 @@ router.post("/update", async (req, res) => {
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (user === null) {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found",
                 type: "validation",
@@ -348,7 +348,7 @@ router.post("/update", async (req, res) => {
             });
         } else {
             if (data.token != user.token) {
-                return await sendError(res, 203, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Token sent does not match with user.",
                     type: "validation",
@@ -385,7 +385,7 @@ router.post("/update", async (req, res) => {
         );
 
         if (result.matchedCount === 0 && !result.upsertedId) {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "My Round not updated/inserted.",
                 type: "other",

@@ -43,7 +43,7 @@ router.get("/", async (req, res) => {
             }
             res.send({ res_json })
         } else {
-            return await sendError(res, 208, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No Courses Found.",
                 type: "validation",

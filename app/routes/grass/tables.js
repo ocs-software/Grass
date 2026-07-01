@@ -67,7 +67,7 @@ router.post("/update", async (req, res) => {
         response.data = req.body;
 
         if (code === null || code === "") {
-            return await sendError(res, 209, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Table Code Missing.",
                 type: "validation",
@@ -78,7 +78,7 @@ router.post("/update", async (req, res) => {
             });
         }
         if (data === null || data === "") {
-            return await sendError(res, 210, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Table data Missing.",
                 type: "validation",

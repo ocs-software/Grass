@@ -121,7 +121,8 @@ function buildPeerMatch(peerCriteria = {}) {
                 match[mongoField] = {};
             }
 
-            match[mongoField][config.operator] = finalValue;
+            match[config.operator] = ['"$' + mongoField + '"', finalValue];
+            // match[mongoField][config.operator] = finalValue;
         } else {
             match[mongoField] = finalValue;
         }

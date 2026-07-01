@@ -20,7 +20,7 @@ router.post("/get", async (req, res) => {
         const data = req.body;
 
         if (!data.season) {
-            return await sendError(res, 212, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No season sent.",
                 type: "validation",
@@ -73,7 +73,7 @@ router.post("/delete", async (req, res) => {
 
     try {
         if (!data.tour_code) {
-            return await sendError(res, 213, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No tour code sent.",
                 type: "validation",
@@ -84,7 +84,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (!data.season) {
-            return await sendError(res, 212, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No season code sent.",
                 type: "validation",
@@ -95,7 +95,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (!data.tourncode) {
-            return await sendError(res, 214, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No tournament code sent.",
                 type: "validation",
@@ -196,7 +196,7 @@ router.post("/update", async (req, res) => {
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
-            return await sendError(res, 207, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Invalid data sent.",
                 type: "validation",
@@ -217,7 +217,7 @@ router.post("/update", async (req, res) => {
         const season = tourn_obj.season;
 
         if (!tourn_obj.tour_code || tourn_obj.tour_code == null || tourn_obj.tour_code == "") {
-            return await sendError(res, 213, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No tour code sent.",
                 type: "validation",
@@ -228,7 +228,7 @@ router.post("/update", async (req, res) => {
         }
 
         if (tourn_code === null || tourn_code === "") {
-            return await sendError(res, 214, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No tournament code sent.",
                 type: "validation",
@@ -239,7 +239,7 @@ router.post("/update", async (req, res) => {
         }
 
         if (season === null || season === "") {
-            return await sendError(res, 212, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No season code sent.",
                 type: "validation",
@@ -427,7 +427,7 @@ router.post("/entry", async (req, res) => {
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
-            return await sendError(res, 207, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Invalid data sent.",
                 type: "validation",
@@ -451,7 +451,7 @@ router.post("/entry", async (req, res) => {
         const season = data.season;
         
         if (tourn_code === null || tourn_code === "") {
-            return await sendError(res, 214, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No tournament code sent.",
                 type: "validation",
@@ -462,7 +462,7 @@ router.post("/entry", async (req, res) => {
         }
 
         if (season === null || season === "") {
-            return await sendError(res, 212, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No season code sent.",
                 type: "validation",
@@ -488,7 +488,7 @@ router.post("/entry", async (req, res) => {
         let result;
         // Tournament not found
         if (!tourn) {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No tournament entry found.",
                 type: "validation",

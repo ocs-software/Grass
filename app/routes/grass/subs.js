@@ -338,7 +338,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             const item = await users.find(query).toArray();
 
             if (item.length === 0) {
-                return await sendError(res, 204, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "User not found.",
                     type: "validation",
@@ -391,7 +391,7 @@ router.get("/user/active", async (req, res) => {
         const email = user_email.trim().toLowerCase();
 
         if (email === null || email === '') {
-            return await sendError(res, 210, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Email missing.",
                 type: "validation",
@@ -402,7 +402,7 @@ router.get("/user/active", async (req, res) => {
         }
 
         if (!validateEmail(email)) {
-            return await sendError(res, 211, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Invalid Email sent.",
                 type: "validation",
@@ -443,7 +443,7 @@ router.get("/user/active", async (req, res) => {
                     res.send({ res_json });
                 }
             } else {
-                return await sendError(res, 203, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Token sent does not match with user.",
                     type: "validation",
@@ -453,7 +453,7 @@ router.get("/user/active", async (req, res) => {
                 });
             }
         } else {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found",
                 type: "validation",

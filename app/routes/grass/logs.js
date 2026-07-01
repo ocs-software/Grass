@@ -24,7 +24,7 @@ router.get("/user", async (req, res) => {
         }
 
         if (errMess !== "") {
-            return await sendError(res, 201, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: errMess,
                 type: "validation",

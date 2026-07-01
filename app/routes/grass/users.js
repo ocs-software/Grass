@@ -222,7 +222,7 @@ router.post('/check', async (req, res) => {
         let owner = '';
 
         if (user_email === null || user_email === '') {
-            return await sendError(res, 210, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Email missing.",
                 type: "validation",
@@ -233,7 +233,7 @@ router.post('/check', async (req, res) => {
         }
 
         if (!validateEmail(user_email)) {
-            return await sendError(res, 211, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Invalid Email sent.",
                 type: "validation",
@@ -279,7 +279,7 @@ router.post('/check', async (req, res) => {
                 res.send({ res_json });
 
             } else {
-                return await sendError(res, 203, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Token sent does not match with user.",
                     type: "validation",
@@ -292,7 +292,7 @@ router.post('/check', async (req, res) => {
                 });
             }
         } else {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Account not foundr.",
                 type: "validation",
@@ -340,7 +340,7 @@ router.post("/delete", async (req, res) => {
         let serverToken = process.env.POSTMARK;
 
         if (email === null || email === "") {
-            return await sendError(res, 210, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Email missing.",
                 type: "validation",
@@ -351,7 +351,7 @@ router.post("/delete", async (req, res) => {
         }
 
         if (token === null || token === "") {
-            return await sendError(res, 202, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -369,7 +369,7 @@ router.post("/delete", async (req, res) => {
 
         if (errMess == "") {
             if (!validateEmail(email)) {
-                return await sendError(res, 211, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Invalid Email sent.",
                     type: "validation",
@@ -528,7 +528,7 @@ router.post("/delete", async (req, res) => {
                     }
                 }
             } else {
-                return await sendError(res, 203, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Token sent does not match with user.",
                     type: "validation",
@@ -538,7 +538,7 @@ router.post("/delete", async (req, res) => {
                 });
             }
         } else {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found.",
                 type: "validation",
@@ -577,7 +577,7 @@ router.post("/logon", async (req, res) => {
 
     try {
         if (email === null || email === "") {
-            return await sendError(res, 210, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Email missing.",
                 type: "validation",
@@ -589,7 +589,7 @@ router.post("/logon", async (req, res) => {
 
         if (errMess == "") {
             if (!validateEmail(email)) {
-                return await sendError(res, 211, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Invalid Email sent.",
                     type: "validation",
@@ -607,7 +607,7 @@ router.post("/logon", async (req, res) => {
         }
 
         if (user_token == "") {
-            return await sendError(res, 202, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -672,7 +672,7 @@ router.post("/logon", async (req, res) => {
                 res.send({ res_json });
             }
         } else {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found.",
                 type: "validation",
@@ -709,7 +709,7 @@ router.post("/logout", async (req, res) => {
 
     try {
         if (email == null || email == "") {
-            return await sendError(res, 210, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Email missing.",
                 type: "validation",
@@ -721,7 +721,7 @@ router.post("/logout", async (req, res) => {
 
         if (errMess == "") {
             if (!validateEmail(email)) {
-                return await sendError(res, 211, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Invalid Email sent.",
                     type: "validation",
@@ -733,7 +733,7 @@ router.post("/logout", async (req, res) => {
         }
 
         if (token == null || token == "") {
-            return await sendError(res, 202, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -772,7 +772,7 @@ router.post("/logout", async (req, res) => {
                 res.res_json = res_json;
                 res.send({ res_json });
             } else {
-                return await sendError(res, 203, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Token sent does not match with user.",
                     type: "validation",
@@ -782,7 +782,7 @@ router.post("/logout", async (req, res) => {
                 });
             }
         } else {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found.",
                 type: "validation",
@@ -852,7 +852,7 @@ router.get('/verify/:useremail', async (req, res) => {
             res.send(message);
             returnstr = { status: "OK" }
         } else {
-            return await sendError(res, 204, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found.",
                 type: "validation",
@@ -942,7 +942,7 @@ router.post("/new", async (req, res) => {
             table = "users" + suffix;
             const item = await thisDb.collection(table).find(query).toArray();
             if (item.length > 0) {
-                return await sendError(res, 215, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "Account/Sub-Account Already Exists.",
                     type: "validation",
@@ -1207,7 +1207,7 @@ router.post("/update", async (req, res) => {
                         console.error("Change log failed:", err)
                     });
                 } else {
-                    return await sendError(res, 203, {
+                    return await sendError(res, 200, {
                         thisDb,
                         errMess: "Token sent does not match with user.",
                         type: "validation",
@@ -1217,7 +1217,7 @@ router.post("/update", async (req, res) => {
                     });
                 }
             } else {
-                return await sendError(res, 204, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "User not found.",
                     type: "validation",
@@ -1333,7 +1333,7 @@ router.post("/golfbag", async (req, res) => {
                         console.error("Change log failed:", err)
                     });
                 } else { 
-                    return await sendError(res, 203, {
+                    return await sendError(res, 200, {
                         thisDb,
                         errMess: "Token sent does not match with user.",
                         type: "validation",
@@ -1343,7 +1343,7 @@ router.post("/golfbag", async (req, res) => {
                     });
                 }
             } else {
-                return await sendError(res, 204, {
+                return await sendError(res, 200, {
                     thisDb,
                     errMess: "User not found.",
                     type: "validation",
