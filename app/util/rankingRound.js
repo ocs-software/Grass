@@ -66,15 +66,13 @@ function buildMatch(criteria = {}) {
         rootMatch.played_at = {};
 
         if (criteria.date_from) {
-            rootMatch.$gte = ['"$played_at"', new Date(criteria.date_from)];
-            // rootMatch.played_at.$gte = new Date(criteria.date_from);
+            rootMatch.played_at.$gte = new Date(criteria.date_from);
         }
 
         if (criteria.date_to) {
             const endDate = new Date(criteria.date_to);
             endDate.setUTCHours(23, 59, 59, 999);
-            // rootMatch.played_at.$lte = endDate;
-            rootMatch.$lte = ['"$played_at"', endDate];
+            rootMatch.played_at.$lte = endDate;
         }
     }
 
@@ -119,12 +117,11 @@ function buildPeerMatch(peerCriteria = {}) {
         const finalValue = config.type === "number" ? Number(value) : value;
 
         if (config.operator) {
-            // if (!match[mongoField]) {
-            //     match[mongoField] = {};
-            // }
+            if (!match[mongoField]) {
+                match[mongoField] = {};
+            }
 
-            match[config.operator] = ['"$' + mongoField + '"', finalValue];
-            // match[mongoField][config.operator] = finalValue;
+            match[mongoField][config.operator] = finalValue;
         } else {
             match[mongoField] = finalValue;
         }
