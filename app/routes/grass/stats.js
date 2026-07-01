@@ -84,17 +84,13 @@ router.post("/get", async (req, res) => {
             });
         }
 
-        if (data.fieldSelected) {
-            fieldSelected = data.fieldSelected;
-        }
-
         const report = await getPlayerReportOnTheFly({
                 thisDb,
                 suffix,
                 userId: data.user_id,
                 criteria,
                 peerCriteria,
-                scoreField: fieldSelected
+                scoreField
         });
 
         logDocumentChange({
