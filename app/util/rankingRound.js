@@ -610,11 +610,11 @@ console.log("userId", userId, new ObjectID(userId));
 
         {
             $project: {
-                player: { $ifNull: [{$arrayElemAt: ["$player", 0]}, null },
-                overall: { $ifNull: [{$arrayElemAt: ["$overall", 0]}, null },
-                ranking: { $ifNull: [{$arrayElemAt: ["$ranking", 0]}, null },
-                overallPeers: { $ifNull: [{$arrayElemAt: ["$overallPeers", 0]}, null },
-                rankingPeers: { $ifNull: [{$arrayElemAt: ["$rankingPeers", 0]}, null },
+                player: { $ifNull: [{$arrayElemAt: ["$player", 0]}, null] },
+                overall: { $ifNull: [{$arrayElemAt: ["$overall", 0]}, null] },
+                ranking: { $ifNull: [{$arrayElemAt: ["$ranking", 0]}, null] },
+                overallPeers: { $ifNull: [{$arrayElemAt: ["$overallPeers", 0]}, null] },
+                rankingPeers: { $ifNull: [{$arrayElemAt: ["$rankingPeers", 0]}, null] },
                 // criteria: normalizedCriteria
             }
         }
