@@ -12,7 +12,7 @@ async function sendError(res, statusCode, fields = {}) {
         console.error("Failed to write error log:", logErr);
     }
 
-    const return_json = {};
+    const return_json = {}; 
     return_json.status = fields.status ?? "FAILED";
     return_json.data = fields.data ?? {};
     return_json.user_email = fields.user_email ?? "";

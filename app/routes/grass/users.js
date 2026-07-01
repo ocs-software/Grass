@@ -158,7 +158,7 @@ const tokenmessage =
     '</html>' +
 '';
 
-const missingmessage =
+const missingmessage = 
     '<!DOCTYPE html>' +
     '<html>' +
     '<head>' +

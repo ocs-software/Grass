@@ -2,9 +2,22 @@ const crypto = require("crypto");
 let ObjectID = require('mongodb').ObjectID;
 const { getAppConfig } = require("../config/app_config");
 
+function normalizeCriteria(criteria = {}) {
+    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
+
+    return {
+        rootMatch,
+        holeStatsMatch,
+        normalizedCriteria: {
+            rootMatch,
+            holeStatsMatch
+        }
+    };
+}
 /**
  * Make object stringify stable so same criteria always creates same hash.
  */
+ 
 function stableStringify(obj) {
     if (!obj || typeof obj !== "object") {
         return JSON.stringify(obj);
@@ -39,14 +52,14 @@ function buildMatch(criteria = {}) {
     const holeStatsMatch = {};
 
     for (const [key, value] of Object.entries(criteria)) {
-
-        if (key === "date_from" || key === "date_to") {
-            continue;
-        }
+        if (key === "date_from" || key === "date_to") continue;
 
         const config = getCriteriaConfig(key);
 
-        rootMatch[config] = value;
+        const field = config.field;
+        const target = config.source === "hole_stats" ? holeStatsMatch : rootMatch;
+
+        target[config.source === "hole_stats" ? `hole_stats.${field}` : field] = value;
     }
 
     if (criteria.date_from || criteria.date_to) {
@@ -59,15 +72,11 @@ function buildMatch(criteria = {}) {
         if (criteria.date_to) {
             const endDate = new Date(criteria.date_to);
             endDate.setUTCHours(23, 59, 59, 999);
-
             rootMatch.played_at.$lte = endDate;
         }
     }
 
-    return {
-        rootMatch,
-        holeStatsMatch
-    };
+    return { rootMatch, holeStatsMatch };
 }
 
 function getStatConfig(stat) {
@@ -160,8 +169,8 @@ async function rebuildRankingDocuments({
     scoreField = "total_score",
     lowerIsBetter = true
 }) {
-    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
-    const filterHash = buildFilterHash(match);
+    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const filterHash = buildFilterHash(normalizedCriteria);
 
     const source = thisDb.collection(sourceCollection + suffix);
     const sortDirection = lowerIsBetter ? 1 : -1;
@@ -199,7 +208,7 @@ async function rebuildRankingDocuments({
             $addFields: {
                 user_id: "$_id",
                 filter_hash: filterHash,
-                criteria: match,
+                criteria: normalizedCriteria,
                 calculated_at: "$$NOW"
             }
         },
@@ -235,7 +244,7 @@ async function rebuildRankingDocuments({
     return {
         status: "OK",
         filter_hash: filterHash,
-        criteria: match
+        criteria: normalizedCriteria
     };
 }
 
@@ -248,15 +257,15 @@ async function enqueueRankingRebuild({
     criteria = {},
     jobsCollection = "ranking_jobs"
 }) {
-    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
-    const filterHash = buildFilterHash(match);
+    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const filterHash = buildFilterHash(normalizedCriteria);
 
     await thisDb.collection(jobsCollection + suffix).updateOne(
         { filter_hash: filterHash },
         {
             $set: {
                 filter_hash: filterHash,
-                criteria: match,
+                criteria: normalizedCriteria,
                 status: "pending",
                 updated_at: new Date()
             },
@@ -270,7 +279,7 @@ async function enqueueRankingRebuild({
     return {
         status: "QUEUED",
         filter_hash: filterHash,
-        criteria: match
+        criteria: normalizedCriteria
     };
 }
 
@@ -382,8 +391,8 @@ async function getPlayerReport({
     rankingCollection = "ranking_cache",
     scoreField = "total_score"
 }) {
-    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
-    const filterHash = buildFilterHash(match);
+    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const filterHash = buildFilterHash(normalizedCriteria);
 
     const source = thisDb.collection(sourceCollection + suffix);
     const rankings = thisDb.collection(rankingCollection + suffix);
@@ -455,7 +464,7 @@ async function getPlayerReport({
     });
 
     return {
-        criteria: match,
+        criteria: normalizedCriteria,
         filter_hash: filterHash,
         player: liveStats && liveStats.player ? liveStats.player : null,
         overall: liveStats && liveStats.overall ? liveStats.overall : null,
@@ -474,34 +483,30 @@ async function getPlayerReportOnTheFly({
     criteria = {},
     peerCriteria = {},
     sourceCollection = "round_scores",
-    scoreField = "total_score",
-    lowerIsBetter = true
+    stat = "total_score",
+    lowerIsBetter
 }) {
-    await recordCriteriaUsage({
-        thisDb,
-        suffix,
-        criteria,
-        scoreField
-    });
-    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
-    const sortDirection = lowerIsBetter ? 1 : -1;
+    await recordCriteriaUsage({ thisDb, suffix, criteria, stat });
+
+    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+
+    const statConfig = getStatConfig(stat);
+    const sortDirection = lowerIsBetter ?? statConfig.lowerIsBetter ?? true ? 1 : -1;
 
     const source = thisDb.collection(sourceCollection + suffix);
-    const statConfig = getStatConfig(data.stat || "total_score");
-
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
+    const peerStages = getPeerLookupStages({ suffix, peerCriteria });
 
-    const peerStages = getPeerLookupStages({ suffix, peerCriteria })
+    const userObjectId = new ObjectID(userId);
 
     const [result] = await source.aggregate([
         { $match: rootMatch },
-
         ...scoreStages,
 
         {
             $facet: {
                 player: [
-                    { $match: { user_id: new ObjectID(userId) } },
+                    { $match: { user_id: userObjectId } },
                     {
                         $group: {
                             _id: "$user_id",
@@ -509,7 +514,7 @@ async function getPlayerReportOnTheFly({
                             min_score: { $min: "$score" },
                             max_score: { $max: "$score" },
                             total_score: { $sum: "$score" },
-                            rounds: { $sum: 1 }
+                            records: { $sum: 1 }
                         }
                     }
                 ],
@@ -522,7 +527,7 @@ async function getPlayerReportOnTheFly({
                             min_score: { $min: "$score" },
                             max_score: { $max: "$score" },
                             total_score: { $sum: "$score" },
-                            rounds: { $sum: 1 },
+                            records: { $sum: 1 },
                             players: { $addToSet: "$user_id" }
                         }
                     },
@@ -533,7 +538,7 @@ async function getPlayerReportOnTheFly({
                             min_score: 1,
                             max_score: 1,
                             total_score: 1,
-                            rounds: 1,
+                            records: 1,
                             players_count: { $size: "$players" }
                         }
                     }
@@ -544,45 +549,36 @@ async function getPlayerReportOnTheFly({
                         $group: {
                             _id: "$user_id",
                             average_score: { $avg: "$score" },
-                            rounds: { $sum: 1 }
+                            total_score: { $sum: "$score" },
+                            records: { $sum: 1 }
                         }
                     },
                     {
                         $setWindowFields: {
                             sortBy: { average_score: sortDirection },
-                            output: {
-                                rank: { $rank: {} }
-                            }
+                            output: { rank: { $rank: {} } }
                         }
                     },
-                    { $match: { _id: new ObjectID(userId) } },
-                    {
-                        $project: {
-                            _id: 0,
-                            user_id: "$_id",
-                            average_score: 1,
-                            rounds: 1,
-                            rank: 1
-                        }
-                    }
+                    { $match: { _id: userObjectId } }
                 ],
+
                 overallPeers: [
                     {
                         $group: {
                             _id: "$user_id",
+                            average_score: { $avg: "$score" },
                             total_score: { $sum: "$score" },
-                            records: { $sum: 1 },
-                            average_score: { $avg: "$score" }
+                            records: { $sum: 1 }
                         }
                     },
                     ...peerStages,
                     {
                         $group: {
                             _id: null,
+                            average_score: { $avg: "$average_score" },
                             total_score: { $sum: "$total_score" },
                             records: { $sum: "$records" },
-                            players_count: { $sum: 1 },
-                            average_score: { $avg: "$average_score" }
+                            players_count: { $sum: 1 }
                         }
                     }
                 ],
@@ -600,26 +596,10 @@ async function getPlayerReportOnTheFly({
                     {
                         $setWindowFields: {
                             sortBy: { average_score: sortDirection },
-                            output: {
-                                rank: { $rank: {} }
-                            }
+                            output: { rank: { $rank: {} } }
                         }
                     },
-                    {
-                        $match: {
-                            _id: new ObjectID(userId)
-                        }
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            user_id: "$_id",
-                            average_score: 1,
-                            total_score: 1,
-                            records: 1,
-                            rank: 1
-                        }
-                    }
+                    { $match: { _id: userObjectId } }
                 ]
             }
         },
@@ -628,9 +608,10 @@ async function getPlayerReportOnTheFly({
             $project: {
                 player: { $arrayElemAt: ["$player", 0] },
                 overall: { $arrayElemAt: ["$overall", 0] },
-                overallPeers: { $arrayElemAt: ["$overallPeers", 0] },
                 ranking: { $arrayElemAt: ["$ranking", 0] },
-                rankingPeers: { $arrayElemAt: ["$rankingPeers", 0] }
+                overallPeers: { $arrayElemAt: ["$overallPeers", 0] },
+                rankingPeers: { $arrayElemAt: ["$rankingPeers", 0] },
+                criteria: normalizedCriteria
             }
         }
     ], { allowDiskUse: true }).toArray();
@@ -638,10 +619,10 @@ async function getPlayerReportOnTheFly({
     return result || {
         player: null,
         overall: null,
-        overallPeers: null,
         ranking: null,
+        overallPeers: null,
         rankingPeers: null,
-        match: match
+        criteria: normalizedCriteria
     };
 }
 
@@ -649,13 +630,14 @@ async function recordCriteriaUsage({
     thisDb,
     suffix = "",
     criteria = {},
-    scoreField = "total_score",
+    stat = "total_score",
     collection = "stats_criteria_usage"
 }) {
-    const { rootMatch, holeStatsMatch } = buildMatch(criteria);
+    const { normalizedCriteria } = normalizeCriteria(criteria);
+
     const filterHash = buildFilterHash({
-        match,
-        scoreField
+        criteria: normalizedCriteria,
+        stat
     });
 
     await thisDb.collection(collection + suffix).updateOne(
@@ -663,16 +645,12 @@ async function recordCriteriaUsage({
         {
             $set: {
                 filter_hash: filterHash,
-                criteria: match,
-                scoreField,
+                criteria: normalizedCriteria,
+                stat,
                 last_used_at: new Date()
             },
-            $inc: {
-                usage_count: 1
-            },
-            $setOnInsert: {
-                created_at: new Date()
-            }
+            $inc: { usage_count: 1 },
+            $setOnInsert: { created_at: new Date() }
         },
         { upsert: true }
     );
