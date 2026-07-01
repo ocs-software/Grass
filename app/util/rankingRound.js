@@ -611,7 +611,7 @@ async function getPlayerReportOnTheFly({
                 ranking: { $arrayElemAt: ["$ranking", 0] },
                 overallPeers: { $arrayElemAt: ["$overallPeers", 0] },
                 rankingPeers: { $arrayElemAt: ["$rankingPeers", 0] },
-                criteria: normalizedCriteria
+                // criteria: normalizedCriteria
             }
         }
     ];
