@@ -499,7 +499,7 @@ async function getPlayerReportOnTheFly({
 
     const userObjectId = new ObjectID(userId);
 
-    const [result] = await source.aggregate([
+    const pipeline = [
         { $match: rootMatch },
         ...scoreStages,
 
@@ -614,7 +614,11 @@ async function getPlayerReportOnTheFly({
                 criteria: normalizedCriteria
             }
         }
-    ], { allowDiskUse: true }).toArray();
+    ];
+
+    console.dir(pipeline, { depth: null });
+
+    const [result] = await source.aggregate(pipeline, { allowDiskUse: true }).toArray();
 
     return result || {
         player: null,
