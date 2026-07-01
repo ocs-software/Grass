@@ -84,6 +84,7 @@ router.post("/get", async (req, res) => {
             });
         }
 
+        console.log("before report");
         const report = await getPlayerReportOnTheFly({
                 thisDb,
                 suffix,
@@ -92,6 +93,7 @@ router.post("/get", async (req, res) => {
                 peerCriteria,
                 scoreField
         });
+        console.log("after report", JSON.stringify(report, null, 2));
 
         logDocumentChange({
                 thisDb,

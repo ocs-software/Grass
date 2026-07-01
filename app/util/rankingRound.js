@@ -616,9 +616,9 @@ async function getPlayerReportOnTheFly({
         }
     ];
 
-    console.dir(pipeline, { depth: null });
-
     const [result] = await source.aggregate(pipeline, { allowDiskUse: true }).toArray();
+
+    console.dir(result, { depth: null });
 
     return result || {
         player: null,
