@@ -14,6 +14,9 @@ async function logError({
     table,
     functionName
 }) {
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+
     if (!thisDb) {
         console.error("logError missing thisDb");
         return;
@@ -38,7 +41,7 @@ async function logError({
     if (table !== undefined) errorDoc.table = table;
     if (functionName !== undefined) errorDoc.functionName = functionName;
 
-    await thisDb.collection("error_logs").insertOne(errorDoc);
+    await thisDb.collection("error_logs" + suffix).insertOne(errorDoc);
 }
 
 module.exports = { logError };
