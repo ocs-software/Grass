@@ -498,6 +498,10 @@ async function getPlayerReportOnTheFly({
     const peerStages = getPeerLookupStages({ suffix, peerCriteria });
 
     const userObjectId = new ObjectID(userId);
+console.log("rootMatch", JSON.stringify(rootMatch));
+console.log("holeStatsMatch", JSON.stringify(holeStatsMatch));
+console.log("scoreStages", JSON.stringify(scoreStages, null, 2));
+console.log("userId", userId, new ObjectID(userId));
 
     const pipeline = [
         { $match: rootMatch },
@@ -606,11 +610,11 @@ async function getPlayerReportOnTheFly({
 
         {
             $project: {
-                player: { $arrayElemAt: ["$player", 0] },
-                overall: { $arrayElemAt: ["$overall", 0] },
-                ranking: { $arrayElemAt: ["$ranking", 0] },
-                overallPeers: { $arrayElemAt: ["$overallPeers", 0] },
-                rankingPeers: { $arrayElemAt: ["$rankingPeers", 0] },
+                player: { $ifNull: [{$arrayElemAt: ["$player", 0]}, null },
+                overall: { $ifNull: [{$arrayElemAt: ["$overall", 0]}, null },
+                ranking: { $ifNull: [{$arrayElemAt: ["$ranking", 0]}, null },
+                overallPeers: { $ifNull: [{$arrayElemAt: ["$overallPeers", 0]}, null },
+                rankingPeers: { $ifNull: [{$arrayElemAt: ["$rankingPeers", 0]}, null },
                 // criteria: normalizedCriteria
             }
         }
