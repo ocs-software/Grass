@@ -496,17 +496,8 @@ async function getPlayerReportOnTheFly({
     const source = thisDb.collection(sourceCollection + suffix);
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
     const peerStages = getPeerLookupStages({ suffix, peerCriteria });
-const userObjectId = new ObjectID(userId);
+    const userObjectId = new ObjectID(userId);
 
-console.log("userObjectId", userObjectId);
-console.log("is ObjectID", userObjectId instanceof ObjectID);
-
-const test = await thisDb.collection("myrounds" + suffix).findOne({
-    created_at: { $gte: new Date("2026-04-01T00:00:00.000Z") },
-    user_id: userObjectId
-});
-
-console.log("direct test", test);
     const pipeline = [
         { $match: rootMatch },
         ...scoreStages,
@@ -623,17 +614,7 @@ console.log("direct test", test);
             }
         }
     ];
-    console.log("aggregation", JSON.stringify(pipeline));
-    console.log("created_at", rootMatch.created_at.$gte);
-    console.log(
-        "isDate", rootMatch.created_at.$gte instanceof Date
-    );
-    console.log(
-        "type", Object.prototype.toString.call(rootMatch.created_at.$gte)
-    );
     const [result] = await source.aggregate(pipeline, { allowDiskUse: true }).toArray();
-
-    console.dir(result, { depth: null });
 
     return result || {
         player: null,
