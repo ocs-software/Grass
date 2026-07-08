@@ -498,10 +498,6 @@ async function getPlayerReportOnTheFly({
     const peerStages = getPeerLookupStages({ suffix, peerCriteria });
 
     const userObjectId = new ObjectID(userId);
-console.log("rootMatch", JSON.stringify(rootMatch));
-console.log("holeStatsMatch", JSON.stringify(holeStatsMatch));
-console.log("scoreStages", JSON.stringify(scoreStages, null, 2));
-console.log("userId", userId, new ObjectID(userId));
 
     const pipeline = [
         { $match: rootMatch },
@@ -619,7 +615,14 @@ console.log("userId", userId, new ObjectID(userId));
             }
         }
     ];
-
+    console.log("aggregation", JSON.stringify(pipeline));
+    console.log("created_at", rootMatch.created_at.$gte);
+    console.log(
+        "isDate", rootMatch.created_at.$gte instanceof Date
+    );
+    console.log(
+        "type", Object.prototype.toString.call(rootMatch.created_at.$gte)
+    );
     const [result] = await source.aggregate(pipeline, { allowDiskUse: true }).toArray();
 
     console.dir(result, { depth: null });
