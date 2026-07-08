@@ -158,7 +158,7 @@ function getPeerLookupStages({ suffix = "", peerCriteria = {} }) {
 /**
  * Rebuild ranking documents for a specific criteria set.
  *
- * Source collection should usually be round_scores, not hole_scores.
+ * Source collection should usually be myrounds, not hole_scores.
  */
 async function rebuildRankingDocuments({
     thisDb,
@@ -291,7 +291,7 @@ async function processOneRankingJob({
     thisDb,
     suffix = "",
     jobsCollection = "ranking_jobs",
-    sourceCollection = "round_scores",
+    sourceCollection = "myrounds",
     rankingCollection = "ranking_cache",
     scoreField = "total_score",
     lowerIsBetter = true
@@ -387,7 +387,7 @@ async function getPlayerReport({
     suffix = "",
     userId,
     criteria = {},
-    sourceCollection = "round_scores",
+    sourceCollection = "myrounds",
     rankingCollection = "ranking_cache",
     scoreField = "total_score"
 }) {
@@ -396,17 +396,7 @@ async function getPlayerReport({
 
     const source = thisDb.collection(sourceCollection + suffix);
     const rankings = thisDb.collection(rankingCollection + suffix);
-const userObjectId = new ObjectID(userId);
 
-console.log("userObjectId", userObjectId);
-console.log("is ObjectID", userObjectId instanceof ObjectID);
-
-const test = await thisDb.collection("myrounds" + suffix).findOne({
-    created_at: { $gte: new Date("2026-04-01T00:00:00.000Z") },
-    user_id: userObjectId
-});
-
-console.log("direct test", test);
     const [liveStats] = await source.aggregate([
         { $match: rootMatch },
 
@@ -492,7 +482,7 @@ async function getPlayerReportOnTheFly({
     userId,
     criteria = {},
     peerCriteria = {},
-    sourceCollection = "round_scores",
+    sourceCollection = "myrounds",
     stat = "total_score",
     lowerIsBetter
 }) {
@@ -506,7 +496,17 @@ async function getPlayerReportOnTheFly({
     const source = thisDb.collection(sourceCollection + suffix);
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
     const peerStages = getPeerLookupStages({ suffix, peerCriteria });
+const userObjectId = new ObjectID(userId);
 
+console.log("userObjectId", userObjectId);
+console.log("is ObjectID", userObjectId instanceof ObjectID);
+
+const test = await thisDb.collection("myrounds" + suffix).findOne({
+    created_at: { $gte: new Date("2026-04-01T00:00:00.000Z") },
+    user_id: userObjectId
+});
+
+console.log("direct test", test);
     const pipeline = [
         { $match: rootMatch },
         ...scoreStages,
@@ -514,7 +514,7 @@ async function getPlayerReportOnTheFly({
         {
             $facet: {
                 player: [
-                    { $match: { user_id: new ObjectID(userId) } },
+                    { $match: { user_id: userObjectId } },
                     {
                         $group: {
                             _id: "$user_id",
