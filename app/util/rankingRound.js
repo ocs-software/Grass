@@ -396,7 +396,17 @@ async function getPlayerReport({
 
     const source = thisDb.collection(sourceCollection + suffix);
     const rankings = thisDb.collection(rankingCollection + suffix);
+const userObjectId = new ObjectID(userId);
 
+console.log("userObjectId", userObjectId);
+console.log("is ObjectID", userObjectId instanceof ObjectID);
+
+const test = await thisDb.collection("myrounds" + suffix).findOne({
+    created_at: { $gte: new Date("2026-04-01T00:00:00.000Z") },
+    user_id: userObjectId
+});
+
+console.log("direct test", test);
     const [liveStats] = await source.aggregate([
         { $match: rootMatch },
 
@@ -497,8 +507,6 @@ async function getPlayerReportOnTheFly({
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
     const peerStages = getPeerLookupStages({ suffix, peerCriteria });
 
-    const userObjectId = new ObjectID(userId);
-
     const pipeline = [
         { $match: rootMatch },
         ...scoreStages,
@@ -506,7 +514,7 @@ async function getPlayerReportOnTheFly({
         {
             $facet: {
                 player: [
-                    { $match: { user_id: userObjectId } },
+                    { $match: { user_id: new ObjectID(userId) } },
                     {
                         $group: {
                             _id: "$user_id",
