@@ -63,16 +63,16 @@ function buildMatch(criteria = {}) {
     }
 
     if (criteria.date_from || criteria.date_to) {
-        rootMatch.played_at = {};
+        rootMatch.created_at = {};
 
         if (criteria.date_from) {
-            rootMatch.played_at.$gte = new Date(criteria.date_from);
+            rootMatch.created_at.$gte = new Date(criteria.date_from);
         }
 
         if (criteria.date_to) {
             const endDate = new Date(criteria.date_to);
             endDate.setUTCHours(23, 59, 59, 999);
-            rootMatch.played_at.$lte = endDate;
+            rootMatch.created_at.$lte = endDate;
         }
     }
 
