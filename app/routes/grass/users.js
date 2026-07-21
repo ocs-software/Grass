@@ -1479,7 +1479,7 @@ router.post("/golfbag", async (req, res) => {
                         table: table,
                         channel: "update",
                         oldDoc: item[0],
-                        newData: new_values.$set,
+                        newData: newvalues.$set,
                         user_id: item[0]._id,
                         user_email: email
                     }).catch(err => {
