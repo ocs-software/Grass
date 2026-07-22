@@ -12,10 +12,14 @@ async function sendError(res, statusCode, fields = {}) {
         console.error("Failed to write error log:", logErr);
     }
 
-    return res.status(statusCode).send({
-        status: "FAILED",
-        message: errMess
-    });
+    const return_json = {}; 
+    return_json.status = fields.status ?? "FAILED";
+    return_json.data = fields.data ?? {};
+    return_json.user_email = fields.user_email ?? "";
+    return_json.user = fields.user ?? {};
+    return_json.message = errMess;
+
+    return res.status(statusCode).send(return_json);
 }
 
 module.exports = {sendError};

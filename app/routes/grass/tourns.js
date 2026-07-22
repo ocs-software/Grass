@@ -5,7 +5,7 @@ const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
-const { logError } = require("../../logs/errorLogger");
+const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
 
 router.post("/get", async (req, res) => {
@@ -20,23 +20,14 @@ router.post("/get", async (req, res) => {
         const data = req.body;
 
         if (!data.season) {
-            let res_json = {
-                status: "FAILED",
-            }
-            res_json.message = "No season sent.";
-            res.res_json = res_json;
-            res_json.tourns = [];
-
-            await logError({
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "No season sent.",
                 type: "validation",
                 action: "tourns/get",
-                error: res_json.message,
-                table: table,
                 payload: req.body,
+                functionName: "tourns/get"
             });
-
-            res.send({ res_jon });
         }
 
         query = { season: data.season };
@@ -57,22 +48,15 @@ router.post("/get", async (req, res) => {
             res.send({ res_json })
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message,
             type: "other",
             action: "tourns/get",
             error: e,
-            table: table,
-            payload: req.body,
-            query,
+            payload: req.query,
+            functionName: "tourns/get"
         });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in Tournament Data.";
-        res.res_json = res_json;
-        res_json.tourns = [];
-        res.send({ res_jon });
     }
 
 });
@@ -84,37 +68,41 @@ router.post("/delete", async (req, res) => {
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
     const table = "tourns" + suffix;
-    let errMess = "";
 
     const data = req.body;
 
     try {
         if (!data.tour_code) {
-            errMess = "Database code not sent.";
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "No tour code sent.",
+                type: "validation",
+                action: "tourns/delete",
+                payload: data,
+                functionName: "tourns/delete"
+            });
         }
 
         if (!data.season) {
-            errMess = "Season code not sent.";
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "No season code sent.",
+                type: "validation",
+                action: "tourns/delete",
+                payload: data,
+                functionName: "tourns/delete"
+            });
         }
 
         if (!data.tourncode) {
-            errMess = "Tournament code not sent.";
-        }
-
-        if (!errMess) {
-            await logError({
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "No tournament code sent.",
                 type: "validation",
                 action: "tourns/delete",
-                error: errMess,
-                payload: req.body,
+                payload: data,
+                functionName: "tourns/delete"
             });
-            let res_json = {status: "FAILED"};
-
-            res_json.message = errMess;
-
-            res.send({ res_json });
-            return;
         }
 
         const season = data.season;
@@ -140,22 +128,15 @@ router.post("/delete", async (req, res) => {
 
         res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message,
             type: "other",
             action: "tourns/delete",
             error: e,
-            query,
             payload: data,
-            table: table
+            functionName: "tourns/delete"
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Deleting data.";
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Deleting data.", data: e });
     }
 });
 
@@ -186,22 +167,15 @@ router.post("/update", async (req, res) => {
             res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages})
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message,
             type: "other",
             action: "tourns/update",
             error: e,
-            query,
-            payload: tourn,
-            table: table
+            payload: data,
+            functionName: "tourns/update"
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Fetching data.";
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
     async function processData(data, res, thisDb, suffix, query, table) {
@@ -222,16 +196,14 @@ router.post("/update", async (req, res) => {
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
-            await logError({
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "Invalid data sent.",
                 type: "validation",
                 action: "tourns/update",
-                error: "Invalid data sent",
                 payload: data,
+                functionName: "tourns/update"
             });
-            res.fcount++;
-            res.messages.push({message: "Invalid data sent"});
-            return res;
         }
 
         for (const key of obj_keys) {
@@ -240,127 +212,133 @@ router.post("/update", async (req, res) => {
                 tourn_obj[key] = typeof value === "string" ? value.replace(/\|'/g, "'") : value;
             }
         }
-        
-        var errMess = "";
 
         const tourn_code = tourn_obj.tourncode;
         const season = tourn_obj.season;
 
         if (!tourn_obj.tour_code || tourn_obj.tour_code == null || tourn_obj.tour_code == "") {
-            errMess = "Tour code is missing";
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "No tour code sent.",
+                type: "validation",
+                action: "tourns/update",
+                payload: data,
+                functionName: "tourns/update/processData"
+            });
         }
 
         if (tourn_code === null || tourn_code === "") {
-            errMess = "Tournament code is missing";
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "No tournament code sent.",
+                type: "validation",
+                action: "tourns/update",
+                payload: data,
+                functionName: "tourns/update/processData"
+            });
         }
 
         if (season === null || season === "") {
-            errMess = "Season code is missing";
-        }
-
-        if (errMess !== "") {
-            await logError({
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "No season code sent.",
                 type: "validation",
                 action: "tourns/update",
-                error: errMess,
                 payload: data,
+                functionName: "tourns/update/processData"
             });
+        }
+
+        table = "tourns" + suffix;
+
+        query = { tour_code: tourn_obj.tour_code, season: season, tourncode: tourn_code };
+        const tournsDb = thisDb.collection(table);
+
+        let tourns = await tournsDb.find(query).toArray();
+
+        let old_values = {};
+        const setFields = {};
+        const comparisons = [];
+        let result;
+        if (tourns.length > 0) {
+            old_values = tourns[0];
+        }
+
+        for (const [key, value] of Object.entries(tourn_obj)) {
+            if (key !== "tourncode" && key !== "season" && key != "tour_id") {
+                if (old_values[key] == null || old_values[key] != value) {
+                    setFields[key] = value;
+                    comparisons.push({
+                        $ne: [`$${key}`, value]
+                    });
+                }
+            }
+        }
+
+        let tourn_changes = false;
+        // check if we do have somethig to update
+        if (Object.keys(setFields).length === 0) {
             res.fcount++;
-            res.messages.push({message: errMess});
+            res.messages.push("Nothing to change");
             return res;
         } else {
-            table = "tourns" + suffix;
-
-            query = { tour_code: tourn_obj.tour_code, season: season, tourncode: tourn_code };
-            const tournsDb = thisDb.collection(table);
-
-            let tourns = await tournsDb.find(query).toArray();
-
-            let old_values = {};
-            const setFields = {};
-            const comparisons = [];
-            let result;
-            if (tourns.length > 0) {
-                old_values = tourns[0];
-            }
-
-            for (const [key, value] of Object.entries(tourn_obj)) {
-                if (key !== "tourncode" && key !== "season" && key != "tour_id") {
-                    if (old_values[key] == null || old_values[key] != value) {
-                        setFields[key] = value;
-                        comparisons.push({
-                            $ne: [`$${key}`, value]
-                        });
-                    }
-                }
-            }
-
-            let tourn_changes = false;
-            // check if we do have somethig to update
-            if (Object.keys(setFields).length === 0) {
-                res.fcount++;
-                res.messages.push("Nothing to change");
-                return res;
-            } else {
-                // Update/insert main record
-                result = await tournsDb.updateOne(
-                    query,
-                    [
-                        {
-                            $set: {
-                                ...setFields, // only set fields sent by form
-                                updated: {
-                                    $cond: [
-                                        { $or: comparisons }, // only update "updated" timestamp if something changed
-                                        "$$NOW",
-                                        "$updated"
-                                    ]
-                                },
-                                created: {
-                                    $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
-                                }
+            // Update/insert main record
+            result = await tournsDb.updateOne(
+                query,
+                [
+                    {
+                        $set: {
+                            ...setFields, // only set fields sent by form
+                            updated: {
+                                $cond: [
+                                    { $or: comparisons }, // only update "updated" timestamp if something changed
+                                    "$$NOW",
+                                    "$updated"
+                                ]
+                            },
+                            created: {
+                                $ifNull: ["$created", "$$NOW"] // if record does not exist, add field created;
                             }
                         }
-                    ],
-                    { upsert: true }
-                );
+                    }
+                ],
+                { upsert: true }
+            );
 
-                if (result.matchedCount === 0 && !result.upsertedId) {
-                    // Failed
-                    res.fcount++;
-                    res.messages.push({message: "No Tournament Document found/inserted"});
-                    return res;
-                } else {
-                    tourn_changes = (result.modifiedCount > 0 || result.upsertedId);
-                }
-            }
-
-            // update/insert tour info
-            let _id;
-            
-            if (old_values?._id) {
-                _id = old_values._id;
+            if (result.matchedCount === 0 && !result.upsertedId) {
+                // Failed
+                res.fcount++;
+                res.messages.push({message: "No Tournament Document found/inserted"});
+                return res;
             } else {
-                if (result.upsertedId) {
-                    _id = result.upsertedId;
-                } else {
+                tourn_changes = (result.modifiedCount > 0 || result.upsertedId);
+            }
+        }
+
+        // update/insert tour info
+        let _id;
+        
+        if (old_values?._id) {
+            _id = old_values._id;
+        } else {
+            if (result.upsertedId) {
+                _id = result.upsertedId;
+            } else {
 // same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
-                    tourns = await tournsDb.find(query).toArray();
-                    if (tourns.length > 0) {
-                        old_values = tourns[0];
-                    }
-                    if (old_values?._id) {
-                        _id = old_values._id;
-                    } else {
-                        _id = tourncode;
-                    }
+                tourns = await tournsDb.find(query).toArray();
+                if (tourns.length > 0) {
+                    old_values = tourns[0];
+                }
+                if (old_values?._id) {
+                    _id = old_values._id;
+                } else {
+                    _id = tourncode;
                 }
             }
-
-            endImport(thisDb, old_values, tourn_obj, true);
-            return res;
         }
+
+        endImport(thisDb, old_values, tourn_obj, true);
+        return res;
     }
 
     function endImport(thisDb, old_obj, new_obj, changed) {
@@ -418,22 +396,15 @@ router.post("/entry", async (req, res) => {
             res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages})
         }
     } catch(e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message,
             type: "other",
             action: "tourns/entry",
             error: e,
-            query,
-            payload: payload,
-            table: table
+            payload: req.body,
+            functionName: "tourns/entry"
         });
-
-        let res_json = {status: "FAILED"};
-
-        res_json.message = "Error in Fetching data.";
-        res.res_json = res_json;
-
-        res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 
     async function processData(data, res, thisDb, suffix, query, table) {
@@ -456,16 +427,14 @@ router.post("/entry", async (req, res) => {
         if (typeof data === "object") {
             obj_keys = Object.keys(data);
         } else {
-            await logError({
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "Invalid data sent.",
                 type: "validation",
                 action: "tourns/entry",
-                error: "Invalid data sent",
                 payload: data,
+                functionName: "tourns/entry/processData"
             });
-            res.fcount++;
-            res.messages.push({message: "Invalid data sent"});
-            return res;
         }
 
         // remove some fields that are not necessary inside the entry
@@ -477,117 +446,113 @@ router.post("/entry", async (req, res) => {
                 }
             }
         }
-        
-        var errMess = "";
 
         const tourn_code = data.tourncode;
         const season = data.season;
         
         if (tourn_code === null || tourn_code === "") {
-            errMess = "Tournament code is missing";
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "No tournament code sent.",
+                type: "validation",
+                action: "tourns/entry",
+                payload: data,
+                functionName: "tourns/entry/processData"
+            });
         }
 
         if (season === null || season === "") {
-            errMess = "Season code is missing";
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "No season code sent.",
+                type: "validation",
+                action: "tourns/entry",
+                payload: data,
+                functionName: "tourns/entry/processData"
+            });
         }
+
         const player_id = await getPlayerId(data.tour_code, data.user_email.trim().toLowerCase(), thisDb, suffix);
         entry_obj.user_id = player_id;
 
-        if (errMess !== "") {
-            await logError({
+        table = "tourns" + suffix;
+
+        query = { tour_code: data.tour_code, season: season, tourncode: tourn_code };
+        const tournsDb = thisDb.collection(table);
+
+        // find the tournament
+        let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
+
+        let old_values = {};
+        const setFields = {};
+        let result;
+        // Tournament not found
+        if (!tourn) {
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "No tournament entry found.",
                 type: "validation",
                 action: "tourns/entry",
-                error: errMess,
                 payload: data,
+                functionName: "tourns/entry/processData"
             });
-            res.fcount++;
-            res.messages.push({message: errMess});
-            return res;
-        } else {
-            table = "tourns" + suffix;
-
-            query = { tour_code: data.tour_code, season: season, tourncode: tourn_code };
-            const tournsDb = thisDb.collection(table);
-
-            // find the tournament
-            let tourn = await tournsDb.findOne(query, {projection: { entries: 1}});
-
-            let old_values = {};
-            const setFields = {};
-            let result;
-            // Tournament not found
-            if (!tourn) {
-                errMess = "Tournament not found";
-                await logError({
-                    thisDb,
-                    type: "validation",
-                    action: "tourns/entry",
-                    error: errMess,
-                    payload: data,
-                    query: query,
-                });
-                res.fcount++;
-                res.messages.push({message: errMess});
-                return res;
-            }
-            
-            // Tournament found, now check if we already have the entry
-            old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id && entry.user_id.equals(player_id)) : {};
-
-            // no entry found
-            if (old_values == null) {
-                old_values = {};
-            }
-
-            // now we check if something have changed so we do not update the same values over and over
-            for (const [key, value] of Object.entries(entry_obj)) {
-                if (key !== "tourncode" && key !== "season" && key != "tour_id") {
-                    if (old_values[key] == null || // "".equals" is used to check the "player_id" which is a ObjectId, everything else will test against "!==""
-                        (old_values[key]?.equals ? !old_values[key].equals(value) : old_values[key] !== value)) {
-                        setFields[`entries.$.${key}`] = value;
-                    }
-                }
-            }
-
-            if (Object.keys(old_values).length > 0) {
-            // we have the entry already
-                if (Object.keys(setFields).length <= 0) {
-                    res.fcount++;
-                    res.messages.push("Nothing to change");
-                    return res;
-                }
-                setFields.updated = new Date();
-                setFields[`entries.$.updated`] = new Date();
-                query["entries.user_id"] = player_id;
-
-                result = await tournsDb.updateOne(query, {$set: setFields});
-            } else {
-                // no entry found, create one.
-                entry_obj.updated = new Date();
-                result = await tournsDb.updateOne(query, {
-                    $push: { 
-                        entries: {
-                            ...entry_obj
-                        }
-                    },
-                    $set: {
-                        updated: new Date()
-                    }
-                });
-            }
-
-            if (result.matchedCount === 0 && !result.upsertedId) {
-                // Failed
-                res.fcount++;
-                res.messages.push({message: "No Tournament Document found/inserted"});
-                return res;
-            } 
-
-            // save the changes on the log table.
-            endImport(thisDb, old_values, entry_obj, true, tourn_code, data.tour_code, season);
-            return res;
         }
+        
+        // Tournament found, now check if we already have the entry
+        old_values = Array.isArray(tourn.entries) ? tourn.entries.find(entry => entry.user_id && entry.user_id.equals(player_id)) : {};
+
+        // no entry found
+        if (old_values == null) {
+            old_values = {};
+        }
+
+        // now we check if something have changed so we do not update the same values over and over
+        for (const [key, value] of Object.entries(entry_obj)) {
+            if (key !== "tourncode" && key !== "season" && key != "tour_id") {
+                if (old_values[key] == null || // "".equals" is used to check the "player_id" which is a ObjectId, everything else will test against "!==""
+                    (old_values[key]?.equals ? !old_values[key].equals(value) : old_values[key] !== value)) {
+                    setFields[`entries.$.${key}`] = value;
+                }
+            }
+        }
+
+        if (Object.keys(old_values).length > 0) {
+        // we have the entry already
+            if (Object.keys(setFields).length <= 0) {
+                res.fcount++;
+                res.messages.push("Nothing to change");
+                return res;
+            }
+            setFields.updated = new Date();
+            setFields[`entries.$.updated`] = new Date();
+            query["entries.user_id"] = player_id;
+
+            result = await tournsDb.updateOne(query, {$set: setFields});
+        } else {
+            // no entry found, create one.
+            entry_obj.updated = new Date();
+            result = await tournsDb.updateOne(query, {
+                $push: { 
+                    entries: {
+                        ...entry_obj
+                    }
+                },
+                $set: {
+                    updated: new Date()
+                }
+            });
+        }
+
+        if (result.matchedCount === 0 && !result.upsertedId) {
+            // Failed
+            res.fcount++;
+            res.messages.push({message: "No Tournament Document found/inserted"});
+            return res;
+        } 
+
+        // save the changes on the log table.
+        endImport(thisDb, old_values, entry_obj, true, tourn_code, data.tour_code, season);
+        return res;
     }
 
     function endImport(thisDb, old_obj, new_obj, changed, tourncode, tour_code, season) {

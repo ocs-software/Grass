@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router({ mergeParams: true });
 const mongodb = require("mongodb");
 const { getAppConfig } = require("../../config/app_config");
+const { sendError } = require("../../util/commonFunctions");
 
 router.get("/", async (req, res) => {
 
@@ -42,35 +43,27 @@ router.get("/", async (req, res) => {
             }
             res.send({ res_json })
         } else {
-            let res_json = { status: "FAILED", };
-            res_json.message = "No Courses Found";
-            await logError({
+            return await sendError(res, 200, {
                 thisDb,
+                errMess: "No Courses Found.",
                 type: "validation",
                 action: "search",
-                error: res_json.message,
-                query,
-                payload: req.query,
+                payload: data,
+                query: query,
                 table: table,
+                functionName: "search"
             });
-            res.send({ res_json })
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in getting courses.",
             type: "other",
             action: "search",
             error: e,
-            query,
             payload: req.query,
-            table: table,
+            functionName: "search"
         });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in Course Data.";
-        res.res_json = res_json;
-        res.send({ res_jon });
     }
 
 });
@@ -97,19 +90,14 @@ router.get("/users", async (req, res) => {
             res.send({ res_json })
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in getting users.",
             type: "other",
-            action: "search/users(get)",
+            action: "search/users",
             error: e,
-            table: table,
+            functionName: "search/users"
         });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in Users Data.";
-        res.res_json = res_json;
-        res.send({ res_jon });
     }
 });
 
@@ -135,19 +123,14 @@ router.post("/users", async (req, res) => {
             res.send({ res_json })
         }
     } catch (e) {
-        await logError({
+        return await sendError(res, 400, {
             thisDb,
+            errMess: e.message || "Error in getting users.",
             type: "other",
-            action: "search/users(post)",
+            action: "search/users",
             error: e,
-            table: table,
+            functionName: "search/users"
         });
-        let res_json = {
-            status: "FAILED",
-        }
-        res_json.message = "Error in Users Data.";
-        res.res_json = res_json;
-        res.send({ res_jon });
     }
 
 });

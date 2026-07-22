@@ -20,7 +20,7 @@ router.post("/get", async (req, res) => {
         const res_json = {};
 
         if (!data.user_id) {
-            return await sendError(res, 400, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User ID not sent.",
                 type: "validation",
@@ -31,7 +31,7 @@ router.post("/get", async (req, res) => {
         }
 
         if (!data.token) {
-            return await sendError(res, 400, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
@@ -44,7 +44,7 @@ router.post("/get", async (req, res) => {
         const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
 
         if (!user) {
-            return await sendError(res, 404, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "User not found.",
                 type: "validation",
@@ -55,7 +55,7 @@ router.post("/get", async (req, res) => {
         }
 
         if (data.token != user.token) {
-            return await sendError(res, 404, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "Token sent does not match with user.",
                 type: "validation",
@@ -74,7 +74,7 @@ router.post("/get", async (req, res) => {
             Object.keys(criteria).length < 1
         ) {
             errMess = "";
-            return await sendError(res, 400, {
+            return await sendError(res, 200, {
                 thisDb,
                 errMess: "No filter sent. This operation can only be done with something to filter for.",
                 type: "validation",
@@ -84,17 +84,13 @@ router.post("/get", async (req, res) => {
             });
         }
 
-        if (data.fieldSelected) {
-            fieldSelected = data.fieldSelected;
-        }
-
         const report = await getPlayerReportOnTheFly({
                 thisDb,
                 suffix,
                 userId: data.user_id,
                 criteria,
                 peerCriteria,
-                scoreField: fieldSelected
+                scoreField
         });
 
         logDocumentChange({
