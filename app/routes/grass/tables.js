@@ -122,7 +122,7 @@ router.post("/update", async (req, res) => {
         newvalues = {
             $set: updateFields,
             $setOnInsert: {
-                create: new Date();
+                create: new Date()
             }
         }
         options = { upsert: true };
