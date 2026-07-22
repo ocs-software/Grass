@@ -99,7 +99,7 @@ router.post("/update", async (req, res) => {
         var newvalues = {};
 
         const updateFields = {
-            updated: new Date()),
+            updated: new Date(),
             unix_timestamp: Date.now().getTime()
         };
             //  console.log("Updating")
