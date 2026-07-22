@@ -97,104 +97,34 @@ router.post("/update", async (req, res) => {
         const item = await thisDb.collection(table).find(query).toArray();
         var options = {};
         var newvalues = {};
-        if (item.length > 0) {
-            //  console.log("Updating")
-            if (code == "99") {
-                newvalues = {
-                    $set: {
-                        as_groups: data,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "22") {
-                newvalues = {
-                    $set: {
-                        as_pos: data,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "23") {
-                newvalues = {
-                    $set: {
-                        as_lie: data,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "24") {
-                newvalues = {
-                    $set: {
-                        as_clubs: data,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "25") {
-                newvalues = {
-                    $set: {
-                        as_oos: data,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-        } else {
-            if (code == "99") {
-                newvalues = {
-                    $set: {
-                        as_groups: data,
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "22") {
-                newvalues = {
-                    $set: {
-                        as_pos: data,
-                        created: new Date(Date.now()),
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "23") {
-                newvalues = {
-                    $set: {
-                        as_lie: data,
-                        created: new Date(Date.now()),
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "24") {
-                newvalues = {
-                    $set: {
-                        as_clubs: data,
-                        created: new Date(Date.now()),
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
-            if (code == "25") {
-                newvalues = {
-                    $set: {
-                        as_oos: data,
-                        created: new Date(Date.now()),
-                        updated: new Date(Date.now()),
-                        unix_timestamp: Date.now()
-                    }
-                };
-            }
+
+        const updateFields = {
+            updated: new Date()),
+            unix_timestamp: Date.now().getTime()
         };
+            //  console.log("Updating")
+        if (code == "99") {
+            updateFields.as_groups = data;
+        }
+        if (code == "22") {
+            updateFields.as_pos = data;
+        }
+        if (code == "23") {
+            updateFields.as_lie = data;
+        }
+        if (code == "24") {
+            updateFields.as_clubs = data;
+        }
+        if (code == "25") {
+            updateFields.as_oos = data;
+        }
+
+        newvalues = {
+            $set: updateFields,
+            $setOnInsert: {
+                create: new Date();
+            }
+        }
         options = { upsert: true };
 
         const result = await thisDb.collection("table").updateOne(query, newvalues, options);
@@ -209,7 +139,7 @@ router.post("/update", async (req, res) => {
             type: "other",
             action: "tables/update",
             error: e,
-            payload: req.body,
+            payload: JSON.stringify(req.body),
             functionName: "tables/update"
         });
     }
