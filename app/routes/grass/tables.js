@@ -100,7 +100,7 @@ router.post("/update", async (req, res) => {
 
         const updateFields = {
             updated: new Date(),
-            unix_timestamp: Date.now().getTime()
+            unix_timestamp: new Date().getTime()
         };
             //  console.log("Updating")
         if (code == "99") {
