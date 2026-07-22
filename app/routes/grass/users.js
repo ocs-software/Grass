@@ -215,9 +215,9 @@ router.post('/check', async (req, res) => {
     let table;
     let query;
     const { user_email, token } = req.body;
-    
+
     const email = user_email ? user_email.trim().toLowerCase() : null;
-        
+
     try {
         let errMess = '';
         let owner = '';
@@ -349,7 +349,7 @@ router.post("/delete", async (req, res) => {
 
     let table;
     let query;
-    
+
     const { user_email, token, sub_account } = req.body;
     const email = user_email ? user_email.trim().toLowerCase() : null;
 
@@ -1222,6 +1222,7 @@ router.post("/update", async (req, res) => {
             unit_measure,
             unit_speed,
             unit_temperature,
+            shot_gps,
             linked_from,
             token,
         } = req.body;
@@ -1304,6 +1305,7 @@ router.post("/update", async (req, res) => {
                             unit_measure: unit_measure,
                             unit_speed: unit_speed,
                             unit_temperature: unit_temperature,
+                            shot_gps: shot_gps,
                             updated: new Date(Date.now()),
                             unix_timestamp: Date.now()
                         },
@@ -1404,7 +1406,7 @@ router.post("/golfbag", async (req, res) => {
             golf_bag,
             token,
         } = req.body;
-        
+
         const email = user_email ? user_email.trim().toLowerCase() : null;
 
         response.data = req.body;
@@ -1485,7 +1487,7 @@ router.post("/golfbag", async (req, res) => {
                     }).catch(err => {
                         console.error("Change log failed:", err)
                     });
-                } else { 
+                } else {
                     await logError({
                         thisDb,
                         type: "validation",
@@ -1671,7 +1673,7 @@ router.post("/import", async (req, res) => {
     async function processData(data, res, thisDb, query, table) {
         let obj_keys = [];
         let token = "";
-        
+
         const user_obj = {};
         const tour_obj = {};
 
@@ -1719,7 +1721,7 @@ router.post("/import", async (req, res) => {
                 }
             }
         }
-        
+
         var errMess = "";
 
         const user_email = user_obj.user_email.trim().toLowerCase();
@@ -1733,7 +1735,7 @@ router.post("/import", async (req, res) => {
                 errMess = "Invalid Email Address Sent";
             }
         }
-/* 
+/*
         if (token == null || token == "") {
             errMess += " Invalid Token Sent";
         }
@@ -1785,7 +1787,7 @@ router.post("/import", async (req, res) => {
             // check if we do have somethig to update
             if (Object.keys(setFields).length === 0) {
                 if (tour_obj && typeof tour_obj === "object" && !Array.isArray(tour_obj) && Object.keys(tour_obj).length > 0) {
-                    
+
                 } else {
                     res.fcount++;
                     res.messages.push("Nothing to change");
@@ -1830,7 +1832,7 @@ router.post("/import", async (req, res) => {
 
             // update/insert tour info
             let _id;
-            
+
             if (old_values?._id) {
                 _id = old_values._id;
             } else {
@@ -1975,7 +1977,7 @@ async function getUserData(table, thisDb, suffix, type, user_email) {
 
     if (type == "A") {
         let query_aggregate = [
-            { 
+            {
                 $match: {
                     user_email: user_email
                 }
@@ -1997,7 +1999,7 @@ async function getUserData(table, thisDb, suffix, type, user_email) {
         response.data = await thisDb.collection(table).find(query).toArray();
         response.query = query;
     }
-    
+
     return response;
 }
 
