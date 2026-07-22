@@ -148,7 +148,6 @@ router.post("/update", async (req, res) => {
             if (code == "99") {
                 newvalues = {
                     $set: {
-                        table_id: table_id,
                         as_groups: data,
                         updated: new Date(Date.now()),
                         unix_timestamp: Date.now()
@@ -158,7 +157,6 @@ router.post("/update", async (req, res) => {
             if (code == "22") {
                 newvalues = {
                     $set: {
-                        table_id: table_id,
                         as_pos: data,
                         created: new Date(Date.now()),
                         updated: new Date(Date.now()),
@@ -169,7 +167,6 @@ router.post("/update", async (req, res) => {
             if (code == "23") {
                 newvalues = {
                     $set: {
-                        table_id: table_id,
                         as_lie: data,
                         created: new Date(Date.now()),
                         updated: new Date(Date.now()),
@@ -180,7 +177,6 @@ router.post("/update", async (req, res) => {
             if (code == "24") {
                 newvalues = {
                     $set: {
-                        table_id: table_id,
                         as_clubs: data,
                         created: new Date(Date.now()),
                         updated: new Date(Date.now()),
@@ -191,7 +187,6 @@ router.post("/update", async (req, res) => {
             if (code == "25") {
                 newvalues = {
                     $set: {
-                        table_id: table_id,
                         as_oos: data,
                         created: new Date(Date.now()),
                         updated: new Date(Date.now()),
@@ -214,7 +209,7 @@ router.post("/update", async (req, res) => {
             type: "other",
             action: "tables/update",
             error: e,
-            payload: req.body,
+            payload: {req.body},
             functionName: "tables/update"
         });
     }
