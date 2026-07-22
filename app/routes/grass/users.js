@@ -284,8 +284,8 @@ router.post('/check', async (req, res) => {
                     errMess: "Token sent does not match with user.",
                     type: "validation",
                     action: "users/check",
-                    user: data.user_id,
-                    payload: data,
+                    user: account[0].user_id,
+                    payload: req.body,
                     status: "CHECKED",
                     data: account[0],
                     user_email: email

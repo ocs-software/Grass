@@ -209,7 +209,7 @@ router.post("/update", async (req, res) => {
             type: "other",
             action: "tables/update",
             error: e,
-            payload: {req.body},
+            payload: req.body,
             functionName: "tables/update"
         });
     }
