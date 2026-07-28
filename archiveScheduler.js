@@ -23,6 +23,7 @@ module.exports = function (db) {
 
     // every day at 02:00
 
+    console.log("schedule creation");
     cron.schedule("0 2 * * *", async () => {
 
         console.log("Archive job started");
