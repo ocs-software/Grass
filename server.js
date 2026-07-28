@@ -104,6 +104,8 @@ MongoClient.connect(db.url, async (err, database) => {
 	const { getAppConfig } = require("./app/config/app_config");
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
+    if (suffix != "_dev")
+        require("./archiveScheduler")(database);
 
 	await initializeIndexes(database, suffix);
 
