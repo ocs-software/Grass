@@ -178,7 +178,7 @@ router.post("/delete", async (req, res) => {
             }
         }
 
-        if (errMess == "" && !data.my_round.id) {
+        if (!data.my_round.id) {
             return await sendError(res, 200, {
                 thisDb,
                 errMess: "Round ID not sent.",
@@ -329,9 +329,9 @@ router.post("/update", async (req, res) => {
                 thisDb,
                 errMess: "Token not sent.",
                 type: "validation",
-                action: "myrounds/delete",
+                action: "myrounds/update",
                 payload: data,
-                functionName: "myrounds/delete"
+                functionName: "myrounds/update"
             });
         }
 
@@ -342,9 +342,9 @@ router.post("/update", async (req, res) => {
                 thisDb,
                 errMess: "User not found",
                 type: "validation",
-                action: "myrounds/delete",
+                action: "myrounds/update",
                 payload: data,
-                functionName: "myrounds/delete"
+                functionName: "myrounds/update"
             });
         } else {
             if (data.token != user.token) {
