@@ -102,7 +102,7 @@ router.post("/update", async (req, res) => {
             updated: new Date(),
             unix_timestamp: new Date().getTime()
         };
-            //  console.log("Updating")
+        //  console.log("Updating")
         if (code == "99") {
             updateFields.as_groups = data;
         }
@@ -117,6 +117,15 @@ router.post("/update", async (req, res) => {
         }
         if (code == "25") {
             updateFields.as_oos = data;
+        }
+        if (code == "26") {
+            updateFields.as_dos = data;
+        }
+        if (code == "27") {
+            updateFields.as_tos = data;
+        }
+        if (code == "28") {
+            updateFields.as_units = data;
         }
 
         newvalues = {
