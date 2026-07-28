@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const { rebuildOverallRanking } = require("./app/workers/rankingWorker");
+const { rebuildOverallRanking } = require("./app/workers/rebuildRankings");
 
 /**
  * Starts the scheduled ranking rebuild.
