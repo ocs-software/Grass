@@ -101,11 +101,17 @@ MongoClient.connect(db.url, async (err, database) => {
 	if (err) 
 		return console.log(err)
 
+    const startArchiveScheduler = require("./workers/archiveScheduler");
+    const {
+        startRankingScheduler
+    } = require("./workers/rankingScheduler");
 	const { getAppConfig } = require("./app/config/app_config");
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
-    if (suffix != "_dev")
-        require("./archiveScheduler")(database);
+    if (suffix != "_dev") {
+        startArchiveScheduler(database);
+    }
+    startRankingScheduler(database);
 
 	await initializeIndexes(database, suffix);
 

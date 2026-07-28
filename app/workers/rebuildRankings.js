@@ -1,36 +1,35 @@
-
-require('dotenv').config()
-const MongoClient = require('mongodb').MongoClient;
 const { rebuildRankingDocuments } = require("../util/rankingRound");
 const { getAppConfig } = require("../config/app_config");
 
-async function main() {
-    const database_url = process.env.DATABASE_URL
-    const db = {
-        url: database_url
+/**
+ * Rebuilds the overall ranking.
+ *
+ * @param {import("mongodb").Db} thisDb
+ * @returns {Promise<void>}
+ */
+async function rebuildOverallRanking(thisDb) {
+    if (!thisDb) {
+        throw new Error("MongoDB database connection was not provided.");
     }
-    const client = await MongoClient.connect(db.url);
 
-    try {
-        const appConfig = getAppConfig();
-        const suffix = appConfig.suffix;
-        const thisDb = client.db(appConfig.database_name);
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
 
-        await rebuildRankingDocuments({
-            thisDb,
-            suffix,
-            criteria: {}
-        });
+    console.log(
+        `[ranking] Overall ranking rebuild started at ${new Date().toISOString()}`
+    );
 
-        console.log("Overall ranking rebuilt.");
-    } finally {
-        await client.close();
-    }
+    await rebuildRankingDocuments({
+        thisDb,
+        suffix,
+        criteria: {}
+    });
+
+    console.log(
+        `[ranking] Overall ranking rebuild completed at ${new Date().toISOString()}`
+    );
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((err) => {
-        console.error(err);
-        process.exit(1);
-    });
+module.exports = {
+    rebuildOverallRanking
+};

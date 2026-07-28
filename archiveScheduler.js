@@ -14,7 +14,7 @@ const collections = [
         sourceCollection: "logs",
         archiveCollection: "logs_archive",
         dateField: "created_at",
-        retentionDays: 30
+        retentionDays: 60
     }
 
 ];
