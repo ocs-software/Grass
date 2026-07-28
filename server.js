@@ -101,10 +101,10 @@ MongoClient.connect(db.url, async (err, database) => {
 	if (err) 
 		return console.log(err)
 
-    const startArchiveScheduler = require(".app/workers/archiveScheduler");
+    const startArchiveScheduler = require("./archiveScheduler");
     const {
         startRankingScheduler
-    } = require(".app/workers/rankingScheduler");
+    } = require("./rankingScheduler");
 	const { getAppConfig } = require("./app/config/app_config");
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
