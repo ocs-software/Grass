@@ -1,7 +1,8 @@
 const BATCH_SIZE = 1000;
 
-async function archiveCollection(db, config) {
+async function archiveCollection(thisDb, config) {
 
+    const db = thisDb.db("grass");
     const {
         sourceCollection,
         archiveCollection,

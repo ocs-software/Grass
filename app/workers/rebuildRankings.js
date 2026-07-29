@@ -12,6 +12,8 @@ async function rebuildOverallRanking(thisDb) {
         throw new Error("MongoDB database connection was not provided.");
     }
 
+    const dbConn = thisDb.db("grass");
+
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
 
