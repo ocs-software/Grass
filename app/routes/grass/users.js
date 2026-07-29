@@ -158,7 +158,7 @@ const tokenmessage =
     '</html>' +
 '';
 
-const missingmessage = 
+const missingmessage =
     '<!DOCTYPE html>' +
     '<html>' +
     '<head>' +
@@ -1097,6 +1097,7 @@ router.post("/update", async (req, res) => {
             user_residence,
             count_strokes,
             show_vspar,
+            hide_sindex,
             handicap_index,
             gender,
             playing_status,
@@ -1175,6 +1176,7 @@ router.post("/update", async (req, res) => {
                             user_residence: user_residence,
                             count_strokes: count_strokes,
                             show_vspar: show_vspar,
+                            hide_sindex: hide_sindex,
                             handicap_index: handicap_index,
                             gender: gender,
                             playing_status: playing_status,
@@ -1334,7 +1336,7 @@ router.post("/golfbag", async (req, res) => {
                     }).catch(err => {
                         console.error("Change log failed:", err)
                     });
-                } else { 
+                } else {
                     return await sendError(res, 200, {
                         thisDb,
                         errMess: "Token sent does not match with user.",
