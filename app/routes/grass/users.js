@@ -299,7 +299,7 @@ router.post('/check', async (req, res) => {
                 res.send({ res_json });
 
                 // return res.status(statusCode).send(res_json);
-                return res.send(res_json);
+                res.send(res_json);
             }
         } else {
             return await sendError(res, 200, {
