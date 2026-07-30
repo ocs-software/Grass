@@ -60,7 +60,7 @@ const message =
     '</div>' +
     '</body>' +
     '</html>' +
-'';
+    '';
 
 const errmessage =
     '<!DOCTYPE html>' +
@@ -108,7 +108,7 @@ const errmessage =
     '</div>' +
     '</body>' +
     '</html>' +
-'';
+    '';
 
 const tokenmessage =
     '<!DOCTYPE html>' +
@@ -156,7 +156,7 @@ const tokenmessage =
     '</div>' +
     '</body>' +
     '</html>' +
-'';
+    '';
 
 const missingmessage =
     '<!DOCTYPE html>' +
@@ -204,7 +204,7 @@ const missingmessage =
     '</div>' +
     '</body>' +
     '</html>' +
-'';
+    '';
 
 router.post('/check', async (req, res) => {
     const db = req.db;
@@ -269,7 +269,7 @@ router.post('/check', async (req, res) => {
                         account[0].sub_accounts = subs;
                     }
                 }
-                let res_json = {status: "VERIFIED"};
+                let res_json = { status: "VERIFIED" };
 
                 res_json.message = "Account Found";
                 res_json.user_email = email;
@@ -290,6 +290,16 @@ router.post('/check', async (req, res) => {
                     data: account[0],
                     user_email: email
                 });
+                let res_json = { status: fields.status ?? "FAILED" };
+                res_json.data = fields.data ?? {};
+                res_json.user_email = fields.user_email ?? "";
+                res_json.user = fields.user ?? {};
+                res_json.message = errMess;
+                res.res_json = res_json;
+                res.send({ res_json });
+
+                // return res.status(statusCode).send(res_json);
+                return res.send(res_json);
             }
         } else {
             return await sendError(res, 200, {
@@ -411,7 +421,7 @@ router.post("/delete", async (req, res) => {
                         } else {
                             username = sub_accs[0].user_firstname + " " + sub_acc[0].user_surname;
                             const del = await thisDb.collection(table).deleteOne(query);
-                            let res_json = {status: "OK"};
+                            let res_json = { status: "OK" };
 
                             res_json.message = "Sub-Account Deleted: " + sub_acc;
                             res.res_json = res_json;
@@ -463,7 +473,7 @@ router.post("/delete", async (req, res) => {
                             });
                         }
                     } else {
-                        let res_json = {status: "FAILED"};
+                        let res_json = { status: "FAILED" };
 
                         res_json.message = "Sub-Account Details Missing";
 
@@ -475,7 +485,7 @@ router.post("/delete", async (req, res) => {
                     const old_user = await thisDb.collection(table).findOne(query);
 
                     let del = await thisDb.collection(table).deleteOne(query);
-                    let res_json = {status: "OK"};
+                    let res_json = { status: "OK" };
 
                     res_json.message = "Account Deleted: " + email;
                     res.res_json = res_json;
@@ -625,7 +635,7 @@ router.post("/logon", async (req, res) => {
         // and only need to send data from the object at the first index (since there is no other items in this array!)
         if (item.length > 0) {
             if (item[0].token == user_token) {
-                let res_json = {status: "OK"};
+                let res_json = { status: "OK" };
 
                 res_json.message = "Account Found.";
                 res_json.user_email = email;
@@ -660,7 +670,7 @@ router.post("/logon", async (req, res) => {
                     "TemplateModel": templatemodel
                 }).then(resp => { });
 
-                let res_json = {status: "WARNING"};
+                let res_json = { status: "WARNING" };
 
                 res_json.message = "Verified Reset. Verify Email Sent.";
                 res_json.user_email = email;
@@ -763,7 +773,7 @@ router.post("/logout", async (req, res) => {
                 item[0].verified = "N";
                 // item[0].token = "";
 
-                let res_json = {status: "WARNING"};
+                let res_json = { status: "WARNING" };
 
                 res_json.message = "Verified Reset. Logged Out.";
                 res_json.user_email = email;
@@ -861,7 +871,7 @@ router.get('/verify/:useremail', async (req, res) => {
                 payload: req.params
             });
         }
-    } catch(e) {
+    } catch (e) {
         return await sendError(res, 400, {
             thisDb,
             errMess: e.message,
@@ -995,7 +1005,7 @@ router.post("/new", async (req, res) => {
                 };
 
                 const result = await thisDb.collection(table).insertOne(query);
-                let res_json = {status: "OK"};
+                let res_json = { status: "OK" };
 
                 res_json.message = "User Created.";
                 res_json.token = user_token;
@@ -1192,7 +1202,7 @@ router.post("/update", async (req, res) => {
                     };
 
                     const result = await thisDb.collection(table).updateOne(query, newvalues);
-                    let res_json = {status: "OK"};
+                    let res_json = { status: "OK" };
 
                     res_json.message = "User Updated.";
                     res_json.firstname = user_firstname;
@@ -1319,7 +1329,7 @@ router.post("/golfbag", async (req, res) => {
                     table = "users" + suffix;
 
                     const result = await thisDb.collection(table).updateOne(query, newvalues);
-                    let res_json = {status: "OK"};
+                    let res_json = { status: "OK" };
 
                     res_json.message = "Golf Bag Updated.";
                     res_json.golf_bag = golf_bag;
@@ -1430,9 +1440,9 @@ router.post("/deleteTour", async (req, res) => {
                 });
             }
 
-            res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
+            res.status(200).send({ status: "OK", message: resp ? "Record deleted." : "No record found to delete." });
         }
-    } catch(e) {
+    } catch (e) {
         return await sendError(res, 400, {
             thisDb,
             errMess: e.message,
@@ -1466,10 +1476,10 @@ router.post("/import", async (req, res) => {
                 payload = user;
                 response = await processData(user, response, thisDb, suffix, query, table);
             }
-            res.status(200).send({status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages})
+            res.status(200).send({ status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages })
         } else {
             response = await processData(data, response, thisDb, suffix, query, table);
-            res.status(200).send({status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages})
+            res.status(200).send({ status: "OK", processed: response?.pcount, failed: response?.fcount, messages: response?.messages })
         }
     } catch (e) {
         return await sendError(res, 400, {
@@ -1628,7 +1638,7 @@ router.post("/import", async (req, res) => {
                 if (result.matchedCount === 0 && !result.upsertedId) {
                     // Failed
                     res.fcount++;
-                    res.messages.push({message: "No User Document found/inserted"});
+                    res.messages.push({ message: "No User Document found/inserted" });
                     return res;
                 } else {
                     user_changes = (result.modifiedCount > 0 || result.upsertedId);
@@ -1644,7 +1654,7 @@ router.post("/import", async (req, res) => {
                 if (result.upsertedId) {
                     _id = result.upsertedId;
                 } else {
-// same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
+                    // same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
                     users = await usersDb.find(query).toArray();
                     if (users.length > 0) {
                         old_values = users[0];
@@ -1658,12 +1668,12 @@ router.post("/import", async (req, res) => {
             }
 
             if (Object.keys(tour_obj).length > 0) {
-            // have some tour information to update.
+                // have some tour information to update.
                 table = "tours" + suffix;
                 const toursDb = thisDb.collection(table);
                 const tour = tour_obj.tour;
 
-                query = {user_id: _id, tour: tour};
+                query = { user_id: _id, tour: tour };
 
                 const old_tour = await toursDb.findOne(query);
 
@@ -1676,7 +1686,7 @@ router.post("/import", async (req, res) => {
                                 {
                                     $and: [
                                         { $ne: ["$member", tour_obj.member] },
-                                        { $ne: [{ $type: "$member"}, "missing"] }
+                                        { $ne: [{ $type: "$member" }, "missing"] }
                                     ]
                                 },
                                 {
@@ -1702,11 +1712,11 @@ router.post("/import", async (req, res) => {
                     }
                 }];
 
-                result = await toursDb.updateOne(query, new_data, {upsert: true});
+                result = await toursDb.updateOne(query, new_data, { upsert: true });
 
                 if (result.matchedCount === 0 && !result.upsertedId) {
                     res.fcount++;
-                    res.messages.push({message: "No Tour Document found/inserted"});
+                    res.messages.push({ message: "No Tour Document found/inserted" });
                     return res;
                 } else {
                     const tour_changes = result.modifiedCount > 0 || result.upsertedId;
@@ -1764,7 +1774,7 @@ router.post("/import", async (req, res) => {
     async function getUserId(user_email, thisDb, table) {
         const usersDb = thisDb.collection(table);
 
-        const query = {user_email: user_email};
+        const query = { user_email: user_email };
 
         const result = await usersDb.findOne(query);
 
