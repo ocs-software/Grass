@@ -20,9 +20,7 @@ async function sendError(res, statusCode, fields = {}) {
     res_json.message = errMess;
     res.res_json = res_json;
 
-    // return res.status(statusCode).send(res_json);
-    // return res.send(res_json);
-    return;
+    return res.status(statusCode).send(res_json);
 }
 
 module.exports = { sendError };

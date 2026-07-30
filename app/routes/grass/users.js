@@ -290,16 +290,16 @@ router.post('/check', async (req, res) => {
                     data: account[0],
                     user_email: email
                 });
-                let res_json = { status: fields.status ?? "FAILED" };
-                res_json.data = fields.data ?? {};
-                res_json.user_email = fields.user_email ?? "";
-                res_json.user = fields.user ?? {};
-                res_json.message = errMess;
-                res.res_json = res_json;
-                res.send({ res_json });
+                // let res_json = { status: fields.status ?? "FAILED" };
+                // res_json.data = fields.data ?? {};
+                // res_json.user_email = fields.user_email ?? "";
+                // res_json.user = fields.user ?? {};
+                // res_json.message = errMess;
+                // res.res_json = res_json;
+                // res.send({ res_json });
 
                 // return res.status(statusCode).send(res_json);
-                res.send(res_json);
+                // res.send(res_json);
             }
         } else {
             return await sendError(res, 200, {
