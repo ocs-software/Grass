@@ -430,7 +430,6 @@ router.get("/user/active", async (req, res) => {
 
                     res_json.plan = "Basic";
                     res_json.type = "B";
-                    res.res_json = res_json;
 
                     res.send({ res_json });
                 } else {
@@ -438,7 +437,6 @@ router.get("/user/active", async (req, res) => {
 
                     res_json.plan = subs.plan_name;
                     res_json.type = subs.plan_type;
-                    res.res_json = res_json;
 
                     res.send({ res_json });
                 }

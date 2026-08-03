@@ -274,7 +274,6 @@ router.post('/check', async (req, res) => {
                 res_json.message = "Account Found";
                 res_json.user_email = email;
                 res_json.data = account[0];
-                res.res_json = res_json;
 
                 res.send({ res_json });
 
@@ -424,7 +423,6 @@ router.post("/delete", async (req, res) => {
                             let res_json = { status: "OK" };
 
                             res_json.message = "Sub-Account Deleted: " + sub_acc;
-                            res.res_json = res_json;
 
                             res.send({ res_json });
 
@@ -488,7 +486,6 @@ router.post("/delete", async (req, res) => {
                     let res_json = { status: "OK" };
 
                     res_json.message = "Account Deleted: " + email;
-                    res.res_json = res_json;
 
                     res.send({ res_json });
 
@@ -642,7 +639,6 @@ router.post("/logon", async (req, res) => {
                 res_json.token = user_token;
                 res_json.data = item;
 
-                res.res_json = res_json;
                 res.send({ res_json });
             } else {
                 let newvalues = {
@@ -678,7 +674,6 @@ router.post("/logon", async (req, res) => {
                 res_json.old_token = item[0].token;
                 res_json.data = item;
 
-                res.res_json = res_json;
                 res.send({ res_json });
             }
         } else {
@@ -779,7 +774,6 @@ router.post("/logout", async (req, res) => {
                 res_json.user_email = email;
                 res_json.data = item;
 
-                res.res_json = res_json;
                 res.send({ res_json });
             } else {
                 return await sendError(res, 200, {
@@ -1011,7 +1005,6 @@ router.post("/new", async (req, res) => {
                 res_json.token = user_token;
                 res_json.user_email = email;
 
-                res.res_json = res_json;
                 res.send({ res_json });
 
                 templatemodel = "";
@@ -1207,7 +1200,6 @@ router.post("/update", async (req, res) => {
                     res_json.message = "User Updated.";
                     res_json.firstname = user_firstname;
                     res_json.surname = user_surname;
-                    res.res_json = res_json;
 
                     res.send({ res_json });
 
@@ -1333,7 +1325,6 @@ router.post("/golfbag", async (req, res) => {
 
                     res_json.message = "Golf Bag Updated.";
                     res_json.golf_bag = golf_bag;
-                    res.res_json = res_json;
 
                     res.send({ res_json });
 
