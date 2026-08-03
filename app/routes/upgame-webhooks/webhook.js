@@ -32,7 +32,6 @@ router.post("/validate-score", async (req, res) => {
                 status: "FAILED",
             }
             res_json.message = errMess;
-            res.res_json = res_json;
             res.send({ res_json });
         }
         else {
@@ -40,7 +39,6 @@ router.post("/validate-score", async (req, res) => {
                 status: "OK",
             }
             res_json.message = "User Data OK";
-            res.res_json = res_json;
             res.send({ res_json });
         }
     } catch (e) {
@@ -49,7 +47,6 @@ router.post("/validate-score", async (req, res) => {
             status: "FAILED",
         }
         res_json.message = "Error in Fetching data.";
-        res.res_json = res_json;
         res.status(400).send({ message: "Error in Fetching data.", data: e });
     }
 });
