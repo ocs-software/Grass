@@ -851,7 +851,7 @@ router.get('/verify/:useremail', async (req, res) => {
                 errMess: "User not found.",
                 type: "validation",
                 action: "users/verify",
-                user: useremail,
+                user: user_details,
                 payload: req.params
             });
         }
