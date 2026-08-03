@@ -293,7 +293,7 @@ router.post('/check', async (req, res) => {
         } else {
             return await sendError(res, 200, {
                 thisDb,
-                errMess: "Account not foundr.",
+                errMess: "Account not found.",
                 type: "validation",
                 action: "users/check",
                 user: data.user_id,
