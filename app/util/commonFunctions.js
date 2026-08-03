@@ -18,7 +18,6 @@ async function sendError(res, statusCode, fields = {}) {
     res_json.user_email = fields.user_email ?? "";
     res_json.user = fields.user ?? {};
     res_json.message = errMess;
-    res.res_json = res_json;
 
     return res.status(statusCode).send(res_json);
 }

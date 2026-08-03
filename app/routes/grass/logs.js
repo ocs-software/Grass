@@ -43,7 +43,6 @@ router.get("/user", async (req, res) => {
                 res_json.message = "Logs For Account Found";
                 res_json.user_email = user;
                 res_json.logs = logs;
-                res.res_json = res_json;
                 res.send({ res_json });
             } else {
                 let res_json = { status: "ERROR", };
