@@ -864,7 +864,7 @@ router.get('/verify/:useremail', async (req, res) => {
             error: e,
             payload: req.query,
             functionName: "users/verify",
-            user: useremail
+            user: user_details
         });
     }
 });
