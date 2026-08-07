@@ -1116,6 +1116,8 @@ router.post("/update", async (req, res) => {
             unit_speed,
             unit_temperature,
             shot_gps,
+            club_distance,
+            adv_analytics,
             linked_from,
             token,
         } = req.body;
@@ -1196,6 +1198,8 @@ router.post("/update", async (req, res) => {
                             unit_speed: unit_speed,
                             unit_temperature: unit_temperature,
                             shot_gps: shot_gps,
+                            club_distance: club_distance,
+                            adv_analytics: adv_analytics,
                             updated: new Date(Date.now()),
                             unix_timestamp: Date.now()
                         },
