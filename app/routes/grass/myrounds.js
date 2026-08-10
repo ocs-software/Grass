@@ -482,8 +482,8 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            const stats = await getPlayerLastNReport({thisDb, suffix, criteria: {club_used: "001"}, stat: "distance", lastRecords: 10});
-            await playerStatUpdate({thisDb, suffix, stats});
+            const stats = await getPlayerLastNReport({thisDb, suffix, user_id, criteria: {club_used: "001"}, stat: "distance", lastRecords: 10});
+            await playerStatUpdate({thisDb, suffix, user_id, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
             // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
@@ -501,7 +501,7 @@ async function playerStatUpdate({
     thisDb.collection("users" + suffix);
     const tablesDB = thisDb.collection("table");
 
-    await tablesDB.updateOne({user_id: userId, {$set: {stats: stats}}});
+    await tablesDB.updateOne({user_id: userId}, {$set: {stats: stats}});
 }
 
 module.exports = router;
