@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 let ObjectID = require('mongodb').ObjectID;
 const { getAppConfig } = require("../config/app_config");
+const specialFilters = ["date_from", "date_to", "qos", "distance"];
 
 function normalizeCriteria(criteria = {}) {
     const { rootMatch, holeStatsMatch } = buildMatch(criteria);
@@ -52,7 +53,8 @@ function buildMatch(criteria = {}) {
     const holeStatsMatch = {};
 
     for (const [key, value] of Object.entries(criteria)) {
-        if (key === "date_from" || key === "date_to") continue;
+        if (specialFilters.contains(key))
+            continue;
 
         const config = getCriteriaConfig(key);
 
@@ -62,17 +64,19 @@ function buildMatch(criteria = {}) {
         target[config.source === "hole_stats" ? `hole_stats.${field}` : field] = value;
     }
 
-    if (criteria.date_from || criteria.date_to) {
-        rootMatch.created_at = {};
-
-        if (criteria.date_from) {
-            rootMatch.created_at.$gte = new Date(criteria.date_from);
-        }
-
-        if (criteria.date_to) {
-            const endDate = new Date(criteria.date_to);
-            endDate.setUTCHours(23, 59, 59, 999);
-            rootMatch.created_at.$lte = endDate;
+    for (const key of specialFilters) {
+        if (criteria[key]) {
+            if (key == "date_to") {
+                const endDate = new Date(criteria[key]);
+                endDate.setUTCHours(23, 59, 59, 999);
+                rootMatch.created_at.$lte = endDate;
+            } else {
+                if (key == "date_from") {
+                    rootMatch.created_at.$gte = new Date(criteria[key]);
+                } else {
+                    holeStatsMatch[key].$gte = criteria[key];
+                }
+            }
         }
     }
 
@@ -472,6 +476,186 @@ async function getPlayerReport({
     };
 }
 
+async function getPlayerLastNReport({
+    thisDb,
+    suffix = "",
+    userId,
+    criteria = {},
+    sourceCollection = "myrounds",
+    stat = "total_score",
+    lastRecords = 10,
+    dateField = "created_at"
+}) {
+    await recordCriteriaUsage({
+        thisDb,
+        suffix,
+        criteria,
+        stat
+    });
+
+    const {
+        rootMatch,
+        holeStatsMatch,
+        normalizedCriteria
+    } = normalizeCriteria(criteria);
+
+    const statConfig = getStatConfig(stat);
+
+    const scoreStages = getScoreProjectionStages(
+        statConfig,
+        holeStatsMatch
+    );
+
+    const source = thisDb.collection(
+        sourceCollection + suffix
+    );
+
+    const userObjectId = new ObjectID(userId);
+
+    /*
+     * Validate requested number of records.
+     */
+    const parsedLastRecords = parseInt(lastRecords, 10);
+
+    const lastN =
+        Number.isInteger(parsedLastRecords) &&
+        parsedLastRecords > 0
+            ? parsedLastRecords
+            : 10;
+
+    const pipeline = [
+        /*
+         * Apply normal report criteria AND restrict the query
+         * to the requested player.
+         */
+        {
+            $match: {
+                ...rootMatch,
+                user_id: userObjectId
+            }
+        },
+
+        /*
+         * Convert/project the requested stat into "score".
+         *
+         * IMPORTANT:
+         * getScoreProjectionStages() must preserve dateField
+         * because we need it below for sorting.
+         */
+        ...scoreStages,
+
+        /*
+         * Newest matching records first.
+         *
+         * _id is used as a secondary sort so the order remains
+         * deterministic when multiple records have the same date.
+         */
+        {
+            $sort: {
+                [dateField]: -1,
+                _id: -1
+            }
+        },
+
+        /*
+         * Only use the requested number of most recent records.
+         */
+        {
+            $limit: lastN
+        },
+
+        /*
+         * Calculate statistics from those records.
+         */
+        {
+            $group: {
+                _id: "$user_id",
+
+                average_score: {
+                    $avg: "$score"
+                },
+
+                min_score: {
+                    $min: "$score"
+                },
+
+                max_score: {
+                    $max: "$score"
+                },
+
+                total_score: {
+                    $sum: "$score"
+                },
+
+                records: {
+                    $sum: 1
+                }
+            }
+        },
+
+        {
+            $project: {
+                _id: 0,
+
+                user_id: "$_id",
+
+                average_score: 1,
+                min_score: 1,
+                max_score: 1,
+                total_score: 1,
+                records: 1
+            }
+        }
+    ];
+
+    const [result] = await source
+        .aggregate(
+            pipeline,
+            {
+                allowDiskUse: true
+            }
+        )
+        .toArray();
+
+    /*
+     * Nothing matched the player + supplied criteria.
+     */
+    if (!result) {
+        return {
+            player: null,
+            reason: "NO_RECORDS_FOUND",
+            requested_records: lastN,
+            available_records: 0,
+            criteria: normalizedCriteria
+        };
+    }
+
+    /*
+     * Some records matched, but there are not enough to
+     * calculate the requested last-N report.
+     */
+    if (result.records < lastN) {
+        return {
+            player: null,
+            reason: "INSUFFICIENT_RECORDS",
+            requested_records: lastN,
+            available_records: result.records,
+            criteria: normalizedCriteria
+        };
+    }
+
+    /*
+     * Enough records were found.
+     */
+    return {
+        player: result,
+        reason: null,
+        requested_records: lastN,
+        available_records: result.records,
+        criteria: normalizedCriteria
+    };
+}
+
 /**
  * Optional: fully live report including ranking.
  * Use only for smaller filtered datasets or admin/debug.
@@ -484,7 +668,7 @@ async function getPlayerReportOnTheFly({
     peerCriteria = {},
     sourceCollection = "myrounds",
     stat = "total_score",
-    lowerIsBetter
+    lowerIsBetter = true
 }) {
     await recordCriteriaUsage({ thisDb, suffix, criteria, stat });
 

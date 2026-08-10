@@ -48,7 +48,10 @@ function getAppConfig() {
       event: { source: "root", field: "event_id" },
 
       hole: { source: "hole_stats", field: "hole" },
-      par: { source: "hole_stats", field: "par" }
+      par: { source: "hole_stats", field: "par" },
+      distance: { source: "hole_stats", field: "distance" },
+      qos: { source: "hole_stats", field: "qos" },
+      club_used: { source: "hole_stats", field: "club_used" },
     },
     PEER_CRITERIA_MAP: {
       playerType: { field: "player_type" },

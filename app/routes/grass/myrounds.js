@@ -265,6 +265,8 @@ router.post("/delete", async (req, res) => {
         await thisDb.collection(table).deleteMany(query);
 
         if (completed) {
+            const stats = await getPlayerLastNReport({thisDb, suffix, criteria: {club_used: "001"}, stat: "distance", lastRecords: 10});
+            await playerStatUpdate({thisDb, suffix, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
             // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
@@ -480,6 +482,8 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
+            const stats = await getPlayerLastNReport({thisDb, suffix, criteria: {club_used: "001"}, stat: "distance", lastRecords: 10});
+            await playerStatUpdate({thisDb, suffix, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
             // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
@@ -487,5 +491,17 @@ router.post("/update", async (req, res) => {
         }
     }
 });
+
+async function playerStatUpdate({
+    thisDb,
+    suffix,
+    userId,
+    stats
+}) {
+    thisDb.collection("users" + suffix);
+    const tablesDB = thisDb.collection("table");
+
+    await tablesDB.updateOne({user_id: userId, {$set: {stats: stats}}});
+}
 
 module.exports = router;
