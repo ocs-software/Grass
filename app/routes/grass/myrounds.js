@@ -7,7 +7,7 @@ const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
-const { enqueueRankingRebuild, rebuildRankingDocuments } = require("../../util/rankingRound");
+const { enqueueRankingRebuild, rebuildRankingDocuments, getPlayerLastNReport } = require("../../util/rankingRound");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -265,7 +265,7 @@ router.post("/delete", async (req, res) => {
         await thisDb.collection(table).deleteMany(query);
 
         if (completed) {
-            const stats = await getPlayerLastNReport({thisDb, suffix, criteria: {club_used: "001"}, stat: "distance", lastRecords: 10});
+            const stats = await getPlayerLastNReport({thisDb, suffix, criteria: {club_used: "001", qos: 3}, stat: "distance", lastRecords: 10});
             await playerStatUpdate({thisDb, suffix, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
