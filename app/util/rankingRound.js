@@ -476,7 +476,7 @@ async function getPlayerReport({
     };
 }
 
-async function getPlayerLastNReports({thisDb, suffix, stat, userId, qos = null, lastRecords = null}) {
+async function getPlayerLastNReports({thisDb, suffix, userId, stat, qos = null, lastRecords = null}) {
     const statConfig = getStatConfig(stat);
 
     if (qos == null) {

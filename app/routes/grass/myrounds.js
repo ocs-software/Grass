@@ -482,7 +482,7 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            const stats = await getPlayerLastNReport({thisDb, suffix, user_id, criteria: {club_used: "001"}, stat: "distance", lastRecords: 10});
+            const stats = await getPlayerLastNReports({thisDb, suffix, user_id, "distance"});
             await playerStatUpdate({thisDb, suffix, user_id, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
