@@ -120,6 +120,134 @@ router.post("/get", async (req, res) => {
 });
 
 router.post("/average", async (req, res) => {
+    db = req.db;
+    const thisDb = db.db("grass")
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const data = req.body;
+
+    try {
+        const userId = data.user_id;
+        const token = data.token;
+        const club = data.club_used;
+        let stat = data.stat;
+        let qos = data.qos;
+        let lastRecords = data.lastRecords;
+
+        if (!userId) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "User ID not sent.",
+                type: "validation",
+                action: "stats/average",
+                payload: data,
+                functionName: "stats/average"
+            });
+        }
+
+        if (!token) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Token not sent.",
+                type: "validation",
+                action: "stats/average",
+                payload: data,
+                functionName: "stats/average"
+            });
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(userId)});
+
+        if (!user) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "User not found.",
+                type: "validation",
+                action: "stats/average",
+                user: userId,
+                payload: data
+            });
+        }
+
+        if (token != user.token) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Token sent does not match with user.",
+                type: "validation",
+                action: "stats/average",
+                user: userId,
+                payload: data
+            });
+        }
+
+        if (!club) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Club not sent.",
+                type: "validation",
+                action: "stats/average",
+                payload: data,
+                functionName: "stats/average"
+            });
+        }
+
+        const item = thisDb.collection("table" + suffix).findOne("table_id": "OPTIONS");
+
+        if (!item) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Table OPTIONS not found.",
+                type: "validation",
+                action: "stats/average",
+                user: userId,
+                payload: data
+            });
+        }
+
+        let clubRec = "";
+        item.as_clubs.forEach((itemClub) => {
+            if (itemClub.code == club) {
+                clubRec = itemClub.code;
+                break;
+            }
+        });
+
+        if (clubRec != club) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Club sent not found at table OPTIONS.",
+                type: "validation",
+                action: "stats/average",
+                user: userId,
+                payload: data
+            });
+        }
+
+        if (!stat) {
+            stat = "distance";
+        }
+
+        if (!qos) {
+            qos = 3;
+        }
+
+        if (!lastRecords) {
+            lastRecords = 10;
+        }
+
+        return await getPlayerLastNReport({thisDb, suffix, userId, criteria: {club_used: club, qos: qos}, stat, lastRecords});
+
+    } catch (e) {
+        return await sendError(res, 400, {
+            thisDb,
+            errMess: e.message || "Error in creating stats report.",
+            type: "other",
+            action: "stats/average",
+            error: e,
+            payload: data,
+            functionName: "stats/average"
+        });
+    }
 });
 
 module.exports = router;
