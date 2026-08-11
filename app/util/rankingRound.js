@@ -496,7 +496,7 @@ async function getPlayerLastNReports({thisDb, suffix, stat, userId, qos = null, 
 async function getClubTableRecords({thisDb, suffix}) {
     let tableClubs = [];
 
-    const query = { table_id: table_id };
+    const query = { table_id: "OPTIONS" };
     const table = "table" + suffix;
 
     const item = await thisDb.collection(table).find(query).toArray();
