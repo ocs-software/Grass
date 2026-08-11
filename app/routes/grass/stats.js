@@ -6,7 +6,7 @@ let ObjectID = require('mongodb').ObjectID
 const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { logDocumentChange } = require("../../logs/changeLogger");
-const { getPlayerReportOnTheFly } = require("../../util/rankingRound");
+const { getPlayerReportOnTheFly, getPlayerLastNReport } = require("../../util/rankingRound");
 const { sendError } = require("../../util/commonFunctions");
 
 router.post("/get", async (req, res) => {
@@ -117,6 +117,9 @@ router.post("/get", async (req, res) => {
             functionName: "stats/get"
         });
     }
+});
+
+router.post("/average", async (req, res) => {
 });
 
 module.exports = router;
