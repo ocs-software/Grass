@@ -476,6 +476,52 @@ async function getPlayerReport({
     };
 }
 
+async function getPlayerLastNReports({thisDb, suffix, stat, userId, qos = null, lastRecords = null}) {
+    const statConfig = getStatConfig(stat);
+
+    if (qos == null) {
+        qos = statConfig.qos;
+    }
+    if (lastRecords == null) {
+        lastRecords = statConfig.lastRecords;
+    }
+
+    const tableClubs = await getClubTableRecords(thisDb, suffix);
+    for (const club of tableClubs) {
+        const {criteria, tableConfig} = createCriteriaClubs({club, qos});
+        await getPlayerLastNReport({thisDb, suffix, userId, criteria});
+    }
+}
+
+async function getClubTableRecords({thisDb, suffix}) {
+    let tableClubs = [];
+
+    const query = { table_id: table_id };
+    const table = "table" + suffix;
+
+    const item = await thisDb.collection(table).find(query).toArray();
+
+    if (item.length > 0 && item[0].as_clubs.length > 0) {
+        tableClubs = item[0].as_clubs;
+    }
+    return tableClubs;
+}
+
+function createCriteriaClubs({club = {}, qos}) {
+    const criteria = {};
+    const tableConfig = {};
+
+    if (club && club.code) {
+        tableConfig.code = club.code;
+        tableConfig.source = "holes_stats";
+
+        criteria.club_used = club.code;
+        criteria.qos = qos;
+    }
+    
+    return {criteria, tableConfig};
+}
+
 async function getPlayerLastNReport({
     thisDb,
     suffix = "",
@@ -888,5 +934,7 @@ module.exports = {
     enqueueRankingRebuild,
     processOneRankingJob,
     getPlayerReport,
-    getPlayerReportOnTheFly
+    getPlayerReportOnTheFly,
+    getPlayerLastNReport,
+    getPlayerLastNReports
 };

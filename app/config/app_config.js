@@ -26,7 +26,8 @@ function getAppConfig() {
       distance: {
           source: "hole_stats",
           field: "distance",
-          lowerIsBetter: false
+          lowerIsBetter: false,
+          lastRecords: 10,
       },
 
       gir: {
