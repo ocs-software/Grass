@@ -191,7 +191,7 @@ router.post("/average", async (req, res) => {
             });
         }
 
-        const item = thisDb.collection("table" + suffix).findOne("table_id": "OPTIONS");
+        const item = thisDb.collection("table" + suffix).findOne({"table_id": "OPTIONS"});
 
         if (!item) {
             return await sendError(res, 200, {
