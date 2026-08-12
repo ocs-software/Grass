@@ -1,8 +1,5 @@
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
-let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 
@@ -47,7 +44,7 @@ router.get("/user", async (req, res) => {
             } else {
                 let res_json = { status: "ERROR", };
                 res_json.message = "No Log Details Found";
-                res_json.user_email = course;
+                res_json.user_email = user;
                 res.send({ res_json })
             }
         }
@@ -58,7 +55,7 @@ router.get("/user", async (req, res) => {
             type: "other",
             action: "logs/user",
             error: e,
-            payload: data,
+            payload: req.query,
             functionName: "logs/user"
         });
     }

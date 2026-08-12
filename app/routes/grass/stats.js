@@ -1,9 +1,6 @@
-const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
 let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { logDocumentChange } = require("../../logs/changeLogger");
 const { getPlayerReportOnTheFly, getPlayerLastNReport } = require("../../util/rankingRound");
@@ -17,8 +14,6 @@ router.post("/get", async (req, res) => {
     const data = req.body;
 
     try {
-        const res_json = {};
-
         if (!data.user_id) {
             return await sendError(res, 200, {
                 thisDb,
@@ -73,7 +68,6 @@ router.post("/get", async (req, res) => {
             Array.isArray(criteria) ||
             Object.keys(criteria).length < 1
         ) {
-            errMess = "";
             return await sendError(res, 200, {
                 thisDb,
                 errMess: "No filter sent. This operation can only be done with something to filter for.",

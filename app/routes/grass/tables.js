@@ -1,12 +1,8 @@
 const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
-let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
-const { logDocumentChange } = require("../../logs/changeLogger");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -94,7 +90,7 @@ router.post("/update", async (req, res) => {
 
         query = { table_id: table_id };
         table = "table" + suffix;
-        const item = await thisDb.collection(table).find(query).toArray();
+        await thisDb.collection(table).find(query).toArray();
         var options = {};
         var newvalues = {};
 
@@ -136,7 +132,7 @@ router.post("/update", async (req, res) => {
         }
         options = { upsert: true };
 
-        const result = await thisDb.collection("table").updateOne(query, newvalues, options);
+        await thisDb.collection("table").updateOne(query, newvalues, options);
         let res_json = {
             status: "OK",
         }

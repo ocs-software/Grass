@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "dbaeumer.vscode-eslint",
+        "usernamehw.errorlens",
+        "eamodio.gitlens",
+        "mongodb.mongodb-vscode",
+        "christian-kohler.path-intellisense",
+        "aaron-bond.better-comments",
+        "esbenp.prettier-vscode"
+    ]
+}

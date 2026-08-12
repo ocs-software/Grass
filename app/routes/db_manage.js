@@ -1,7 +1,7 @@
 // routes/db_manage.js
 
 module.exports = {
-  choose_db: function (req, database, suffix) {
+  choose_db: function (req, database) {
     //const custID = req.params.dbid
     //const tourID = req.params.tourid
 

@@ -1,9 +1,6 @@
-const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
-let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
+let ObjectID = require('mongodb').ObjectID;
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
@@ -19,8 +16,6 @@ router.post("/get", async (req, res) => {
 
     try {
         const data = req.body;
-
-        const res_json = {};
 
         if (!data.user_id) {
             return await sendError(res, 200, {
@@ -283,11 +278,9 @@ router.post("/update", async (req, res) => {
     const thisDb = db.db("grass");
     let query = "";
     let table = "myrounds" + suffix;
-    let payload;
 
     try {
         const data = req.body;
-        let obj_keys = [];
         
         if (typeof data !== "object") {
             return await sendError(res, 200, {
@@ -370,7 +363,7 @@ router.post("/update", async (req, res) => {
         query = { id: round_id, user_id: new ObjectID(user_id) };
         const collectionDb = thisDb.collection(table);
 
-        result = await collectionDb.updateOne(
+        const result = await collectionDb.updateOne(
             query,
             [
                 {
@@ -435,7 +428,6 @@ router.post("/update", async (req, res) => {
 
         let old_hole = 0;
         let setFields = {};
-        let stat_saved = {};
 
         for (const stats of my_round.hole_stats) {
             if (stats.hole != old_hole) {
@@ -444,7 +436,7 @@ router.post("/update", async (req, res) => {
                     setFields = {};
                 }
                 query.hole = stats.hole;
-                stat_saved = await collectionDb.findOne(query);
+                await collectionDb.findOne(query);
                 old_hole = stats.hole;
             }
 
@@ -461,7 +453,6 @@ router.post("/update", async (req, res) => {
 
     async function saveStat(thisDb, suffix, setFields, query, user_id, completed) {
         const statsDB = thisDb.collection("stats" + suffix);
-        const tablesDB = thisDb.collection("table");
 
         for (const field of Object.keys(query)) {
             delete setFields[field];

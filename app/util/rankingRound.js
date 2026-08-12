@@ -179,7 +179,7 @@ async function rebuildRankingDocuments({
     const source = thisDb.collection(sourceCollection + suffix);
     const sortDirection = lowerIsBetter ? 1 : -1;
 
-    const statConfig = getStatConfig(data.stat || "total_score");
+    const statConfig = getStatConfig(scoreField);
 
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
 
@@ -261,7 +261,7 @@ async function enqueueRankingRebuild({
     criteria = {},
     jobsCollection = "ranking_jobs"
 }) {
-    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const {normalizedCriteria } = normalizeCriteria(criteria);
     const filterHash = buildFilterHash(normalizedCriteria);
 
     await thisDb.collection(jobsCollection + suffix).updateOne(
@@ -395,7 +395,7 @@ async function getPlayerReport({
     rankingCollection = "ranking_cache",
     scoreField = "total_score"
 }) {
-    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const { rootMatch, normalizedCriteria } = normalizeCriteria(criteria);
     const filterHash = buildFilterHash(normalizedCriteria);
 
     const source = thisDb.collection(sourceCollection + suffix);
@@ -488,7 +488,7 @@ async function getPlayerLastNReports({thisDb, suffix, userId, stat, qos = null, 
 
     const tableClubs = await getClubTableRecords(thisDb, suffix);
     for (const club of tableClubs) {
-        const {criteria, tableConfig} = createCriteriaClubs({club, qos});
+        const { criteria } = createCriteriaClubs({club, qos});
         await getPlayerLastNReport({thisDb, suffix, userId, criteria});
     }
 }

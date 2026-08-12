@@ -1,7 +1,5 @@
-const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 
@@ -48,7 +46,7 @@ router.get("/", async (req, res) => {
                 errMess: "No Courses Found.",
                 type: "validation",
                 action: "search",
-                payload: data,
+                payload: req.query,
                 query: query,
                 table: table,
                 functionName: "search"
@@ -71,7 +69,6 @@ router.get("/", async (req, res) => {
 router.get("/users", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
-    let query;
     let table;
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
@@ -104,7 +101,6 @@ router.get("/users", async (req, res) => {
 router.post("/users", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
-    let query;
     let table;
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;

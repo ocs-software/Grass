@@ -1,9 +1,5 @@
-const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
-let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
 const Stripe = require("stripe");
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
@@ -48,10 +44,9 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 break;
             }
             case "invoice.payment_failed": {
-                const invoice = event.data.object;
+                // const invoice = event.data.object;
                 // should we change subscription to basic?
                 return res.sendStatus(200);
-                break;
             }
 
             case "customer.subscription.deleted": {
@@ -59,7 +54,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
                 const period = new Date(subscription.ended_at * 1000);
                 const plan = {period: period};
-                const ret_code = await revokeAccess(invoice.customer, plan, true);
+                const ret_code = await revokeAccess(subscription.customer, plan, true);
                 res.sendStatus(ret_code);
                 break;
             }
@@ -68,19 +63,19 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
                 const period = new Date(subscription.lines.data[0].period.end * 1000);
                 const plan = {period: period};
-                const ret_code = await revokeAccess(invoice.customer, plan, true);
+                const ret_code = await revokeAccess(subscription.customer, plan, true);
                 res.sendStatus(ret_code);
                 break;
             }
             case "customer.subscription.resumed": {
                 const subscription = event.data.object;
 
-                const ret_code = await grantAccess(invoice.customer);
+                const ret_code = await grantAccess(subscription.customer);
                 res.sendStatus(ret_code);
                 break;
             }
             case "customer.subscription.updated": {
-                const subscription = event.data.object;
+                // const subscription = event.data.object;
 
                 // const ret_code = await grantAccess(invoice.customer);
                 // res.sendStatus(ret_code);
@@ -98,7 +93,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
             default:
                 // Ignore everything else
                 return res.sendStatus(200);
-                break;
       }
     } catch (err) {
         return await sendError(res, 400, {
@@ -130,7 +124,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 if (line.amount >= 0) {
                     const period = new Date(line.period.end * 1000);
                     plan.period = period;
-                    const ret_code = await grantAccess(customer, plan);
+                    await grantAccess(customer, plan);
                     return 200;
                 } else {
                     if (basic && period_end) {
@@ -165,7 +159,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                 // No active subscription yet: create first one
                 const now = new Date();
                 if (!activeSubscription) {
-                    const result = await subscriptions.insertOne({
+                    await subscriptions.insertOne({
                         user_id: userId,
                         plan: plan.stripe_price_id,
                         plan_name: plan.name,
@@ -210,7 +204,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                         }
                     );
 
-                    const result = await subscriptions.insertOne({
+                    await subscriptions.insertOne({
                         user_id: userId,
                         plan: plan.stripe_price_id,
                         plan_name: plan.name,
@@ -309,7 +303,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
                             created_at: newdate,
                             updated_at: newdate,
                         };
-                        const result = await subscriptions.insertOne(query);
+                        await subscriptions.insertOne(query);
                     }
                     return 200;
                 }
@@ -566,7 +560,7 @@ router.get("/search", async (req, res) => {
             type: "other",
             action: "subs/search",
             error: err,
-            payload: cust_id,
+            payload: req.query,
             query: query,
             functionName: "subs/search"
         });

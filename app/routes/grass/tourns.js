@@ -1,9 +1,5 @@
-const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-const mongodb = require("mongodb");
-let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
@@ -118,7 +114,6 @@ router.post("/delete", async (req, res) => {
                 channel: "tourns/delete",
                 resp,
                 newData: {},
-                tourn_id: _id,
                 tourncode: tourncode,
                 season: season,
             }).catch(err => {
@@ -147,18 +142,13 @@ router.post("/update", async (req, res) => {
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
     let result = {};
-    let pcount = 0;
-    let fcount = 0;
-    let messages = [];
     let query = "";
     let table = "";
-    let payload;
+    const data = req.body;
 
     try {
-        const data = req.body;
         if (data?.tourns) {
             for (var tourn of data.tourns) {
-                payload = tourn;
                 result = await processData(tourn, result, thisDb, suffix, query, table);
             }
             res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages})
@@ -275,7 +265,6 @@ router.post("/update", async (req, res) => {
             }
         }
 
-        let tourn_changes = false;
         // check if we do have somethig to update
         if (Object.keys(setFields).length === 0) {
             res.fcount++;
@@ -310,30 +299,18 @@ router.post("/update", async (req, res) => {
                 res.fcount++;
                 res.messages.push({message: "No Tournament Document found/inserted"});
                 return res;
-            } else {
-                tourn_changes = (result.modifiedCount > 0 || result.upsertedId);
-            }
+            } // else {
+            //     tourn_changes = (result.modifiedCount > 0 || result.upsertedId);
+            // }
         }
 
         // update/insert tour info
-        let _id;
         
-        if (old_values?._id) {
-            _id = old_values._id;
-        } else {
-            if (result.upsertedId) {
-                _id = result.upsertedId;
-            } else {
+        if (!old_values?._id && !result.upsertedId) {
 // same email with 2 different memberID, it happens almost at the same time so read the table again to get old_values.
-                tourns = await tournsDb.find(query).toArray();
-                if (tourns.length > 0) {
-                    old_values = tourns[0];
-                }
-                if (old_values?._id) {
-                    _id = old_values._id;
-                } else {
-                    _id = tourncode;
-                }
+            tourns = await tournsDb.find(query).toArray();
+            if (tourns.length > 0) {
+                old_values = tourns[0];
             }
         }
 
@@ -376,19 +353,14 @@ router.post("/entry", async (req, res) => {
     const suffix = appConfig.suffix;
     const thisDb = db.db("grass");
     let result = {};
-    let pcount = 0;
-    let fcount = 0;
-    let messages = [];
     let query = "";
     let table = "";
-    let payload;
 
     try {
         const data = req.body;
         if (data?.entries) {
             for (var entry of data.entries) {
-                payload = entry;
-                result = await processData(payload, result, thisDb, suffix, query, table);
+                result = await processData(entry, result, thisDb, suffix, query, table);
             }
             res.status(200).send({status: "OK", processed: result?.pcount, failed: result?.fcount, messages: result?.messages})
         } else {
@@ -559,12 +531,11 @@ router.post("/entry", async (req, res) => {
         Promise.resolve()
             .then(async () => {
                 const tourncode = old_obj?.tourncode ?? new_obj?.tourncode;
-                const season = old_obj?.season ?? new_obj?.season;
-                const tour_id = old_obj?.tour_id ?? new_obj?.tour_id;
+                if (!season) {
+                    season = old_obj?.season ?? new_obj?.season;
+                }
 
                 let table = "tourns" + suffix;
-
-                const _id = old_obj._id;
 
                 if (changed) {
                     await logDocumentChange({
