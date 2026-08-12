@@ -204,13 +204,7 @@ router.post("/average", async (req, res) => {
             });
         }
 
-        let clubRec = "";
-        item.as_clubs.forEach((itemClub) => {
-            if (itemClub.code == club) {
-                clubRec = itemClub.code;
-                break;
-            }
-        });
+        const clubRec = item.as_clubs.find(itemClub => itemClub.code == club)?.code;
 
         if (clubRec != club) {
             return await sendError(res, 200, {
