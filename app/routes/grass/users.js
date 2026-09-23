@@ -366,17 +366,15 @@ router.post("/delete", async (req, res) => {
             sub_acc = "";
         }
 
-        if (errMess == "") {
-            if (!validateEmail(email)) {
-                return await sendError(res, 200, {
-                    thisDb,
-                    errMess: "Invalid Email sent.",
-                    type: "validation",
-                    action: "users/delete",
-                    payload: req.query,
-                    functionName: "users/delete"
-                });
-            }
+        if (!validateEmail(email)) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Invalid Email sent.",
+                type: "validation",
+                action: "users/delete",
+                payload: req.query,
+                functionName: "users/delete"
+            });
         }
 
         let superToken = false;
