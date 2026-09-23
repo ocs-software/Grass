@@ -1178,7 +1178,10 @@ router.post("/update", async (req, res) => {
             unit_measure,
             unit_speed,
             unit_temperature,
+            show_heatmap,
             shot_gps,
+            club_distance,
+            adv_analytics,
             // linked_from,
             token
         } = req.body;
@@ -1206,7 +1209,7 @@ router.post("/update", async (req, res) => {
         if (user_surname === null || user_surname === "") {
             errMess += " User Surname Missing";
         }
-        /* 
+        /*
         var linked_email = linked_from;
 
         if (linked_from == null) {
@@ -1257,7 +1260,10 @@ router.post("/update", async (req, res) => {
                             unit_measure: unit_measure,
                             unit_speed: unit_speed,
                             unit_temperature: unit_temperature,
+                            show_heatmap: show_heatmap,
                             shot_gps: shot_gps,
+                            club_distance: club_distance,
+                            adv_analytics: adv_analytics,
                             updated: new Date(Date.now()),
                             unix_timestamp: Date.now()
                         }
