@@ -726,9 +726,18 @@ async function getPlayerReportOnTheFly({
         normalizeCriteria(criteria);
 
     const statConfig = getStatConfig(stat);
+    const minimumRecords = statConfig.minimumRecords || 1;
     const isLowerBetter = lowerIsBetter ?? statConfig.lowerIsBetter ?? true;
-
     const sortDirection = isLowerBetter ? 1 : -1;
+    const metric = {
+        key: stat,
+        label: statConfig.label || stat,
+        category: statConfig.category || null,
+        unit: statConfig.unit || null,
+        aggregation: statConfig.aggregation || "average",
+        lowerIsBetter: isLowerBetter,
+        minimumRecords
+    };
 
     const source = thisDb.collection(sourceCollection + suffix);
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
@@ -790,12 +799,56 @@ async function getPlayerReportOnTheFly({
                         }
                     },
                     {
-                        $setWindowFields: {
-                            sortBy: { average_score: sortDirection },
-                            output: { rank: { $rank: {} } }
+                        $match: {
+                            records: { $gte: minimumRecords }
                         }
                     },
-                    { $match: { _id: userObjectId } }
+                    {
+                        $setWindowFields: {
+                            sortBy: { average_score: sortDirection },
+                            output: {
+                                rank: { $rank: {} },
+                                players_count: { $count: {} }
+                            }
+                        }
+                    },
+                    { $match: { _id: userObjectId } },
+                    {
+                        $addFields: {
+                            percentile: {
+                                $cond: [
+                                    { $gt: ["$players_count", 1] },
+                                    {
+                                        $multiply: [
+                                            {
+                                                $subtract: [
+                                                    1,
+                                                    {
+                                                        $divide: [
+                                                            {
+                                                                $subtract: [
+                                                                    "$rank",
+                                                                    1
+                                                                ]
+                                                            },
+                                                            {
+                                                                $subtract: [
+                                                                    "$players_count",
+                                                                    1
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            100
+                                        ]
+                                    },
+                                    100
+                                ]
+                            }
+                        }
+                    }
                 ],
 
                 overallPeers: [
@@ -830,12 +883,56 @@ async function getPlayerReportOnTheFly({
                     },
                     ...peerStages,
                     {
-                        $setWindowFields: {
-                            sortBy: { average_score: sortDirection },
-                            output: { rank: { $rank: {} } }
+                        $match: {
+                            records: { $gte: minimumRecords }
                         }
                     },
-                    { $match: { _id: userObjectId } }
+                    {
+                        $setWindowFields: {
+                            sortBy: { average_score: sortDirection },
+                            output: {
+                                rank: { $rank: {} },
+                                players_count: { $count: {} }
+                            }
+                        }
+                    },
+                    { $match: { _id: userObjectId } },
+                    {
+                        $addFields: {
+                            percentile: {
+                                $cond: [
+                                    { $gt: ["$players_count", 1] },
+                                    {
+                                        $multiply: [
+                                            {
+                                                $subtract: [
+                                                    1,
+                                                    {
+                                                        $divide: [
+                                                            {
+                                                                $subtract: [
+                                                                    "$rank",
+                                                                    1
+                                                                ]
+                                                            },
+                                                            {
+                                                                $subtract: [
+                                                                    "$players_count",
+                                                                    1
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            100
+                                        ]
+                                    },
+                                    100
+                                ]
+                            }
+                        }
+                    }
                 ]
             }
         },
@@ -859,16 +956,15 @@ async function getPlayerReportOnTheFly({
         .aggregate(pipeline, { allowDiskUse: true })
         .toArray();
 
-    return (
-        result || {
-            player: null,
-            overall: null,
-            ranking: null,
-            overallPeers: null,
-            rankingPeers: null,
-            criteria: normalizedCriteria
-        }
-    );
+    return {
+        metric,
+        criteria: normalizedCriteria,
+        player: result?.player || null,
+        overall: result?.overall || null,
+        ranking: result?.ranking || null,
+        overallPeers: result?.overallPeers || null,
+        rankingPeers: result?.rankingPeers || null
+    };
 }
 
 async function recordCriteriaUsage({
