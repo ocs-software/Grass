@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-let ObjectID = require('mongodb').ObjectID;
+let ObjectID = require("mongodb").ObjectID;
 const { getAppConfig } = require("../config/app_config");
 const specialFilters = ["date_from", "date_to", "qos", "distance"];
 
@@ -18,7 +18,7 @@ function normalizeCriteria(criteria = {}) {
 /**
  * Make object stringify stable so same criteria always creates same hash.
  */
- 
+
 function stableStringify(obj) {
     if (!obj || typeof obj !== "object") {
         return JSON.stringify(obj);
@@ -30,9 +30,11 @@ function stableStringify(obj) {
 
     const sorted = {};
 
-    Object.keys(obj).sort().forEach((key) => {
-        sorted[key] = obj[key];
-    });
+    Object.keys(obj)
+        .sort()
+        .forEach((key) => {
+            sorted[key] = obj[key];
+        });
 
     return JSON.stringify(sorted);
 }
@@ -53,15 +55,16 @@ function buildMatch(criteria = {}) {
     const holeStatsMatch = {};
 
     for (const [key, value] of Object.entries(criteria)) {
-        if (specialFilters.contains(key))
-            continue;
+        if (specialFilters.contains(key)) continue;
 
         const config = getCriteriaConfig(key);
 
         const field = config.field;
-        const target = config.source === "hole_stats" ? holeStatsMatch : rootMatch;
+        const target =
+            config.source === "hole_stats" ? holeStatsMatch : rootMatch;
 
-        target[config.source === "hole_stats" ? `hole_stats.${field}` : field] = value;
+        target[config.source === "hole_stats" ? `hole_stats.${field}` : field] =
+            value;
     }
 
     for (const key of specialFilters) {
@@ -173,7 +176,8 @@ async function rebuildRankingDocuments({
     scoreField = "total_score",
     lowerIsBetter = true
 }) {
-    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const { rootMatch, holeStatsMatch, normalizedCriteria } =
+        normalizeCriteria(criteria);
     const filterHash = buildFilterHash(normalizedCriteria);
 
     const source = thisDb.collection(sourceCollection + suffix);
@@ -184,7 +188,7 @@ async function rebuildRankingDocuments({
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
 
     const pipeline = [
-       { $match: rootMatch },
+        { $match: rootMatch },
 
         ...scoreStages,
 
@@ -261,7 +265,7 @@ async function enqueueRankingRebuild({
     criteria = {},
     jobsCollection = "ranking_jobs"
 }) {
-    const {normalizedCriteria } = normalizeCriteria(criteria);
+    const { normalizedCriteria } = normalizeCriteria(criteria);
     const filterHash = buildFilterHash(normalizedCriteria);
 
     await thisDb.collection(jobsCollection + suffix).updateOne(
@@ -401,66 +405,71 @@ async function getPlayerReport({
     const source = thisDb.collection(sourceCollection + suffix);
     const rankings = thisDb.collection(rankingCollection + suffix);
 
-    const [liveStats] = await source.aggregate([
-        { $match: rootMatch },
+    const [liveStats] = await source
+        .aggregate(
+            [
+                { $match: rootMatch },
 
-        {
-            $project: {
-                user_id: 1,
-                score: `$${scoreField}`
-            }
-        },
-
-        {
-            $facet: {
-                player: [
-                    { $match: { user_id: new ObjectID(userId) } },
-                    {
-                        $group: {
-                            _id: "$user_id",
-                            average_score: { $avg: "$score" },
-                            min_score: { $min: "$score" },
-                            max_score: { $max: "$score" },
-                            total_score: { $sum: "$score" },
-                            rounds: { $sum: 1 }
-                        }
+                {
+                    $project: {
+                        user_id: 1,
+                        score: `$${scoreField}`
                     }
-                ],
+                },
 
-                overall: [
-                    {
-                        $group: {
-                            _id: null,
-                            average_score: { $avg: "$score" },
-                            min_score: { $min: "$score" },
-                            max_score: { $max: "$score" },
-                            total_score: { $sum: "$score" },
-                            rounds: { $sum: 1 },
-                            players: { $addToSet: "$user_id" }
-                        }
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            average_score: 1,
-                            min_score: 1,
-                            max_score: 1,
-                            total_score: 1,
-                            rounds: 1,
-                            players_count: { $size: "$players" }
-                        }
+                {
+                    $facet: {
+                        player: [
+                            { $match: { user_id: new ObjectID(userId) } },
+                            {
+                                $group: {
+                                    _id: "$user_id",
+                                    average_score: { $avg: "$score" },
+                                    min_score: { $min: "$score" },
+                                    max_score: { $max: "$score" },
+                                    total_score: { $sum: "$score" },
+                                    rounds: { $sum: 1 }
+                                }
+                            }
+                        ],
+
+                        overall: [
+                            {
+                                $group: {
+                                    _id: null,
+                                    average_score: { $avg: "$score" },
+                                    min_score: { $min: "$score" },
+                                    max_score: { $max: "$score" },
+                                    total_score: { $sum: "$score" },
+                                    rounds: { $sum: 1 },
+                                    players: { $addToSet: "$user_id" }
+                                }
+                            },
+                            {
+                                $project: {
+                                    _id: 0,
+                                    average_score: 1,
+                                    min_score: 1,
+                                    max_score: 1,
+                                    total_score: 1,
+                                    rounds: 1,
+                                    players_count: { $size: "$players" }
+                                }
+                            }
+                        ]
                     }
-                ]
-            }
-        },
+                },
 
-        {
-            $project: {
-                player: { $arrayElemAt: ["$player", 0] },
-                overall: { $arrayElemAt: ["$overall", 0] }
-            }
-        }
-    ], { allowDiskUse: true }).toArray();
+                {
+                    $project: {
+                        player: { $arrayElemAt: ["$player", 0] },
+                        overall: { $arrayElemAt: ["$overall", 0] }
+                    }
+                }
+            ],
+            { allowDiskUse: true }
+        )
+        .toArray();
 
     const ranking = await rankings.findOne({
         filter_hash: filterHash,
@@ -476,7 +485,14 @@ async function getPlayerReport({
     };
 }
 
-async function getPlayerLastNReports({thisDb, suffix, userId, stat, qos = null, lastRecords = null}) {
+async function getPlayerLastNReports({
+    thisDb,
+    suffix,
+    userId,
+    stat,
+    qos = null,
+    lastRecords = null
+}) {
     const statConfig = getStatConfig(stat);
 
     if (qos == null) {
@@ -488,12 +504,12 @@ async function getPlayerLastNReports({thisDb, suffix, userId, stat, qos = null, 
 
     const tableClubs = await getClubTableRecords(thisDb, suffix);
     for (const club of tableClubs) {
-        const { criteria } = createCriteriaClubs({club, qos});
-        await getPlayerLastNReport({thisDb, suffix, userId, criteria});
+        const { criteria } = createCriteriaClubs({ club, qos });
+        await getPlayerLastNReport({ thisDb, suffix, userId, criteria });
     }
 }
 
-async function getClubTableRecords({thisDb, suffix}) {
+async function getClubTableRecords({ thisDb, suffix }) {
     let tableClubs = [];
 
     const query = { table_id: "OPTIONS" };
@@ -507,7 +523,7 @@ async function getClubTableRecords({thisDb, suffix}) {
     return tableClubs;
 }
 
-function createCriteriaClubs({club = {}, qos}) {
+function createCriteriaClubs({ club = {}, qos }) {
     const criteria = {};
     const tableConfig = {};
 
@@ -518,8 +534,8 @@ function createCriteriaClubs({club = {}, qos}) {
         criteria.club_used = club.code;
         criteria.qos = qos;
     }
-    
-    return {criteria, tableConfig};
+
+    return { criteria, tableConfig };
 }
 
 async function getPlayerLastNReport({
@@ -539,22 +555,14 @@ async function getPlayerLastNReport({
         stat
     });
 
-    const {
-        rootMatch,
-        holeStatsMatch,
-        normalizedCriteria
-    } = normalizeCriteria(criteria);
+    const { rootMatch, holeStatsMatch, normalizedCriteria } =
+        normalizeCriteria(criteria);
 
     const statConfig = getStatConfig(stat);
 
-    const scoreStages = getScoreProjectionStages(
-        statConfig,
-        holeStatsMatch
-    );
+    const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
 
-    const source = thisDb.collection(
-        sourceCollection + suffix
-    );
+    const source = thisDb.collection(sourceCollection + suffix);
 
     const userObjectId = new ObjectID(userId);
 
@@ -564,8 +572,7 @@ async function getPlayerLastNReport({
     const parsedLastRecords = parseInt(lastRecords, 10);
 
     const lastN =
-        Number.isInteger(parsedLastRecords) &&
-        parsedLastRecords > 0
+        Number.isInteger(parsedLastRecords) && parsedLastRecords > 0
             ? parsedLastRecords
             : 10;
 
@@ -655,12 +662,9 @@ async function getPlayerLastNReport({
     ];
 
     const [result] = await source
-        .aggregate(
-            pipeline,
-            {
-                allowDiskUse: true
-            }
-        )
+        .aggregate(pipeline, {
+            allowDiskUse: true
+        })
         .toArray();
 
     /*
@@ -714,14 +718,17 @@ async function getPlayerReportOnTheFly({
     peerCriteria = {},
     sourceCollection = "myrounds",
     stat = "total_score",
-    lowerIsBetter = true
+    lowerIsBetter
 }) {
     await recordCriteriaUsage({ thisDb, suffix, criteria, stat });
 
-    const { rootMatch, holeStatsMatch, normalizedCriteria } = normalizeCriteria(criteria);
+    const { rootMatch, holeStatsMatch, normalizedCriteria } =
+        normalizeCriteria(criteria);
 
     const statConfig = getStatConfig(stat);
-    const sortDirection = lowerIsBetter ?? statConfig.lowerIsBetter ?? true ? 1 : -1;
+    const isLowerBetter = lowerIsBetter ?? statConfig.lowerIsBetter ?? true;
+
+    const sortDirection = isLowerBetter ? 1 : -1;
 
     const source = thisDb.collection(sourceCollection + suffix);
     const scoreStages = getScoreProjectionStages(statConfig, holeStatsMatch);
@@ -835,25 +842,33 @@ async function getPlayerReportOnTheFly({
 
         {
             $project: {
-                player: { $ifNull: [{$arrayElemAt: ["$player", 0]}, null] },
-                overall: { $ifNull: [{$arrayElemAt: ["$overall", 0]}, null] },
-                ranking: { $ifNull: [{$arrayElemAt: ["$ranking", 0]}, null] },
-                overallPeers: { $ifNull: [{$arrayElemAt: ["$overallPeers", 0]}, null] },
-                rankingPeers: { $ifNull: [{$arrayElemAt: ["$rankingPeers", 0]}, null] },
+                player: { $ifNull: [{ $arrayElemAt: ["$player", 0] }, null] },
+                overall: { $ifNull: [{ $arrayElemAt: ["$overall", 0] }, null] },
+                ranking: { $ifNull: [{ $arrayElemAt: ["$ranking", 0] }, null] },
+                overallPeers: {
+                    $ifNull: [{ $arrayElemAt: ["$overallPeers", 0] }, null]
+                },
+                rankingPeers: {
+                    $ifNull: [{ $arrayElemAt: ["$rankingPeers", 0] }, null]
+                }
                 // criteria: normalizedCriteria
             }
         }
     ];
-    const [result] = await source.aggregate(pipeline, { allowDiskUse: true }).toArray();
+    const [result] = await source
+        .aggregate(pipeline, { allowDiskUse: true })
+        .toArray();
 
-    return result || {
-        player: null,
-        overall: null,
-        ranking: null,
-        overallPeers: null,
-        rankingPeers: null,
-        criteria: normalizedCriteria
-    };
+    return (
+        result || {
+            player: null,
+            overall: null,
+            ranking: null,
+            overallPeers: null,
+            rankingPeers: null,
+            criteria: normalizedCriteria
+        }
+    );
 }
 
 async function recordCriteriaUsage({
@@ -899,7 +914,9 @@ function getScoreProjectionStages(statConfig, holeStatsMatch = {}) {
 
             {
                 $project: {
+                    _id: 1,
                     user_id: 1,
+                    created_at: 1,
                     score: `$hole_stats.${statConfig.field}`
                 }
             },
@@ -915,7 +932,9 @@ function getScoreProjectionStages(statConfig, holeStatsMatch = {}) {
     return [
         {
             $project: {
+                _id: 1,
                 user_id: 1,
+                created_at: 1,
                 score: `$${statConfig.field}`
             }
         },

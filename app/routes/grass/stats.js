@@ -1,14 +1,17 @@
 const express = require("express");
 const router = express.Router({ mergeParams: true });
-let ObjectID = require('mongodb').ObjectID
+let ObjectID = require("mongodb").ObjectID;
 const { getAppConfig } = require("../../config/app_config");
 const { logDocumentChange } = require("../../logs/changeLogger");
-const { getPlayerReportOnTheFly, getPlayerLastNReport } = require("../../util/rankingRound");
+const {
+    getPlayerReportOnTheFly,
+    getPlayerLastNReport
+} = require("../../util/rankingRound");
 const { sendError } = require("../../util/commonFunctions");
 
 router.post("/get", async (req, res) => {
     db = req.db;
-    const thisDb = db.db("grass")
+    const thisDb = db.db("grass");
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     const data = req.body;
@@ -36,7 +39,9 @@ router.post("/get", async (req, res) => {
             });
         }
 
-        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(data.user_id)});
+        const user = await thisDb
+            .collection("users" + suffix)
+            .findOne({ _id: new ObjectID(data.user_id) });
 
         if (!user) {
             return await sendError(res, 200, {
@@ -61,16 +66,18 @@ router.post("/get", async (req, res) => {
         }
         const criteria = data.criteria || {};
         const peerCriteria = data.peerCriteria || {};
-        const scoreField = data.fieldSelected || "total_score";
+        const stat = data.fieldSelected || "total_score";
 
-        if (!criteria ||
+        if (
+            !criteria ||
             typeof criteria !== "object" ||
             Array.isArray(criteria) ||
             Object.keys(criteria).length < 1
         ) {
             return await sendError(res, 200, {
                 thisDb,
-                errMess: "No filter sent. This operation can only be done with something to filter for.",
+                errMess:
+                    "No filter sent. This operation can only be done with something to filter for.",
                 type: "validation",
                 action: "stats/get",
                 payload: data,
@@ -79,25 +86,25 @@ router.post("/get", async (req, res) => {
         }
 
         const report = await getPlayerReportOnTheFly({
-                thisDb,
-                suffix,
-                userId: data.user_id,
-                criteria,
-                peerCriteria,
-                scoreField
+            thisDb,
+            suffix,
+            userId: data.user_id,
+            criteria,
+            peerCriteria,
+            stat
         });
 
         logDocumentChange({
-                thisDb,
-                table: "",
-                channel: "stats/get",
-                resp: report,
-                newData: {},
-                my_round: "",
-                user_id: data.user_id,
-            }).catch(err => {
-                console.error("Change log failed:", err)
-            });
+            thisDb,
+            table: "",
+            channel: "stats/get",
+            resp: report,
+            newData: {},
+            my_round: "",
+            user_id: data.user_id
+        }).catch((err) => {
+            console.error("Change log failed:", err);
+        });
 
         res.send(report);
     } catch (e) {
@@ -115,7 +122,7 @@ router.post("/get", async (req, res) => {
 
 router.post("/average", async (req, res) => {
     db = req.db;
-    const thisDb = db.db("grass")
+    const thisDb = db.db("grass");
     const appConfig = getAppConfig();
     const suffix = appConfig.suffix;
     const data = req.body;
@@ -150,7 +157,9 @@ router.post("/average", async (req, res) => {
             });
         }
 
-        const user = await thisDb.collection("users" + suffix).findOne({_id: new ObjectID(userId)});
+        const user = await thisDb
+            .collection("users" + suffix)
+            .findOne({ _id: new ObjectID(userId) });
 
         if (!user) {
             return await sendError(res, 200, {
@@ -185,7 +194,9 @@ router.post("/average", async (req, res) => {
             });
         }
 
-        const item = await thisDb.collection("table").findOne({"table_id": "OPTIONS"});
+        const item = await thisDb
+            .collection("table")
+            .findOne({ table_id: "OPTIONS" });
 
         if (!item) {
             return await sendError(res, 200, {
@@ -198,7 +209,9 @@ router.post("/average", async (req, res) => {
             });
         }
 
-        const clubRec = item.as_clubs.find(itemClub => itemClub.code == club)?.code;
+        const clubRec = item.as_clubs.find(
+            (itemClub) => itemClub.code == club
+        )?.code;
 
         if (clubRec != club) {
             return await sendError(res, 200, {
@@ -223,8 +236,14 @@ router.post("/average", async (req, res) => {
             lastRecords = 10;
         }
 
-        return await getPlayerLastNReport({thisDb, suffix, userId, criteria: {club_used: club, qos: qos}, stat, lastRecords});
-
+        return await getPlayerLastNReport({
+            thisDb,
+            suffix,
+            userId,
+            criteria: { club_used: club, qos: qos },
+            stat,
+            lastRecords
+        });
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,
