@@ -55,7 +55,7 @@ function buildMatch(criteria = {}) {
     const holeStatsMatch = {};
 
     for (const [key, value] of Object.entries(criteria)) {
-        if (specialFilters.contains(key)) continue;
+        if (specialFilters.includes(key)) continue;
 
         const config = getCriteriaConfig(key);
 
@@ -68,17 +68,28 @@ function buildMatch(criteria = {}) {
     }
 
     for (const key of specialFilters) {
-        if (criteria[key]) {
-            if (key == "date_to") {
+        if (criteria[key] !== undefined && criteria[key] !== null) {
+            if (key === "date_to") {
+                if (!rootMatch.created_at) {
+                    rootMatch.created_at = {};
+                }
+
                 const endDate = new Date(criteria[key]);
                 endDate.setUTCHours(23, 59, 59, 999);
+
                 rootMatch.created_at.$lte = endDate;
-            } else {
-                if (key == "date_from") {
-                    rootMatch.created_at.$gte = new Date(criteria[key]);
-                } else {
-                    holeStatsMatch[key].$gte = criteria[key];
+            } else if (key === "date_from") {
+                if (!rootMatch.created_at) {
+                    rootMatch.created_at = {};
                 }
+
+                rootMatch.created_at.$gte = new Date(criteria[key]);
+            } else {
+                if (!holeStatsMatch[key]) {
+                    holeStatsMatch[key] = {};
+                }
+
+                holeStatsMatch[key].$gte = criteria[key];
             }
         }
     }
