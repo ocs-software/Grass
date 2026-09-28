@@ -70,9 +70,9 @@ router.post("/get", async (req, res) => {
 
         if (
             !criteria ||
-            typeof criteria !== "object" ||
-            Array.isArray(criteria) ||
-            Object.keys(criteria).length < 1
+            (typeof criteria !== "object" &&
+                Array.isArray(criteria) &&
+                Object.keys(criteria).length < 1)
         ) {
             return await sendError(res, 200, {
                 thisDb,
