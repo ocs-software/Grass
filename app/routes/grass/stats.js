@@ -8,6 +8,7 @@ const {
     getPlayerLastNReport
 } = require("../../util/rankingRound");
 const { sendError } = require("../../util/commonFunctions");
+const { analyseRound } = require("../../util/golfAnalytics");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -253,6 +254,130 @@ router.post("/average", async (req, res) => {
             error: e,
             payload: data,
             functionName: "stats/average"
+        });
+    }
+});
+
+router.post("/test-analytics", async (req, res) => {
+    db = req.db;
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const data = req.body;
+
+    try {
+        if (!data.user_id) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "User ID not sent.",
+                type: "validation",
+                action: "stats/test-analytics",
+                payload: data
+            });
+        }
+
+        if (!data.token) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Token not sent.",
+                type: "validation",
+                action: "stats/test-analytics",
+                payload: data
+            });
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({
+            _id: new ObjectID(data.user_id)
+        });
+
+        if (!user) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "User not found.",
+                type: "validation",
+                action: "stats/test-analytics",
+                user: data.user_id,
+                payload: data
+            });
+        }
+
+        if (data.token != user.token) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Token sent does not match with user.",
+                type: "validation",
+                action: "stats/test-analytics",
+                user: data.user_id,
+                payload: data
+            });
+        }
+
+        const roundQuery = {
+            user_id: new ObjectID(data.user_id)
+        };
+
+        if (data.round_id) {
+            roundQuery._id = new ObjectID(data.round_id);
+        }
+
+        const round = await thisDb
+            .collection("myrounds" + suffix)
+            .findOne(roundQuery, {
+                sort: {
+                    created_at: -1
+                }
+            });
+
+        if (!round) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Round not found.",
+                type: "validation",
+                action: "stats/test-analytics",
+                user: data.user_id,
+                payload: data
+            });
+        }
+
+        const analysis = analyseRound(round);
+
+        const girHoles = analysis.holes.filter(function (hole) {
+            return hole.gir;
+        });
+
+        res.send({
+            roundId: analysis.roundId,
+            holesPlayed: analysis.holesPlayed,
+
+            gir: {
+                made: girHoles.length,
+                opportunities: analysis.holesPlayed,
+                percentage:
+                    analysis.holesPlayed > 0
+                        ? (girHoles.length / analysis.holesPlayed) * 100
+                        : null
+            },
+
+            holes: analysis.holes.map(function (hole) {
+                return {
+                    hole: hole.hole,
+                    par: hole.par,
+                    score: hole.score,
+                    girTarget: hole.girTarget,
+                    girStroke: hole.girStroke,
+                    gir: hole.gir
+                };
+            })
+        });
+    } catch (e) {
+        return await sendError(res, 400, {
+            thisDb,
+            errMess: e.message || "Error testing golf analytics.",
+            type: "other",
+            action: "stats/test-analytics",
+            error: e,
+            payload: data,
+            functionName: "stats/test-analytics"
         });
     }
 });

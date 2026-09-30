@@ -25,6 +25,7 @@ function getAppConfig() {
                 label: "Score",
                 unit: "strokes",
                 lowerIsBetter: true,
+                type: "stored",
                 minimumRecords: 1
             },
 
@@ -37,6 +38,7 @@ function getAppConfig() {
                 unit: "yards",
                 lowerIsBetter: false,
                 minimumRecords: 1,
+                type: "stored",
                 lastRecords: 10
             },
 
@@ -48,6 +50,7 @@ function getAppConfig() {
                 label: "Greens in Regulation",
                 unit: "boolean",
                 lowerIsBetter: false,
+                type: "stored",
                 minimumRecords: 1
             },
 
@@ -59,6 +62,7 @@ function getAppConfig() {
                 label: "Putts",
                 unit: "strokes",
                 lowerIsBetter: true,
+                type: "stored",
                 minimumRecords: 1
             }
         },

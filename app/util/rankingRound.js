@@ -104,6 +104,10 @@ function getStatConfig(stat) {
         throw new Error("Invalid stat selected.");
     }
 
+    if (!config.type) {
+        config.type = "stored";
+    }
+
     return config;
 }
 
@@ -967,14 +971,28 @@ async function getPlayerReportOnTheFly({
         .aggregate(pipeline, { allowDiskUse: true })
         .toArray();
 
+    const playerRecords =
+        result && result.player && result.player.records
+            ? result.player.records
+            : 0;
+
+    const rankingEligibility = {
+        eligible: playerRecords >= minimumRecords,
+        records: playerRecords,
+        minimumRecords: minimumRecords,
+        recordsNeeded: Math.max(0, minimumRecords - playerRecords)
+    };
+
     return {
         metric,
         criteria: normalizedCriteria,
-        player: result?.player || null,
-        overall: result?.overall || null,
-        ranking: result?.ranking || null,
-        overallPeers: result?.overallPeers || null,
-        rankingPeers: result?.rankingPeers || null
+        rankingEligibility,
+        player: result && result.player ? result.player : null,
+        overall: result && result.overall ? result.overall : null,
+        ranking: result && result.ranking ? result.ranking : null,
+        overallPeers:
+            result && result.overallPeers ? result.overallPeers : null,
+        rankingPeers: result && result.rankingPeers ? result.rankingPeers : null
     };
 }
 
@@ -1010,7 +1028,20 @@ async function recordCriteriaUsage({
     return filterHash;
 }
 
+function getDerivedMetricProjectionStages(statConfig, holeStatsMatch) {
+    switch (statConfig.calculator) {
+        default:
+            throw new Error(
+                `Unsupported derived metric calculator: ${statConfig.calculator}`
+            );
+    }
+}
+
 function getScoreProjectionStages(statConfig, holeStatsMatch = {}) {
+    if (statConfig.type === "derived") {
+        return getDerivedMetricProjectionStages(statConfig, holeStatsMatch);
+    }
+
     if (statConfig.source === "hole_stats") {
         return [
             { $unwind: "$hole_stats" },
