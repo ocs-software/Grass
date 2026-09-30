@@ -48,6 +48,14 @@ function analyseRound(round) {
         const fairwayHit =
             fairwayOpportunity && teeShot && teeShot.outcome === "001";
 
+        const scramblingOpportunity = !gir;
+
+        const scramble =
+            scramblingOpportunity &&
+            score !== undefined &&
+            score !== null &&
+            score <= par;
+
         holes.push({
             hole: holeNumber,
             par: par,
@@ -61,6 +69,8 @@ function analyseRound(round) {
             girTarget: girTarget,
             fairwayOpportunity: fairwayOpportunity,
             fairwayHit: fairwayHit,
+            scramblingOpportunity: scramblingOpportunity,
+            scramble: scramble,
             putts: putts
         });
     }
@@ -87,6 +97,14 @@ function analyseRound(round) {
 
     const fairwaysHit = fairwayOpportunities.filter(function (hole) {
         return hole.fairwayHit;
+    });
+
+    const scramblingOpportunities = holes.filter(function (hole) {
+        return hole.scramblingOpportunity;
+    });
+
+    const scramblesMade = scramblingOpportunities.filter(function (hole) {
+        return hole.scramble;
     });
 
     return {
@@ -121,6 +139,16 @@ function analyseRound(round) {
             percentage:
                 fairwayOpportunities.length > 0
                     ? (fairwaysHit.length / fairwayOpportunities.length) * 100
+                    : null
+        },
+
+        scrambling: {
+            made: scramblesMade.length,
+            opportunities: scramblingOpportunities.length,
+            percentage:
+                scramblingOpportunities.length > 0
+                    ? (scramblesMade.length / scramblingOpportunities.length) *
+                      100
                     : null
         },
 
