@@ -1,3 +1,12 @@
+function getScoringCategory(scoreToPar) {
+    if (scoreToPar <= -2) return "eagleOrBetter";
+    if (scoreToPar === -1) return "birdie";
+    if (scoreToPar === 0) return "par";
+    if (scoreToPar === 1) return "bogey";
+
+    return "doubleOrWorse";
+}
+
 function calculatePenalties(holeShots, codes) {
     const penaltyCodes = Array.isArray(codes.penalties) ? codes.penalties : [];
 
@@ -93,15 +102,21 @@ function analyseRound(round, context) {
     context = context || {};
     const codes = context.codes || {};
 
-    let totalPenaltyStrokes = 0;
-
     if (!round) {
         throw new Error("Round is required.");
     }
 
+    let totalPenaltyStrokes = 0;
     const holePars = round.hole_pars || [];
     const holeScores = round.hole_scores || [];
     const shots = round.hole_stats || [];
+    const scoringDistribution = {
+        eagleOrBetter: 0,
+        birdies: 0,
+        pars: 0,
+        bogeys: 0,
+        doubleOrWorse: 0
+    };
 
     const holes = [];
 
@@ -130,6 +145,30 @@ function analyseRound(round, context) {
         const scoreToPar =
             score !== undefined && score !== null ? score - par : null;
 
+        const scoringCategory = getScoringCategory(scoreToPar);
+
+        switch (scoringCategory) {
+            case "eagleOrBetter":
+                scoringDistribution.eagleOrBetter++;
+                break;
+
+            case "birdie":
+                scoringDistribution.birdies++;
+                break;
+
+            case "par":
+                scoringDistribution.pars++;
+                break;
+
+            case "bogey":
+                scoringDistribution.bogeys++;
+                break;
+
+            case "doubleOrWorse":
+                scoringDistribution.doubleOrWorse++;
+                break;
+        }
+
         const penaltyResult = calculatePenalties(holeShots, codes);
 
         totalPenaltyStrokes += penaltyResult.penaltyStrokes;
@@ -139,7 +178,7 @@ function analyseRound(round, context) {
             par: par,
             score: score !== undefined ? score : null,
             scoreToPar: scoreToPar,
-
+            scoringCategory: scoringCategory,
             shots: holeShots,
 
             gir: girResult.gir,
@@ -199,7 +238,8 @@ function analyseRound(round, context) {
         scoring: {
             score: totalScore,
             par: totalPar,
-            toPar: totalScore - totalPar
+            toPar: totalScore - totalPar,
+            distribution: scoringDistribution
         },
 
         gir: {
