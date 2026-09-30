@@ -1,6 +1,8 @@
-function calculateGir(holeShots, par) {
+function calculateGir(holeShots, par, codes) {
+    const greenCode = codes.green || "030";
+
     const greenShot = holeShots.find(function (shot) {
-        return shot.outcome === "030";
+        return shot.outcome === greenCode;
     });
 
     const girStroke = greenShot ? greenShot.strokes : null;
@@ -13,15 +15,18 @@ function calculateGir(holeShots, par) {
     };
 }
 
-function calculatePutting(holeShots) {
+function calculatePutting(holeShots, codes) {
+    const greenCode = codes.green || "030";
+
     return {
         putts: holeShots.filter(function (shot) {
-            return shot.position === "030";
+            return shot.position === greenCode;
         }).length
     };
 }
 
-function calculateFairway(holeShots, par) {
+function calculateFairway(holeShots, par, codes) {
+    const fairwayCode = codes.fairway || "001";
     const opportunity = par > 3;
 
     const teeShot = holeShots.find(function (shot) {
@@ -30,7 +35,7 @@ function calculateFairway(holeShots, par) {
 
     return {
         fairwayOpportunity: opportunity,
-        fairwayHit: opportunity && !!teeShot && teeShot.outcome === "001"
+        fairwayHit: opportunity && !!teeShot && teeShot.outcome === fairwayCode
     };
 }
 
@@ -44,7 +49,10 @@ function calculateScrambling(gir, score, par) {
     };
 }
 
-function analyseRound(round) {
+function analyseRound(round, context) {
+    context = context || {};
+    const codes = context.codes || {};
+
     if (!round) {
         throw new Error("Round is required.");
     }
@@ -72,9 +80,9 @@ function analyseRound(round) {
             continue;
         }
 
-        const girResult = calculateGir(holeShots, par);
-        const puttingResult = calculatePutting(holeShots);
-        const fairwayResult = calculateFairway(holeShots, par);
+        const girResult = calculateGir(holeShots, par, codes);
+        const puttingResult = calculatePutting(holeShots, codes);
+        const fairwayResult = calculateFairway(holeShots, par, codes);
         const scramblingResult = calculateScrambling(girResult.gir, score, par);
 
         const scoreToPar =
