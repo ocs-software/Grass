@@ -330,15 +330,49 @@ router.post("/test-analytics", async (req, res) => {
 
         const analyticsContext = buildAnalyticsContext(table);
 
-        const rounds = await thisDb
+        if (data.criteria && data.criteria.date_from) {
+            const dateFrom = new Date(data.criteria.date_from);
+
+            dateFrom.setHours(0, 0, 0, 0);
+
+            roundQuery.created_at = {
+                ...roundQuery.created_at,
+                $gte: dateFrom
+            };
+        }
+
+        if (data.criteria && data.criteria.date_to) {
+            const dateTo = new Date(data.criteria.date_to);
+
+            dateTo.setHours(23, 59, 59, 999);
+
+            roundQuery.created_at = {
+                ...roundQuery.created_at,
+                $lte: dateTo
+            };
+        }
+
+        let roundsQuery = thisDb
             .collection("myrounds" + suffix)
-            .find({
-                user_id: new ObjectID(data.user_id)
-            })
-            .sort({
+            .find(roundQuery);
+
+        if (data.criteria && Number(data.criteria.last_n) > 0) {
+            roundsQuery = roundsQuery
+                .sort({
+                    created_at: -1
+                })
+                .limit(Number(data.criteria.last_n));
+        } else {
+            roundsQuery = roundsQuery.sort({
                 created_at: 1
-            })
-            .toArray();
+            });
+        }
+
+        let rounds = await roundsQuery.toArray();
+
+        if (data.criteria && Number(data.criteria.last_n) > 0) {
+            rounds = rounds.reverse();
+        }
 
         if (!rounds.length) {
             return res.status(404).send({
