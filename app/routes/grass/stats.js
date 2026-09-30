@@ -350,7 +350,6 @@ router.post("/test-analytics", async (req, res) => {
         const penaltyRound = await thisDb
             .collection("myrounds" + suffix)
             .findOne({
-                user_id: new ObjectID(data.user_id),
                 "hole_stats.outcome": "050"
             });
 
