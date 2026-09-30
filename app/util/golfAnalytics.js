@@ -1,3 +1,49 @@
+function calculateGir(holeShots, par) {
+    const greenShot = holeShots.find(function (shot) {
+        return shot.outcome === "030";
+    });
+
+    const girStroke = greenShot ? greenShot.strokes : null;
+    const girTarget = par - 2;
+
+    return {
+        gir: girStroke !== null && girStroke <= girTarget,
+        girStroke: girStroke,
+        girTarget: girTarget
+    };
+}
+
+function calculatePutting(holeShots) {
+    return {
+        putts: holeShots.filter(function (shot) {
+            return shot.position === "030";
+        }).length
+    };
+}
+
+function calculateFairway(holeShots, par) {
+    const opportunity = par > 3;
+
+    const teeShot = holeShots.find(function (shot) {
+        return shot.strokes === 1;
+    });
+
+    return {
+        fairwayOpportunity: opportunity,
+        fairwayHit: opportunity && !!teeShot && teeShot.outcome === "001"
+    };
+}
+
+function calculateScrambling(gir, score, par) {
+    const opportunity = !gir;
+
+    return {
+        scramblingOpportunity: opportunity,
+        scramble:
+            opportunity && score !== undefined && score !== null && score <= par
+    };
+}
+
 function analyseRound(round) {
     if (!round) {
         throw new Error("Round is required.");
@@ -26,35 +72,13 @@ function analyseRound(round) {
             continue;
         }
 
-        const greenShot = holeShots.find(function (shot) {
-            return shot.outcome === "030";
-        });
-
-        const girStroke = greenShot ? greenShot.strokes : null;
-        const girTarget = par - 2;
-
-        const gir = girStroke !== null && girStroke <= girTarget;
-
-        const putts = holeShots.filter(function (shot) {
-            return shot.position === "030";
-        }).length;
+        const girResult = calculateGir(holeShots, par);
+        const puttingResult = calculatePutting(holeShots);
+        const fairwayResult = calculateFairway(holeShots, par);
+        const scramblingResult = calculateScrambling(girResult.gir, score, par);
 
         const scoreToPar =
             score !== undefined && score !== null ? score - par : null;
-        const fairwayOpportunity = par > 3;
-        const teeShot = holeShots.find(function (shot) {
-            return shot.strokes === 1;
-        });
-        const fairwayHit =
-            fairwayOpportunity && teeShot && teeShot.outcome === "001";
-
-        const scramblingOpportunity = !gir;
-
-        const scramble =
-            scramblingOpportunity &&
-            score !== undefined &&
-            score !== null &&
-            score <= par;
 
         holes.push({
             hole: holeNumber,
@@ -64,14 +88,17 @@ function analyseRound(round) {
 
             shots: holeShots,
 
-            gir: gir,
-            girStroke: girStroke,
-            girTarget: girTarget,
-            fairwayOpportunity: fairwayOpportunity,
-            fairwayHit: fairwayHit,
-            scramblingOpportunity: scramblingOpportunity,
-            scramble: scramble,
-            putts: putts
+            gir: girResult.gir,
+            girStroke: girResult.girStroke,
+            girTarget: girResult.girTarget,
+
+            fairwayOpportunity: fairwayResult.fairwayOpportunity,
+            fairwayHit: fairwayResult.fairwayHit,
+
+            scramblingOpportunity: scramblingResult.scramblingOpportunity,
+            scramble: scramblingResult.scramble,
+
+            putts: puttingResult.putts
         });
     }
 
