@@ -342,7 +342,9 @@ router.post("/test-analytics", async (req, res) => {
             });
         }
 
-        const table = await thisDb.collection("table" + suffix).findOne({});
+        const table = await thisDb.collection("table" + suffix).findOne({
+            as_oos: { $exists: true }
+        });
 
         const analyticsContext = buildAnalyticsContext(table);
         const analysis = analyseRound(round, analyticsContext);
