@@ -347,6 +347,25 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
+        const penaltyRound = await thisDb
+            .collection("myrounds" + suffix)
+            .findOne({
+                user_id: new ObjectID(data.user_id),
+                "hole_stats.outcome": "050"
+            });
+
+        if (penaltyRound) {
+            const penaltyAnalysis = analyseRound(
+                penaltyRound,
+                analyticsContext
+            );
+
+            return res.send({
+                analyticsContext: analyticsContext,
+                penaltyTest: penaltyAnalysis
+            });
+        }
+
         const analysis = analyseRound(round, analyticsContext);
 
         res.send({
