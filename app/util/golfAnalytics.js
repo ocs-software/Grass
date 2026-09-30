@@ -118,6 +118,14 @@ function analyseRound(round, context) {
         doubleOrWorse: 0
     };
 
+    const puttingDistribution = {
+        zeroPutts: 0,
+        onePutts: 0,
+        twoPutts: 0,
+        threePutts: 0,
+        fourOrMorePutts: 0
+    };
+
     const holes = [];
 
     for (let holeNumber = 1; holeNumber <= holePars.length; holeNumber++) {
@@ -170,6 +178,27 @@ function analyseRound(round, context) {
         }
 
         const penaltyResult = calculatePenalties(holeShots, codes);
+        switch (puttingResult.putts) {
+            case 0:
+                puttingDistribution.zeroPutts++;
+                break;
+
+            case 1:
+                puttingDistribution.onePutts++;
+                break;
+
+            case 2:
+                puttingDistribution.twoPutts++;
+                break;
+
+            case 3:
+                puttingDistribution.threePutts++;
+                break;
+
+            default:
+                puttingDistribution.fourOrMorePutts++;
+                break;
+        }
 
         totalPenaltyStrokes += penaltyResult.penaltyStrokes;
 
@@ -251,7 +280,8 @@ function analyseRound(round, context) {
 
         putting: {
             putts: totalPutts,
-            puttsPerHole: holes.length > 0 ? totalPutts / holes.length : null
+            puttsPerHole: holes.length > 0 ? totalPutts / holes.length : null,
+            distribution: puttingDistribution
         },
 
         fairways: {
