@@ -1,3 +1,31 @@
+function buildAnalyticsContext(table) {
+    const outcomes = table && Array.isArray(table.as_oos) ? table.as_oos : [];
+
+    const fairway = outcomes.find(function (item) {
+        return item.type === "F";
+    });
+
+    const green = outcomes.find(function (item) {
+        return item.type === "G";
+    });
+
+    const penaltyCodes = outcomes
+        .filter(function (item) {
+            return item.pen === "Y";
+        })
+        .map(function (item) {
+            return item.code;
+        });
+
+    return {
+        codes: {
+            fairway: fairway ? fairway.code : null,
+            green: green ? green.code : null,
+            penalties: penaltyCodes
+        }
+    };
+}
+
 function calculateGir(holeShots, par, codes) {
     const greenCode = codes.green || "030";
 
@@ -192,5 +220,6 @@ function analyseRound(round, context) {
 }
 
 module.exports = {
-    analyseRound
+    analyseRound,
+    buildAnalyticsContext
 };

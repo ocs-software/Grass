@@ -8,7 +8,10 @@ const {
     getPlayerLastNReport
 } = require("../../util/rankingRound");
 const { sendError } = require("../../util/commonFunctions");
-const { analyseRound } = require("../../util/golfAnalytics");
+const {
+    analyseRound,
+    buildAnalyticsContext
+} = require("../../util/golfAnalytics");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -339,9 +342,15 @@ router.post("/test-analytics", async (req, res) => {
             });
         }
 
-        const analysis = analyseRound(round);
+        const table = await thisDb.collection("table" + suffix).findOne({});
 
-        res.send(analysis);
+        const analyticsContext = buildAnalyticsContext(table);
+        const analysis = analyseRound(round, analyticsContext);
+
+        res.send({
+            analyticsContext: analyticsContext,
+            analysis: analysis
+        });
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,
