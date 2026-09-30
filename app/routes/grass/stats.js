@@ -347,7 +347,7 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-        const penaltyRound = await thisDb
+        /* const penaltyRound = await thisDb
             .collection("myrounds" + suffix)
             .findOne({
                 "hole_stats.outcome": "050"
@@ -363,13 +363,20 @@ router.post("/test-analytics", async (req, res) => {
                 analyticsContext: analyticsContext,
                 penaltyTest: penaltyAnalysis
             });
-        }
+        } */
 
         const analysis = analyseRound(round, analyticsContext);
 
+        const penaltyTestRound = JSON.parse(JSON.stringify(round));
+
+        penaltyTestRound.hole_stats[0].outcome = "050";
+
+        const penaltyTest = analyseRound(penaltyTestRound, analyticsContext);
+
         res.send({
             analyticsContext: analyticsContext,
-            analysis: analysis
+            analysis: analysis,
+            penaltyTest: penaltyTest
         });
     } catch (e) {
         return await sendError(res, 400, {
