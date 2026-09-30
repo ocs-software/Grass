@@ -311,7 +311,230 @@ function analyseRound(round, context) {
     };
 }
 
+function aggregateRounds(roundAnalyses) {
+    const analyses = Array.isArray(roundAnalyses)
+        ? roundAnalyses.filter(Boolean)
+        : [];
+
+    const totals = {
+        holes: 0,
+
+        scoring: {
+            score: 0,
+            par: 0,
+            toPar: 0,
+            distribution: {
+                eagleOrBetter: 0,
+                birdies: 0,
+                pars: 0,
+                bogeys: 0,
+                doubleOrWorse: 0
+            }
+        },
+
+        gir: {
+            made: 0,
+            opportunities: 0
+        },
+
+        putting: {
+            putts: 0,
+            distribution: {
+                zeroPutts: 0,
+                onePutts: 0,
+                twoPutts: 0,
+                threePutts: 0,
+                fourOrMorePutts: 0
+            }
+        },
+
+        fairways: {
+            hit: 0,
+            opportunities: 0
+        },
+
+        scrambling: {
+            made: 0,
+            opportunities: 0
+        },
+
+        penalties: {
+            strokes: 0
+        }
+    };
+
+    let complete18HoleRounds = 0;
+    let partialRounds = 0;
+
+    let earliestDate = null;
+    let latestDate = null;
+
+    analyses.forEach(function (analysis) {
+        const holesPlayed = Number(analysis.holesPlayed) || 0;
+
+        totals.holes += holesPlayed;
+
+        if (holesPlayed === 18) {
+            complete18HoleRounds++;
+        } else if (holesPlayed > 0) {
+            partialRounds++;
+        }
+
+        if (analysis.date) {
+            const analysisDate = new Date(analysis.date);
+
+            if (!isNaN(analysisDate.getTime())) {
+                if (!earliestDate || analysisDate < earliestDate) {
+                    earliestDate = analysisDate;
+                }
+
+                if (!latestDate || analysisDate > latestDate) {
+                    latestDate = analysisDate;
+                }
+            }
+        }
+
+        if (analysis.scoring) {
+            totals.scoring.score += Number(analysis.scoring.score) || 0;
+
+            totals.scoring.par += Number(analysis.scoring.par) || 0;
+
+            totals.scoring.toPar += Number(analysis.scoring.toPar) || 0;
+
+            const distribution = analysis.scoring.distribution || {};
+
+            totals.scoring.distribution.eagleOrBetter +=
+                Number(distribution.eagleOrBetter) || 0;
+
+            totals.scoring.distribution.birdies +=
+                Number(distribution.birdies) || 0;
+
+            totals.scoring.distribution.pars += Number(distribution.pars) || 0;
+
+            totals.scoring.distribution.bogeys +=
+                Number(distribution.bogeys) || 0;
+
+            totals.scoring.distribution.doubleOrWorse +=
+                Number(distribution.doubleOrWorse) || 0;
+        }
+
+        if (analysis.gir) {
+            totals.gir.made += Number(analysis.gir.made) || 0;
+
+            totals.gir.opportunities += Number(analysis.gir.opportunities) || 0;
+        }
+
+        if (analysis.putting) {
+            totals.putting.putts += Number(analysis.putting.putts) || 0;
+
+            const distribution = analysis.putting.distribution || {};
+
+            totals.putting.distribution.zeroPutts +=
+                Number(distribution.zeroPutts) || 0;
+
+            totals.putting.distribution.onePutts +=
+                Number(distribution.onePutts) || 0;
+
+            totals.putting.distribution.twoPutts +=
+                Number(distribution.twoPutts) || 0;
+
+            totals.putting.distribution.threePutts +=
+                Number(distribution.threePutts) || 0;
+
+            totals.putting.distribution.fourOrMorePutts +=
+                Number(distribution.fourOrMorePutts) || 0;
+        }
+
+        if (analysis.fairways) {
+            totals.fairways.hit += Number(analysis.fairways.hit) || 0;
+
+            totals.fairways.opportunities +=
+                Number(analysis.fairways.opportunities) || 0;
+        }
+
+        if (analysis.scrambling) {
+            totals.scrambling.made += Number(analysis.scrambling.made) || 0;
+
+            totals.scrambling.opportunities +=
+                Number(analysis.scrambling.opportunities) || 0;
+        }
+
+        if (analysis.penalties) {
+            totals.penalties.strokes += Number(analysis.penalties.strokes) || 0;
+        }
+    });
+
+    return {
+        rounds: analyses.length,
+
+        complete18HoleRounds: complete18HoleRounds,
+
+        partialRounds: partialRounds,
+
+        holesPlayed: totals.holes,
+
+        dateRange: {
+            from: earliestDate ? earliestDate.toISOString() : null,
+
+            to: latestDate ? latestDate.toISOString() : null
+        },
+
+        scoring: {
+            score: totals.scoring.score,
+            par: totals.scoring.par,
+            toPar: totals.scoring.toPar,
+            distribution: totals.scoring.distribution
+        },
+
+        gir: {
+            made: totals.gir.made,
+            opportunities: totals.gir.opportunities,
+            percentage:
+                totals.gir.opportunities > 0
+                    ? (totals.gir.made / totals.gir.opportunities) * 100
+                    : null
+        },
+
+        putting: {
+            putts: totals.putting.putts,
+
+            puttsPerHole:
+                totals.holes > 0 ? totals.putting.putts / totals.holes : null,
+
+            distribution: totals.putting.distribution
+        },
+
+        fairways: {
+            hit: totals.fairways.hit,
+            opportunities: totals.fairways.opportunities,
+
+            percentage:
+                totals.fairways.opportunities > 0
+                    ? (totals.fairways.hit / totals.fairways.opportunities) *
+                      100
+                    : null
+        },
+
+        scrambling: {
+            made: totals.scrambling.made,
+            opportunities: totals.scrambling.opportunities,
+
+            percentage:
+                totals.scrambling.opportunities > 0
+                    ? (totals.scrambling.made /
+                          totals.scrambling.opportunities) *
+                      100
+                    : null
+        },
+
+        penalties: {
+            strokes: totals.penalties.strokes
+        }
+    };
+}
+
 module.exports = {
     analyseRound,
+    aggregateRounds,
     buildAnalyticsContext
 };

@@ -10,6 +10,7 @@ const {
 const { sendError } = require("../../util/commonFunctions");
 const {
     analyseRound,
+    aggregateRounds,
     buildAnalyticsContext
 } = require("../../util/golfAnalytics");
 
@@ -323,36 +324,51 @@ router.post("/test-analytics", async (req, res) => {
             roundQuery._id = new ObjectID(data.round_id);
         }
 
-        const round = await thisDb
-            .collection("myrounds" + suffix)
-            .findOne(roundQuery, {
-                sort: {
-                    created_at: -1
-                }
-            });
-
-        if (!round) {
-            return await sendError(res, 200, {
-                thisDb,
-                errMess: "Round not found.",
-                type: "validation",
-                action: "stats/test-analytics",
-                user: data.user_id,
-                payload: data
-            });
-        }
-
         const table = await thisDb.collection("table").findOne({
             as_oos: { $exists: true }
         });
 
         const analyticsContext = buildAnalyticsContext(table);
 
-        const analysis = analyseRound(round, analyticsContext);
+        const rounds = await thisDb
+            .collection("myrounds" + suffix)
+            .find({
+                user_id: new ObjectID(data.user_id)
+            })
+            .sort({
+                created_at: 1
+            })
+            .toArray();
+
+        if (!rounds.length) {
+            return res.status(404).send({
+                error: "No rounds found"
+            });
+        }
+
+        const roundAnalyses = rounds.map(function (playerRound) {
+            return analyseRound(playerRound, analyticsContext);
+        });
+
+        const overview = aggregateRounds(roundAnalyses);
 
         res.send({
             analyticsContext: analyticsContext,
-            analysis: analysis
+            overview: overview,
+            rounds: roundAnalyses.map(function (analysis) {
+                return {
+                    roundId: analysis.roundId,
+                    date: analysis.date,
+                    complete: analysis.complete,
+                    holesPlayed: analysis.holesPlayed,
+                    scoring: analysis.scoring,
+                    gir: analysis.gir,
+                    putting: analysis.putting,
+                    fairways: analysis.fairways,
+                    scrambling: analysis.scrambling,
+                    penalties: analysis.penalties
+                };
+            })
         });
     } catch (e) {
         return await sendError(res, 400, {
