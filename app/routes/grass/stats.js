@@ -341,34 +341,7 @@ router.post("/test-analytics", async (req, res) => {
 
         const analysis = analyseRound(round);
 
-        const girHoles = analysis.holes.filter(function (hole) {
-            return hole.gir;
-        });
-
-        res.send({
-            roundId: analysis.roundId,
-            holesPlayed: analysis.holesPlayed,
-
-            gir: {
-                made: girHoles.length,
-                opportunities: analysis.holesPlayed,
-                percentage:
-                    analysis.holesPlayed > 0
-                        ? (girHoles.length / analysis.holesPlayed) * 100
-                        : null
-            },
-
-            holes: analysis.holes.map(function (hole) {
-                return {
-                    hole: hole.hole,
-                    par: hole.par,
-                    score: hole.score,
-                    girTarget: hole.girTarget,
-                    girStroke: hole.girStroke,
-                    gir: hole.gir
-                };
-            })
-        });
+        res.send(analysis);
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,
