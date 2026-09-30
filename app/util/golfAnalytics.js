@@ -1,3 +1,118 @@
+function calculateChange(currentValue, previousValue) {
+    if (
+        currentValue === null ||
+        currentValue === undefined ||
+        previousValue === null ||
+        previousValue === undefined
+    ) {
+        return null;
+    }
+
+    return currentValue - previousValue;
+}
+
+function compareAggregates(current, previous) {
+    if (!current || !previous) {
+        return null;
+    }
+
+    return {
+        sample: {
+            current: {
+                rounds: current.rounds,
+                holesPlayed: current.holesPlayed
+            },
+            previous: {
+                rounds: previous.rounds,
+                holesPlayed: previous.holesPlayed
+            }
+        },
+
+        scoring: {
+            toParPerHole: {
+                current:
+                    current.holesPlayed > 0
+                        ? current.scoring.toPar / current.holesPlayed
+                        : null,
+
+                previous:
+                    previous.holesPlayed > 0
+                        ? previous.scoring.toPar / previous.holesPlayed
+                        : null,
+
+                change:
+                    current.holesPlayed > 0 && previous.holesPlayed > 0
+                        ? current.scoring.toPar / current.holesPlayed -
+                          previous.scoring.toPar / previous.holesPlayed
+                        : null
+            }
+        },
+
+        gir: {
+            current: current.gir.percentage,
+            previous: previous.gir.percentage,
+            change: calculateChange(
+                current.gir.percentage,
+                previous.gir.percentage
+            )
+        },
+
+        putting: {
+            puttsPerHole: {
+                current: current.putting.puttsPerHole,
+
+                previous: previous.putting.puttsPerHole,
+
+                change: calculateChange(
+                    current.putting.puttsPerHole,
+                    previous.putting.puttsPerHole
+                )
+            }
+        },
+
+        fairways: {
+            current: current.fairways.percentage,
+            previous: previous.fairways.percentage,
+            change: calculateChange(
+                current.fairways.percentage,
+                previous.fairways.percentage
+            )
+        },
+
+        scrambling: {
+            current: current.scrambling.percentage,
+
+            previous: previous.scrambling.percentage,
+
+            change: calculateChange(
+                current.scrambling.percentage,
+                previous.scrambling.percentage
+            )
+        },
+
+        penaltiesPerHole: {
+            current:
+                current.holesPlayed > 0
+                    ? current.penalties.strokes / current.holesPlayed
+                    : null,
+
+            previous:
+                previous.holesPlayed > 0
+                    ? previous.penalties.strokes / previous.holesPlayed
+                    : null,
+
+            change:
+                current.holesPlayed > 0 && previous.holesPlayed > 0
+                    ? calculateChange(
+                          current.penalties.strokes / current.holesPlayed,
+
+                          previous.penalties.strokes / previous.holesPlayed
+                      )
+                    : null
+        }
+    };
+}
+
 async function getPlayerRounds(thisDb, collectionName, userId, criteria) {
     criteria = criteria || {};
 
@@ -591,5 +706,6 @@ module.exports = {
     analyseRound,
     aggregateRounds,
     buildAnalyticsContext,
-    getPlayerRounds
+    getPlayerRounds,
+    compareAggregates
 };

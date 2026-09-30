@@ -12,7 +12,8 @@ const {
     analyseRound,
     aggregateRounds,
     buildAnalyticsContext,
-    getPlayerRounds
+    getPlayerRounds,
+    compareAggregates
 } = require("../../util/golfAnalytics");
 
 router.post("/get", async (req, res) => {
@@ -323,11 +324,15 @@ router.post("/test-analytics", async (req, res) => {
 
         const analyticsContext = buildAnalyticsContext(table);
 
+        const comparisonSize = 3;
+
         const rounds = await getPlayerRounds(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
-            data.criteria
+            {
+                last_n: comparisonSize * 2
+            }
         );
 
         if (!rounds.length) {
@@ -335,6 +340,52 @@ router.post("/test-analytics", async (req, res) => {
                 error: "No rounds found"
             });
         }
+
+        if (rounds.length < comparisonSize * 2) {
+            return res.status(400).send({
+                error: "Not enough rounds for comparison",
+                required: comparisonSize * 2,
+                available: rounds.length
+            });
+        }
+
+        const previousRounds = rounds.slice(0, comparisonSize);
+
+        const currentRounds = rounds.slice(comparisonSize);
+
+        const previousAnalyses = previousRounds.map(function (playerRound) {
+            return analyseRound(playerRound, analyticsContext);
+        });
+
+        const currentAnalyses = currentRounds.map(function (playerRound) {
+            return analyseRound(playerRound, analyticsContext);
+        });
+
+        const previousOverview = aggregateRounds(previousAnalyses);
+
+        const currentOverview = aggregateRounds(currentAnalyses);
+
+        const comparison = compareAggregates(currentOverview, previousOverview);
+
+        res.send({
+            analyticsContext: analyticsContext,
+
+            previous: previousOverview,
+
+            current: currentOverview,
+
+            comparison: comparison,
+
+            roundIds: {
+                previous: previousAnalyses.map(function (analysis) {
+                    return analysis.roundId;
+                }),
+
+                current: currentAnalyses.map(function (analysis) {
+                    return analysis.roundId;
+                })
+            }
+        });
 
         const roundAnalyses = rounds.map(function (playerRound) {
             return analyseRound(playerRound, analyticsContext);
