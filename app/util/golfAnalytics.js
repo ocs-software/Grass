@@ -1,3 +1,57 @@
+async function getPlayerRounds(thisDb, collectionName, userId, criteria) {
+    criteria = criteria || {};
+
+    const roundQuery = {
+        user_id: userId
+    };
+
+    if (criteria.date_from) {
+        const dateFrom = new Date(criteria.date_from);
+
+        dateFrom.setHours(0, 0, 0, 0);
+
+        roundQuery.created_at = {
+            ...roundQuery.created_at,
+            $gte: dateFrom
+        };
+    }
+
+    if (criteria.date_to) {
+        const dateTo = new Date(criteria.date_to);
+
+        dateTo.setHours(23, 59, 59, 999);
+
+        roundQuery.created_at = {
+            ...roundQuery.created_at,
+            $lte: dateTo
+        };
+    }
+
+    let roundsQuery = thisDb.collection(collectionName).find(roundQuery);
+
+    const lastN = Number(criteria.last_n);
+
+    if (lastN > 0) {
+        roundsQuery = roundsQuery
+            .sort({
+                created_at: -1
+            })
+            .limit(lastN);
+    } else {
+        roundsQuery = roundsQuery.sort({
+            created_at: 1
+        });
+    }
+
+    let rounds = await roundsQuery.toArray();
+
+    if (lastN > 0) {
+        rounds = rounds.reverse();
+    }
+
+    return rounds;
+}
+
 function getScoringCategory(scoreToPar) {
     if (scoreToPar <= -2) return "eagleOrBetter";
     if (scoreToPar === -1) return "birdie";
@@ -536,5 +590,6 @@ function aggregateRounds(roundAnalyses) {
 module.exports = {
     analyseRound,
     aggregateRounds,
-    buildAnalyticsContext
+    buildAnalyticsContext,
+    getPlayerRounds
 };
