@@ -41,6 +41,12 @@ function analyseRound(round) {
 
         const scoreToPar =
             score !== undefined && score !== null ? score - par : null;
+        const fairwayOpportunity = par > 3;
+        const teeShot = holeShots.find(function (shot) {
+            return shot.strokes === 1;
+        });
+        const fairwayHit =
+            fairwayOpportunity && teeShot && teeShot.outcome === "001";
 
         holes.push({
             hole: holeNumber,
@@ -53,7 +59,8 @@ function analyseRound(round) {
             gir: gir,
             girStroke: girStroke,
             girTarget: girTarget,
-
+            fairwayOpportunity: fairwayOpportunity,
+            fairwayHit: fairwayHit,
             putts: putts
         });
     }
@@ -73,6 +80,14 @@ function analyseRound(round) {
     const totalPar = holes.reduce(function (total, hole) {
         return total + hole.par;
     }, 0);
+
+    const fairwayOpportunities = holes.filter(function (hole) {
+        return hole.fairwayOpportunity;
+    });
+
+    const fairwaysHit = fairwayOpportunities.filter(function (hole) {
+        return hole.fairwayHit;
+    });
 
     return {
         roundId: round._id,
@@ -98,6 +113,15 @@ function analyseRound(round) {
         putting: {
             putts: totalPutts,
             puttsPerHole: holes.length > 0 ? totalPutts / holes.length : null
+        },
+
+        fairways: {
+            hit: fairwaysHit.length,
+            opportunities: fairwayOpportunities.length,
+            percentage:
+                fairwayOpportunities.length > 0
+                    ? (fairwaysHit.length / fairwayOpportunities.length) * 100
+                    : null
         },
 
         holes: holes
