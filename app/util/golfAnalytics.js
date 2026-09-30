@@ -1,3 +1,15 @@
+function calculatePenalties(holeShots, codes) {
+    const penaltyCodes = Array.isArray(codes.penalties) ? codes.penalties : [];
+
+    const penaltyStrokes = holeShots.filter(function (shot) {
+        return penaltyCodes.includes(shot.outcome);
+    }).length;
+
+    return {
+        penaltyStrokes: penaltyStrokes
+    };
+}
+
 function buildAnalyticsContext(table) {
     const outcomes = table && Array.isArray(table.as_oos) ? table.as_oos : [];
 
@@ -81,6 +93,8 @@ function analyseRound(round, context) {
     context = context || {};
     const codes = context.codes || {};
 
+    let totalPenaltyStrokes = 0;
+
     if (!round) {
         throw new Error("Round is required.");
     }
@@ -116,6 +130,10 @@ function analyseRound(round, context) {
         const scoreToPar =
             score !== undefined && score !== null ? score - par : null;
 
+        const penaltyResult = calculatePenalties(holeShots, codes);
+
+        totalPenaltyStrokes += penaltyResult.penaltyStrokes;
+
         holes.push({
             hole: holeNumber,
             par: par,
@@ -133,7 +151,7 @@ function analyseRound(round, context) {
 
             scramblingOpportunity: scramblingResult.scramblingOpportunity,
             scramble: scramblingResult.scramble,
-
+            penaltyStrokes: penaltyResult.penaltyStrokes,
             putts: puttingResult.putts
         });
     }
@@ -213,6 +231,10 @@ function analyseRound(round, context) {
                     ? (scramblesMade.length / scramblingOpportunities.length) *
                       100
                     : null
+        },
+
+        penalties: {
+            strokes: totalPenaltyStrokes
         },
 
         holes: holes

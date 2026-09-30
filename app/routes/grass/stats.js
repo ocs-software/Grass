@@ -350,17 +350,6 @@ router.post("/test-analytics", async (req, res) => {
         const analysis = analyseRound(round, analyticsContext);
 
         res.send({
-            tableFound: !!table,
-            tableKeys: table ? Object.keys(table) : [],
-            asOosIsArray: table ? Array.isArray(table.as_oos) : false,
-            asOosLength:
-                table && Array.isArray(table.as_oos)
-                    ? table.as_oos.length
-                    : null,
-            asOosSample:
-                table && Array.isArray(table.as_oos)
-                    ? table.as_oos.slice(0, 5)
-                    : null,
             analyticsContext: analyticsContext,
             analysis: analysis
         });
