@@ -633,6 +633,7 @@ function aggregateRounds(roundAnalyses) {
 
     let complete18HoleRounds = 0;
     let partialRounds = 0;
+    let roundsWithClubData = 0;
 
     let earliestDate = null;
     let latestDate = null;
@@ -731,6 +732,10 @@ function aggregateRounds(roundAnalyses) {
             totals.penalties.strokes += Number(analysis.penalties.strokes) || 0;
         }
 
+        if (analysis.clubs && Object.keys(analysis.clubs).length > 0) {
+            roundsWithClubData++;
+        }
+
         if (analysis.clubs) {
             Object.values(analysis.clubs).forEach(function (club) {
                 if (!club || !club.code) {
@@ -801,6 +806,15 @@ function aggregateRounds(roundAnalyses) {
         complete18HoleRounds: complete18HoleRounds,
 
         partialRounds: partialRounds,
+
+        clubDataCoverage: {
+            roundsWithData: roundsWithClubData,
+            roundsWithoutData: analyses.length - roundsWithClubData,
+            percentage:
+                analyses.length > 0
+                    ? (roundsWithClubData / analyses.length) * 100
+                    : null
+        },
 
         holesPlayed: totals.holes,
 
