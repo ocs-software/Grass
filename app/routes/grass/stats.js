@@ -349,12 +349,6 @@ router.post("/test-analytics", async (req, res) => {
             date: analysis.date,
             shotQuality: analysis.shotQuality
         });
-
-        res.send({
-            roundId: analysis.roundId,
-            date: analysis.date,
-            shotQuality: analysis.shotQuality
-        });
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,
