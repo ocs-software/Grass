@@ -1,3 +1,63 @@
+function getAnalyticsMetricDefinitions() {
+    return {
+        scoringToParPerHole: {
+            label: "Score to par per hole",
+            unit: "strokes",
+            better: "lower"
+        },
+
+        girPercentage: {
+            label: "Greens in regulation",
+            unit: "percentage",
+            better: "higher"
+        },
+
+        puttsPerHole: {
+            label: "Putts per hole",
+            unit: "putts",
+            better: "lower"
+        },
+
+        fairwayPercentage: {
+            label: "Fairways hit",
+            unit: "percentage",
+            better: "higher"
+        },
+
+        scramblingPercentage: {
+            label: "Scrambling",
+            unit: "percentage",
+            better: "higher"
+        },
+
+        penaltiesPerHole: {
+            label: "Penalty strokes per hole",
+            unit: "strokes",
+            better: "lower"
+        },
+
+        shotQualityAverage: {
+            label: "Player-rated shot quality",
+            unit: "rating_1_to_5",
+            better: "higher",
+            subjective: true,
+            description:
+                "Player-entered subjective shot quality. " +
+                "1 = Very Bad, 2 = Bad, 3 = Average, " +
+                "4 = Good, 5 = Perfect."
+        },
+
+        clubAverageDistanceYards: {
+            label: "Recorded club distance",
+            unit: "yards",
+            better: null,
+            description:
+                "Average recorded ball travel distance. " +
+                "A longer distance is not inherently better."
+        }
+    };
+}
+
 function buildPlayerAnalyticsReport(aggregate, comparison) {
     if (!aggregate) {
         return null;
