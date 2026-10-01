@@ -207,12 +207,30 @@ function buildAnalyticsContext(table) {
             return item.code;
         });
 
+    const clubs = table && Array.isArray(table.as_clubs) ? table.as_clubs : [];
+
+    const clubMap = {};
+
+    clubs.forEach(function (club) {
+        if (!club || !club.code) {
+            return;
+        }
+
+        clubMap[club.code] = {
+            code: club.code,
+            description: club.desc || null,
+            abbreviation: club.abbr || null
+        };
+    });
+
     return {
         codes: {
             fairway: fairway ? fairway.code : null,
             green: green ? green.code : null,
             penalties: penaltyCodes
-        }
+        },
+
+        clubs: clubMap
     };
 }
 

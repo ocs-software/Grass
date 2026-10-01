@@ -324,14 +324,14 @@ router.post("/test-analytics", async (req, res) => {
 
         const analyticsContext = buildAnalyticsContext(table);
 
-        const comparisonSize = 3;
+        // const comparisonSize = 3;
 
         const rounds = await getPlayerRounds(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
             {
-                last_n: comparisonSize * 2
+                last_n: 1
             }
         );
 
@@ -341,7 +341,7 @@ router.post("/test-analytics", async (req, res) => {
             });
         }
 
-        if (rounds.length < comparisonSize * 2) {
+        /* if (rounds.length < comparisonSize * 2) {
             return res.status(400).send({
                 error: "Not enough rounds for comparison",
                 required: comparisonSize * 2,
@@ -365,9 +365,9 @@ router.post("/test-analytics", async (req, res) => {
 
         const currentOverview = aggregateRounds(currentAnalyses);
 
-        const comparison = compareAggregates(currentOverview, previousOverview);
+        const comparison = compareAggregates(currentOverview, previousOverview); */
 
-        res.send({
+        /* res.send({
             analyticsContext: analyticsContext,
 
             previous: previousOverview,
@@ -385,9 +385,18 @@ router.post("/test-analytics", async (req, res) => {
                     return analysis.roundId;
                 })
             }
+        }); */
+
+        const analysis = analyseRound(rounds[0], analyticsContext);
+
+        res.send({
+            analyticsContext: analyticsContext,
+            roundId: analysis.roundId,
+            date: analysis.date,
+            clubs: analysis.clubs
         });
 
-        const roundAnalyses = rounds.map(function (playerRound) {
+        /* const roundAnalyses = rounds.map(function (playerRound) {
             return analyseRound(playerRound, analyticsContext);
         });
 
@@ -410,7 +419,7 @@ router.post("/test-analytics", async (req, res) => {
                     penalties: analysis.penalties
                 };
             })
-        });
+        }); */
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,
