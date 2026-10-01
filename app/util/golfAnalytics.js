@@ -1,3 +1,69 @@
+function calculateClubs(shots, context) {
+    const clubMap = context && context.clubs ? context.clubs : {};
+
+    const clubs = {};
+
+    shots.forEach(function (shot) {
+        const clubCode = shot.shot_club;
+
+        if (!clubCode) {
+            return;
+        }
+
+        const clubDefinition = clubMap[clubCode] || null;
+
+        if (!clubs[clubCode]) {
+            clubs[clubCode] = {
+                code: clubCode,
+                description: clubDefinition ? clubDefinition.description : null,
+                abbreviation: clubDefinition
+                    ? clubDefinition.abbreviation
+                    : null,
+                shots: 0,
+                measuredShots: 0,
+                totalDistanceYards: 0,
+                averageDistanceYards: null,
+                minimumDistanceYards: null,
+                maximumDistanceYards: null
+            };
+        }
+
+        const club = clubs[clubCode];
+
+        club.shots++;
+
+        const distanceYards = Number(shot.shot_dist_y);
+
+        if (Number.isFinite(distanceYards) && distanceYards > 0) {
+            club.measuredShots++;
+            club.totalDistanceYards += distanceYards;
+
+            if (
+                club.minimumDistanceYards === null ||
+                distanceYards < club.minimumDistanceYards
+            ) {
+                club.minimumDistanceYards = distanceYards;
+            }
+
+            if (
+                club.maximumDistanceYards === null ||
+                distanceYards > club.maximumDistanceYards
+            ) {
+                club.maximumDistanceYards = distanceYards;
+            }
+        }
+    });
+
+    Object.values(clubs).forEach(function (club) {
+        if (club.measuredShots > 0) {
+            club.averageDistanceYards =
+                club.totalDistanceYards / club.measuredShots;
+        }
+    });
+
+    return clubs;
+}
+
 function calculateChange(currentValue, previousValue) {
     if (
         currentValue === null ||
@@ -411,6 +477,12 @@ function analyseRound(round, context) {
         });
     }
 
+    const playedShots = holes.reduce(function (allShots, hole) {
+        return allShots.concat(hole.shots);
+    }, []);
+
+    const clubs = calculateClubs(playedShots, context);
+
     const totalPutts = holes.reduce(function (total, hole) {
         return total + hole.putts;
     }, 0);
@@ -493,6 +565,8 @@ function analyseRound(round, context) {
         penalties: {
             strokes: totalPenaltyStrokes
         },
+
+        clubs: clubs,
 
         holes: holes
     };
