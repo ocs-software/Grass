@@ -20,7 +20,8 @@ const {
 const {
     getPlayerOverview,
     comparePlayerPeriods,
-    getRound
+    getRound,
+    getHole
 } = require("../../util/golfAITools");
 
 router.post("/get", async (req, res) => {
@@ -330,18 +331,18 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-        const round = await getRound(
+        const hole = await getHole(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
             analyticsContext,
             {
-                mode: "latest"
+                hole: 8
             }
         );
 
         res.send({
-            round: round
+            hole: hole
         });
     } catch (e) {
         return await sendError(res, 400, {

@@ -277,8 +277,65 @@ async function getRound(
     };
 }
 
+async function getHole(
+    thisDb,
+    collectionName,
+    userId,
+    analyticsContext,
+    options
+) {
+    options = options || {};
+
+    const holeNumber = Number(options.hole);
+
+    if (!Number.isInteger(holeNumber) || holeNumber < 1 || holeNumber > 18) {
+        throw new Error("hole must be an integer between 1 and 18");
+    }
+
+    const roundResult = await getRound(
+        thisDb,
+        collectionName,
+        userId,
+        analyticsContext,
+        {
+            mode: options.round_id ? "round_id" : "latest",
+
+            round_id: options.round_id
+        }
+    );
+
+    if (!roundResult.available) {
+        return roundResult;
+    }
+
+    const hole = roundResult.analysis.holes.find(function (item) {
+        return Number(item.hole) === holeNumber;
+    });
+
+    if (!hole) {
+        return {
+            available: false,
+            reason: "The requested hole was not found in this round.",
+            roundId: roundResult.round.id,
+            hole: holeNumber
+        };
+    }
+
+    return {
+        available: true,
+
+        round: {
+            id: roundResult.round.id,
+            created_at: roundResult.round.created_at
+        },
+
+        hole: hole
+    };
+}
+
 module.exports = {
     getPlayerOverview,
     comparePlayerPeriods,
-    getRound
+    getRound,
+    getHole
 };
