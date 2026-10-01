@@ -17,6 +17,8 @@ const {
     buildPlayerAnalyticsReport
 } = require("../../util/golfAnalytics");
 
+const { getPlayerOverview } = require("../../util/golfAITools");
+
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
@@ -325,46 +327,16 @@ router.post("/test-analytics", async (req, res) => {
 
         const analyticsContext = buildAnalyticsContext(table);
 
-        const rounds = await getPlayerRounds(
+        const report = await getPlayerOverview(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
-            data.criteria
+            analyticsContext,
+            {
+                criteria: data.criteria || {},
+                trendRoundCount: 3
+            }
         );
-
-        const trendRoundCount = 3;
-
-        const currentRounds = rounds.slice(-trendRoundCount);
-
-        const previousRounds = rounds.slice(
-            -(trendRoundCount * 2),
-            -trendRoundCount
-        );
-
-        const currentAnalyses = currentRounds.map(function (round) {
-            return analyseRound(round, analyticsContext);
-        });
-
-        const previousAnalyses = previousRounds.map(function (round) {
-            return analyseRound(round, analyticsContext);
-        });
-
-        const currentAggregate = aggregateRounds(currentAnalyses);
-
-        const previousAggregate = aggregateRounds(previousAnalyses);
-
-        const comparison = compareAggregates(
-            currentAggregate,
-            previousAggregate
-        );
-
-        const analyses = rounds.map(function (round) {
-            return analyseRound(round, analyticsContext);
-        });
-
-        const aggregate = aggregateRounds(analyses);
-
-        const report = buildPlayerAnalyticsReport(aggregate, comparison);
 
         res.send({
             report: report
