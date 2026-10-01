@@ -583,6 +583,10 @@ function analyseRound(round, context) {
         return allShots.concat(hole.shots);
     }, []);
 
+    const recordedShotCount = playedShots.length;
+
+    const scoreDifference = recordedShotCount - totalScore;
+
     const shotQuality = calculateShotQuality(playedShots);
 
     const clubs = calculateClubs(playedShots, context);
@@ -624,7 +628,11 @@ function analyseRound(round, context) {
         userId: round.user_id,
         date: round.created_at || null,
         complete: round.complete === true,
-
+        shotCountDiagnostic: {
+            recordedShots: recordedShotCount,
+            score: totalScore,
+            difference: scoreDifference
+        },
         holesPlayed: holes.length,
 
         scoring: {

@@ -335,10 +335,15 @@ router.post("/test-analytics", async (req, res) => {
             return analyseRound(round, analyticsContext);
         });
 
-        const aggregate = aggregateRounds(analyses);
-
         res.send({
-            aggregate: aggregate
+            rounds: analyses.map(function (analysis) {
+                return {
+                    roundId: analysis.roundId,
+                    date: analysis.date,
+                    holesPlayed: analysis.holesPlayed,
+                    shotCountDiagnostic: analysis.shotCountDiagnostic
+                };
+            })
         });
     } catch (e) {
         return await sendError(res, 400, {
