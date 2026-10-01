@@ -19,7 +19,9 @@ function calculateClubs(shots, context) {
                 abbreviation: clubDefinition
                     ? clubDefinition.abbreviation
                     : null,
+
                 shots: 0,
+
                 measuredShots: 0,
                 totalDistanceYards: 0,
                 averageDistanceYards: null,
@@ -32,9 +34,12 @@ function calculateClubs(shots, context) {
 
         club.shots++;
 
+        const isPutter =
+            clubDefinition && clubDefinition.description === "Putter";
+
         const distanceYards = Number(shot.shot_dist_y);
 
-        if (Number.isFinite(distanceYards) && distanceYards > 0) {
+        if (!isPutter && Number.isFinite(distanceYards) && distanceYards > 0) {
             club.measuredShots++;
             club.totalDistanceYards += distanceYards;
 

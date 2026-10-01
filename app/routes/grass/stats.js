@@ -389,40 +389,10 @@ router.post("/test-analytics", async (req, res) => {
 
         const analysis = analyseRound(rounds[0], analyticsContext);
 
-        const shotDiagnostics = [];
-
-        analysis.holes.forEach(function (hole) {
-            hole.shots.forEach(function (shot) {
-                if (
-                    Number(shot.shot_dist_y) > 0 ||
-                    Number(shot.shot_dist_m) > 0 ||
-                    Number(shot.putt_dist_f) > 0 ||
-                    Number(shot.putt_dist_m) > 0
-                ) {
-                    shotDiagnostics.push({
-                        hole: hole.hole,
-                        stroke: shot.strokes,
-                        position: shot.position,
-                        outcome: shot.outcome,
-                        club: shot.shot_club,
-                        clubDescription: analyticsContext.clubs[shot.shot_club]
-                            ? analyticsContext.clubs[shot.shot_club].description
-                            : null,
-                        shot_dist_y: shot.shot_dist_y,
-                        shot_dist_m: shot.shot_dist_m,
-                        putt_dist_f: shot.putt_dist_f,
-                        putt_dist_m: shot.putt_dist_m,
-                        shot_qos: shot.shot_qos
-                    });
-                }
-            });
-        });
-
         res.send({
             roundId: analysis.roundId,
             date: analysis.date,
-            clubs: analysis.clubs,
-            shotDiagnostics: shotDiagnostics
+            clubs: analysis.clubs
         });
 
         /* const roundAnalyses = rounds.map(function (playerRound) {
