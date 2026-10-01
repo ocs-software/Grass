@@ -1,4 +1,4 @@
-function buildPlayerAnalyticsReport(aggregate) {
+function buildPlayerAnalyticsReport(aggregate, comparison) {
     if (!aggregate) {
         return null;
     }
@@ -53,7 +53,8 @@ function buildPlayerAnalyticsReport(aggregate) {
             clubData: aggregate.clubDataCoverage,
 
             shotQualityData: aggregate.shotQualityDataCoverage
-        }
+        },
+        trend: comparison || null
     };
 }
 

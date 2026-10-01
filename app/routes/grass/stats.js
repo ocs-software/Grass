@@ -332,16 +332,41 @@ router.post("/test-analytics", async (req, res) => {
             data.criteria
         );
 
+        const trendRoundCount = 3;
+
+        const currentRounds = rounds.slice(-trendRoundCount);
+
+        const previousRounds = rounds.slice(
+            -(trendRoundCount * 2),
+            -trendRoundCount
+        );
+
+        const currentAnalyses = currentRounds.map(function (round) {
+            return analyseRound(round, analyticsContext);
+        });
+
+        const previousAnalyses = previousRounds.map(function (round) {
+            return analyseRound(round, analyticsContext);
+        });
+
+        const currentAggregate = aggregateRounds(currentAnalyses);
+
+        const previousAggregate = aggregateRounds(previousAnalyses);
+
+        const comparison = compareAggregates(
+            currentAggregate,
+            previousAggregate
+        );
+
         const analyses = rounds.map(function (round) {
             return analyseRound(round, analyticsContext);
         });
 
         const aggregate = aggregateRounds(analyses);
 
-        const report = buildPlayerAnalyticsReport(aggregate);
+        const report = buildPlayerAnalyticsReport(aggregate, comparison);
 
         res.send({
-            // aggregate: aggregate
             report: report
         });
     } catch (e) {
