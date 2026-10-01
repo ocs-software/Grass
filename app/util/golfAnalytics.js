@@ -362,6 +362,7 @@ function calculateShotQuality(shots) {
         shotsWithQuality: 0,
         shotsWithoutQuality: 0,
         invalidQuality: 0,
+        invalidValues: {},
 
         average: null,
 
@@ -392,6 +393,12 @@ function calculateShotQuality(shots) {
 
         if (!Number.isInteger(quality) || quality < 1 || quality > 5) {
             result.invalidQuality++;
+
+            const invalidKey = String(rawQuality);
+
+            result.invalidValues[invalidKey] =
+                (result.invalidValues[invalidKey] || 0) + 1;
+
             return;
         }
 
