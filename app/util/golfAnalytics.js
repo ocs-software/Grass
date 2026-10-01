@@ -356,6 +356,84 @@ function calculateScrambling(gir, score, par) {
     };
 }
 
+function calculateShotQuality(shots) {
+    const result = {
+        totalShots: shots.length,
+        shotsWithQuality: 0,
+        shotsWithoutQuality: 0,
+        invalidQuality: 0,
+
+        average: null,
+
+        distribution: {
+            veryBad: 0,
+            bad: 0,
+            average: 0,
+            good: 0,
+            perfect: 0
+        }
+    };
+
+    let qualityTotal = 0;
+
+    shots.forEach(function (shot) {
+        const rawQuality = shot.shot_qos;
+
+        if (
+            rawQuality === undefined ||
+            rawQuality === null ||
+            rawQuality === ""
+        ) {
+            result.shotsWithoutQuality++;
+            return;
+        }
+
+        const quality = Number(rawQuality);
+
+        if (!Number.isInteger(quality) || quality < 1 || quality > 5) {
+            result.invalidQuality++;
+            return;
+        }
+
+        result.shotsWithQuality++;
+        qualityTotal += quality;
+
+        switch (quality) {
+            case 1:
+                result.distribution.veryBad++;
+                break;
+
+            case 2:
+                result.distribution.bad++;
+                break;
+
+            case 3:
+                result.distribution.average++;
+                break;
+
+            case 4:
+                result.distribution.good++;
+                break;
+
+            case 5:
+                result.distribution.perfect++;
+                break;
+        }
+    });
+
+    result.average =
+        result.shotsWithQuality > 0
+            ? qualityTotal / result.shotsWithQuality
+            : null;
+
+    result.coveragePercentage =
+        result.totalShots > 0
+            ? (result.shotsWithQuality / result.totalShots) * 100
+            : null;
+
+    return result;
+}
+
 function analyseRound(round, context) {
     context = context || {};
     const codes = context.codes || {};
@@ -486,6 +564,8 @@ function analyseRound(round, context) {
         return allShots.concat(hole.shots);
     }, []);
 
+    const shotQuality = calculateShotQuality(playedShots);
+
     const clubs = calculateClubs(playedShots, context);
 
     const totalPutts = holes.reduce(function (total, hole) {
@@ -572,6 +652,8 @@ function analyseRound(round, context) {
         },
 
         clubs: clubs,
+
+        shotQuality: shotQuality,
 
         holes: holes
     };

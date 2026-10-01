@@ -331,14 +331,14 @@ router.post("/test-analytics", async (req, res) => {
             data.criteria
         );
 
-        const analyses = rounds.map(function (round) {
+        const analysis = rounds.map(function (round) {
             return analyseRound(round, analyticsContext);
         });
 
-        const aggregate = aggregateRounds(analyses);
-
         res.send({
-            aggregate: aggregate
+            roundId: analysis.roundId,
+            date: analysis.date,
+            shotQuality: analysis.shotQuality
         });
     } catch (e) {
         return await sendError(res, 400, {
