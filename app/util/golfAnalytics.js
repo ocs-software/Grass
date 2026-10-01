@@ -747,6 +747,12 @@ function aggregateRounds(roundAnalyses) {
             opportunities: 0
         },
 
+        shotDataQuality: {
+            eligibleShots: 0,
+            excludedShots: 0,
+            excludedHoles: 0
+        },
+
         shotQuality: {
             totalShots: 0,
             shotsWithQuality: 0,
@@ -873,6 +879,17 @@ function aggregateRounds(roundAnalyses) {
                 Number(analysis.scrambling.opportunities) || 0;
         }
 
+        if (analysis.shotDataQuality) {
+            totals.shotDataQuality.eligibleShots +=
+                analysis.shotDataQuality.eligibleShots;
+
+            totals.shotDataQuality.excludedShots +=
+                analysis.shotDataQuality.excludedShots;
+
+            totals.shotDataQuality.excludedHoles +=
+                analysis.shotDataQuality.excludedHoles;
+        }
+
         if (analysis.shotQuality) {
             const quality = analysis.shotQuality;
 
@@ -975,6 +992,17 @@ function aggregateRounds(roundAnalyses) {
 
     const qualityDistribution = totals.shotQuality.distribution;
 
+    const totalRecordedShotRecords =
+        totals.shotDataQuality.eligibleShots +
+        totals.shotDataQuality.excludedShots;
+
+    totals.shotDataQuality.eligibilityPercentage =
+        totalRecordedShotRecords > 0
+            ? (totals.shotDataQuality.eligibleShots /
+                  totalRecordedShotRecords) *
+              100
+            : null;
+
     const qualityTotal =
         qualityDistribution.veryBad * 1 +
         qualityDistribution.bad * 2 +
@@ -1033,6 +1061,8 @@ function aggregateRounds(roundAnalyses) {
                     ? (roundsWithClubData / analyses.length) * 100
                     : null
         },
+
+        shotDataQuality: totals.shotDataQuality,
 
         shotQualityDataCoverage: {
             roundsWithData: roundsWithShotQualityData,
