@@ -335,19 +335,10 @@ router.post("/test-analytics", async (req, res) => {
             return analyseRound(round, analyticsContext);
         });
 
-        const analysis =
-            analyses.length > 0 ? analyses[analyses.length - 1] : null;
-
-        if (!analysis) {
-            return res.send({
-                error: "No rounds found."
-            });
-        }
+        const aggregate = aggregateRounds(analyses);
 
         res.send({
-            roundId: analysis.roundId,
-            date: analysis.date,
-            shotQuality: analysis.shotQuality
+            aggregate: aggregate
         });
     } catch (e) {
         return await sendError(res, 400, {
