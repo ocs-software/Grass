@@ -1,3 +1,62 @@
+function buildPlayerAnalyticsReport(aggregate) {
+    if (!aggregate) {
+        return null;
+    }
+
+    return {
+        sample: {
+            rounds: aggregate.rounds,
+            complete18HoleRounds: aggregate.complete18HoleRounds,
+            partialRounds: aggregate.partialRounds,
+            holesPlayed: aggregate.holesPlayed,
+            dateRange: aggregate.dateRange
+        },
+
+        performance: {
+            scoring: {
+                score: aggregate.scoring.score,
+                par: aggregate.scoring.par,
+                toPar: aggregate.scoring.toPar,
+                toParPerHole:
+                    aggregate.holesPlayed > 0
+                        ? aggregate.scoring.toPar / aggregate.holesPlayed
+                        : null,
+                distribution: aggregate.scoring.distribution
+            },
+
+            gir: aggregate.gir,
+
+            putting: aggregate.putting,
+
+            fairways: aggregate.fairways,
+
+            scrambling: aggregate.scrambling,
+
+            penalties: {
+                strokes: aggregate.penalties.strokes,
+                perHole:
+                    aggregate.holesPlayed > 0
+                        ? aggregate.penalties.strokes / aggregate.holesPlayed
+                        : null
+            }
+        },
+
+        telemetry: {
+            clubs: aggregate.clubs,
+
+            shotQuality: aggregate.shotQuality
+        },
+
+        dataQuality: {
+            shotRecords: aggregate.shotDataQuality,
+
+            clubData: aggregate.clubDataCoverage,
+
+            shotQualityData: aggregate.shotQualityDataCoverage
+        }
+    };
+}
+
 function calculateClubs(shots, context) {
     const clubMap = context && context.clubs ? context.clubs : {};
 
@@ -1144,5 +1203,6 @@ module.exports = {
     aggregateRounds,
     buildAnalyticsContext,
     getPlayerRounds,
-    compareAggregates
+    compareAggregates,
+    buildPlayerAnalyticsReport
 };

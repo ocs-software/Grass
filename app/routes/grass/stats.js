@@ -13,7 +13,8 @@ const {
     aggregateRounds,
     buildAnalyticsContext,
     getPlayerRounds,
-    compareAggregates
+    compareAggregates,
+    buildPlayerAnalyticsReport
 } = require("../../util/golfAnalytics");
 
 router.post("/get", async (req, res) => {
@@ -337,8 +338,11 @@ router.post("/test-analytics", async (req, res) => {
 
         const aggregate = aggregateRounds(analyses);
 
+        const report = buildPlayerAnalyticsReport(aggregate);
+
         res.send({
-            aggregate: aggregate
+            // aggregate: aggregate
+            report: report
         });
     } catch (e) {
         return await sendError(res, 400, {
