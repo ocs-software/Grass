@@ -19,7 +19,8 @@ const {
 
 const {
     getPlayerOverview,
-    comparePlayerPeriods
+    comparePlayerPeriods,
+    getRound
 } = require("../../util/golfAITools");
 
 router.post("/get", async (req, res) => {
@@ -329,28 +330,18 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-        const comparison = await comparePlayerPeriods(
+        const round = await getRound(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
             analyticsContext,
             {
-                mode: "date_range",
-
-                current: {
-                    date_from: "2026-08-01",
-                    date_to: "2026-08-10"
-                },
-
-                previous: {
-                    date_from: "2026-06-23",
-                    date_to: "2026-06-30"
-                }
+                mode: "latest"
             }
         );
 
         res.send({
-            comparison: comparison
+            round: round
         });
     } catch (e) {
         return await sendError(res, 400, {

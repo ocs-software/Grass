@@ -213,7 +213,72 @@ async function comparePlayerPeriods(
     throw new Error("Unsupported comparison mode");
 }
 
+async function getRound(
+    thisDb,
+    collectionName,
+    userId,
+    analyticsContext,
+    options
+) {
+    options = options || {};
+
+    const mode = options.mode || "latest";
+
+    const rounds = await getPlayerRounds(thisDb, collectionName, userId, {});
+
+    if (rounds.length === 0) {
+        return {
+            available: false,
+            reason: "No rounds are available for this player."
+        };
+    }
+
+    let round = null;
+
+    if (mode === "latest") {
+        round = rounds[rounds.length - 1];
+    } else if (mode === "round_id") {
+        if (!options.round_id) {
+            throw new Error("round_id is required");
+        }
+
+        round = rounds.find(function (item) {
+            return String(item._id) === String(options.round_id);
+        });
+
+        if (!round) {
+            return {
+                available: false,
+                reason: "The requested round was not found."
+            };
+        }
+    } else {
+        throw new Error("Unsupported round mode");
+    }
+
+    const analysis = analyseRound(round, analyticsContext);
+
+    return {
+        available: true,
+
+        round: {
+            id: String(round._id),
+
+            created_at: round.created_at || null,
+
+            course: round.course || null,
+
+            holesPlayed: analysis.holesPlayed,
+
+            complete18: analysis.holesPlayed === 18
+        },
+
+        analysis: analysis
+    };
+}
+
 module.exports = {
     getPlayerOverview,
-    comparePlayerPeriods
+    comparePlayerPeriods,
+    getRound
 };
