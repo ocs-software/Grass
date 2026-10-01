@@ -585,8 +585,6 @@ function analyseRound(round, context) {
 
     const recordedShotCount = playedShots.length;
 
-    const scoreDifference = recordedShotCount - totalScore;
-
     const shotQuality = calculateShotQuality(playedShots);
 
     const clubs = calculateClubs(playedShots, context);
@@ -602,6 +600,8 @@ function analyseRound(round, context) {
     const totalScore = holes.reduce(function (total, hole) {
         return total + (hole.score || 0);
     }, 0);
+
+    const scoreDifference = recordedShotCount - totalScore;
 
     const totalPar = holes.reduce(function (total, hole) {
         return total + hole.par;
