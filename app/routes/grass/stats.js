@@ -335,40 +335,10 @@ router.post("/test-analytics", async (req, res) => {
             return analyseRound(round, analyticsContext);
         });
 
+        const aggregate = aggregateRounds(analyses);
+
         res.send({
-            rounds: rounds
-                .map(function (round) {
-                    const roundAnalysis = analyseRound(round, analyticsContext);
-
-                    if (
-                        !roundAnalysis.shotCountDiagnostic ||
-                        roundAnalysis.shotCountDiagnostic.mismatchedHoles
-                            .length === 0
-                    ) {
-                        return null;
-                    }
-
-                    const mismatchedHoleNumbers =
-                        roundAnalysis.shotCountDiagnostic.mismatchedHoles.map(
-                            function (item) {
-                                return item.hole;
-                            }
-                        );
-
-                    return {
-                        roundId: round._id,
-                        date: round.created_at,
-
-                        mismatchedHoles: (round.hole_stats || []).filter(
-                            function (hole) {
-                                return mismatchedHoleNumbers.includes(
-                                    Number(hole.hole)
-                                );
-                            }
-                        )
-                    };
-                })
-                .filter(Boolean)
+            aggregate: aggregate
         });
     } catch (e) {
         return await sendError(res, 400, {

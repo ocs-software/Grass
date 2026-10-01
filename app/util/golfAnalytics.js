@@ -579,28 +579,30 @@ function analyseRound(round, context) {
         });
     }
 
-    const shotCountMismatches = holes
-        .map(function (hole) {
-            const recordedShots = Array.isArray(hole.shots)
-                ? hole.shots.length
-                : 0;
-
-            return {
-                hole: hole.hole,
-                recordedShots: recordedShots,
-                score: hole.score,
-                difference: recordedShots - hole.score
-            };
-        })
-        .filter(function (hole) {
-            return hole.difference !== 0;
-        });
+    const shotDataQuality = {
+        eligibleShots: 0,
+        excludedShots: 0,
+        excludedHoles: 0
+    };
 
     const playedShots = holes.reduce(function (allShots, hole) {
-        return allShots.concat(hole.shots);
-    }, []);
+        const shots = Array.isArray(hole.shots) ? hole.shots : [];
 
-    const recordedShotCount = playedShots.length;
+        const score = Number(hole.score);
+
+        if (score <= 0 || shots.length !== score) {
+            if (shots.length > 0) {
+                shotDataQuality.excludedHoles++;
+                shotDataQuality.excludedShots += shots.length;
+            }
+
+            return allShots;
+        }
+
+        shotDataQuality.eligibleShots += shots.length;
+
+        return allShots.concat(shots);
+    }, []);
 
     const shotQuality = calculateShotQuality(playedShots);
 
@@ -617,8 +619,6 @@ function analyseRound(round, context) {
     const totalScore = holes.reduce(function (total, hole) {
         return total + (hole.score || 0);
     }, 0);
-
-    const scoreDifference = recordedShotCount - totalScore;
 
     const totalPar = holes.reduce(function (total, hole) {
         return total + hole.par;
@@ -645,12 +645,6 @@ function analyseRound(round, context) {
         userId: round.user_id,
         date: round.created_at || null,
         complete: round.complete === true,
-        shotCountDiagnostic: {
-            recordedShots: recordedShotCount,
-            score: totalScore,
-            difference: scoreDifference,
-            mismatchedHoles: shotCountMismatches
-        },
         holesPlayed: holes.length,
 
         scoring: {
@@ -699,6 +693,8 @@ function analyseRound(round, context) {
         clubs: clubs,
 
         shotQuality: shotQuality,
+
+        shotDataQuality: shotDataQuality,
 
         holes: holes
     };
