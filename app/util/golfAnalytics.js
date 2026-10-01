@@ -579,6 +579,23 @@ function analyseRound(round, context) {
         });
     }
 
+    const shotCountMismatches = holes
+        .map(function (hole) {
+            const recordedShots = Array.isArray(hole.shots)
+                ? hole.shots.length
+                : 0;
+
+            return {
+                hole: hole.hole,
+                recordedShots: recordedShots,
+                score: hole.score,
+                difference: recordedShots - hole.score
+            };
+        })
+        .filter(function (hole) {
+            return hole.difference !== 0;
+        });
+
     const playedShots = holes.reduce(function (allShots, hole) {
         return allShots.concat(hole.shots);
     }, []);
@@ -631,7 +648,8 @@ function analyseRound(round, context) {
         shotCountDiagnostic: {
             recordedShots: recordedShotCount,
             score: totalScore,
-            difference: scoreDifference
+            difference: scoreDifference,
+            mismatchedHoles: shotCountMismatches
         },
         holesPlayed: holes.length,
 
