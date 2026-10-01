@@ -331,8 +331,23 @@ router.post("/test-analytics", async (req, res) => {
             data.criteria
         );
 
-        const analysis = rounds.map(function (round) {
+        const analyses = rounds.map(function (round) {
             return analyseRound(round, analyticsContext);
+        });
+
+        const analysis =
+            analyses.length > 0 ? analyses[analyses.length - 1] : null;
+
+        if (!analysis) {
+            return res.send({
+                error: "No rounds found."
+            });
+        }
+
+        res.send({
+            roundId: analysis.roundId,
+            date: analysis.date,
+            shotQuality: analysis.shotQuality
         });
 
         res.send({
