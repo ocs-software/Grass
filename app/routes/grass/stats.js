@@ -17,7 +17,10 @@ const {
     buildPlayerAnalyticsReport
 } = require("../../util/golfAnalytics");
 
-const { getPlayerOverview } = require("../../util/golfAITools");
+const {
+    getPlayerOverview,
+    comparePlayerPeriods
+} = require("../../util/golfAITools");
 
 router.post("/get", async (req, res) => {
     db = req.db;
@@ -326,20 +329,19 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-
-        const report = await getPlayerOverview(
+        const comparison = await comparePlayerPeriods(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
             analyticsContext,
             {
-                criteria: data.criteria || {},
-                trendRoundCount: 3
+                mode: "last_n",
+                count: 3
             }
         );
 
         res.send({
-            report: report
+            comparison: comparison
         });
     } catch (e) {
         return await sendError(res, 400, {
