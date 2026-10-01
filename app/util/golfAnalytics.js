@@ -720,6 +720,26 @@ function aggregateRounds(roundAnalyses) {
             opportunities: 0
         },
 
+        shotQuality: {
+            totalShots: 0,
+            shotsWithQuality: 0,
+            shotsWithoutQuality: 0,
+            invalidQuality: 0,
+            invalidValues: {},
+            average: null,
+
+            distribution: {
+                veryBad: 0,
+                bad: 0,
+                average: 0,
+                good: 0,
+                perfect: 0
+            },
+
+            inputCoveragePercentage: null,
+            validCoveragePercentage: null
+        },
+
         penalties: {
             strokes: 0
         },
@@ -730,6 +750,7 @@ function aggregateRounds(roundAnalyses) {
     let complete18HoleRounds = 0;
     let partialRounds = 0;
     let roundsWithClubData = 0;
+    let roundsWithShotQualityData = 0;
 
     let earliestDate = null;
     let latestDate = null;
@@ -824,6 +845,44 @@ function aggregateRounds(roundAnalyses) {
                 Number(analysis.scrambling.opportunities) || 0;
         }
 
+        if (analysis.shotQuality) {
+            const quality = analysis.shotQuality;
+
+            if (quality.shotsWithQuality > 0 || quality.invalidQuality > 0) {
+                roundsWithShotQualityData++;
+            }
+
+            totals.shotQuality.totalShots += quality.totalShots;
+
+            totals.shotQuality.shotsWithQuality += quality.shotsWithQuality;
+
+            totals.shotQuality.shotsWithoutQuality +=
+                quality.shotsWithoutQuality;
+
+            totals.shotQuality.invalidQuality += quality.invalidQuality;
+
+            totals.shotQuality.distribution.veryBad +=
+                quality.distribution.veryBad;
+
+            totals.shotQuality.distribution.bad += quality.distribution.bad;
+
+            totals.shotQuality.distribution.average +=
+                quality.distribution.average;
+
+            totals.shotQuality.distribution.good += quality.distribution.good;
+
+            totals.shotQuality.distribution.perfect +=
+                quality.distribution.perfect;
+
+            Object.entries(quality.invalidValues || {}).forEach(function ([
+                value,
+                count
+            ]) {
+                totals.shotQuality.invalidValues[value] =
+                    (totals.shotQuality.invalidValues[value] || 0) + count;
+            });
+        }
+
         if (analysis.penalties) {
             totals.penalties.strokes += Number(analysis.penalties.strokes) || 0;
         }
@@ -886,6 +945,33 @@ function aggregateRounds(roundAnalyses) {
         }
     });
 
+    const qualityDistribution = totals.shotQuality.distribution;
+
+    const qualityTotal =
+        qualityDistribution.veryBad * 1 +
+        qualityDistribution.bad * 2 +
+        qualityDistribution.average * 3 +
+        qualityDistribution.good * 4 +
+        qualityDistribution.perfect * 5;
+
+    if (totals.shotQuality.shotsWithQuality > 0) {
+        totals.shotQuality.average =
+            qualityTotal / totals.shotQuality.shotsWithQuality;
+    }
+
+    const shotsWithQualityInput =
+        totals.shotQuality.shotsWithQuality + totals.shotQuality.invalidQuality;
+
+    if (totals.shotQuality.totalShots > 0) {
+        totals.shotQuality.inputCoveragePercentage =
+            (shotsWithQualityInput / totals.shotQuality.totalShots) * 100;
+
+        totals.shotQuality.validCoveragePercentage =
+            (totals.shotQuality.shotsWithQuality /
+                totals.shotQuality.totalShots) *
+            100;
+    }
+
     Object.values(totals.clubs).forEach(function (club) {
         club.averageDistanceYards =
             club.measuredShots > 0
@@ -903,12 +989,25 @@ function aggregateRounds(roundAnalyses) {
 
         partialRounds: partialRounds,
 
+        shotQuality: totals.shotQuality,
+
         clubDataCoverage: {
             roundsWithData: roundsWithClubData,
             roundsWithoutData: analyses.length - roundsWithClubData,
             percentage:
                 analyses.length > 0
                     ? (roundsWithClubData / analyses.length) * 100
+                    : null
+        },
+
+        shotQualityDataCoverage: {
+            roundsWithData: roundsWithShotQualityData,
+
+            roundsWithoutData: analyses.length - roundsWithShotQualityData,
+
+            percentage:
+                analyses.length > 0
+                    ? (roundsWithShotQualityData / analyses.length) * 100
                     : null
         },
 
