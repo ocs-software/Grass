@@ -324,101 +324,22 @@ router.post("/test-analytics", async (req, res) => {
 
         const analyticsContext = buildAnalyticsContext(table);
 
-        // const comparisonSize = 3;
-
         const rounds = await getPlayerRounds(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
-            {
-                last_n: 1
-            }
+            data.criteria
         );
 
-        if (!rounds.length) {
-            return res.status(404).send({
-                error: "No rounds found"
-            });
-        }
-
-        /* if (rounds.length < comparisonSize * 2) {
-            return res.status(400).send({
-                error: "Not enough rounds for comparison",
-                required: comparisonSize * 2,
-                available: rounds.length
-            });
-        }
-
-        const previousRounds = rounds.slice(0, comparisonSize);
-
-        const currentRounds = rounds.slice(comparisonSize);
-
-        const previousAnalyses = previousRounds.map(function (playerRound) {
-            return analyseRound(playerRound, analyticsContext);
+        const analyses = rounds.map(function (round) {
+            return analyseRound(round, analyticsContext);
         });
 
-        const currentAnalyses = currentRounds.map(function (playerRound) {
-            return analyseRound(playerRound, analyticsContext);
-        });
-
-        const previousOverview = aggregateRounds(previousAnalyses);
-
-        const currentOverview = aggregateRounds(currentAnalyses);
-
-        const comparison = compareAggregates(currentOverview, previousOverview); */
-
-        /* res.send({
-            analyticsContext: analyticsContext,
-
-            previous: previousOverview,
-
-            current: currentOverview,
-
-            comparison: comparison,
-
-            roundIds: {
-                previous: previousAnalyses.map(function (analysis) {
-                    return analysis.roundId;
-                }),
-
-                current: currentAnalyses.map(function (analysis) {
-                    return analysis.roundId;
-                })
-            }
-        }); */
-
-        const analysis = analyseRound(rounds[0], analyticsContext);
+        const aggregate = aggregateRounds(analyses);
 
         res.send({
-            roundId: analysis.roundId,
-            date: analysis.date,
-            clubs: analysis.clubs
+            aggregate: aggregate
         });
-
-        /* const roundAnalyses = rounds.map(function (playerRound) {
-            return analyseRound(playerRound, analyticsContext);
-        });
-
-        const overview = aggregateRounds(roundAnalyses);
-
-        res.send({
-            analyticsContext: analyticsContext,
-            overview: overview,
-            rounds: roundAnalyses.map(function (analysis) {
-                return {
-                    roundId: analysis.roundId,
-                    date: analysis.date,
-                    complete: analysis.complete,
-                    holesPlayed: analysis.holesPlayed,
-                    scoring: analysis.scoring,
-                    gir: analysis.gir,
-                    putting: analysis.putting,
-                    fairways: analysis.fairways,
-                    scrambling: analysis.scrambling,
-                    penalties: analysis.penalties
-                };
-            })
-        }); */
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,

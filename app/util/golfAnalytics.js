@@ -626,7 +626,9 @@ function aggregateRounds(roundAnalyses) {
 
         penalties: {
             strokes: 0
-        }
+        },
+
+        clubs: {}
     };
 
     let complete18HoleRounds = 0;
@@ -728,6 +730,69 @@ function aggregateRounds(roundAnalyses) {
         if (analysis.penalties) {
             totals.penalties.strokes += Number(analysis.penalties.strokes) || 0;
         }
+
+        if (analysis.clubs) {
+            Object.values(analysis.clubs).forEach(function (club) {
+                if (!club || !club.code) {
+                    return;
+                }
+
+                if (!totals.clubs[club.code]) {
+                    totals.clubs[club.code] = {
+                        code: club.code,
+                        description: club.description || null,
+                        abbreviation: club.abbreviation || null,
+
+                        shots: 0,
+                        measuredShots: 0,
+                        totalDistanceYards: 0,
+                        minimumDistanceYards: null,
+                        maximumDistanceYards: null
+                    };
+                }
+
+                const aggregateClub = totals.clubs[club.code];
+
+                aggregateClub.shots += Number(club.shots) || 0;
+
+                aggregateClub.measuredShots += Number(club.measuredShots) || 0;
+
+                aggregateClub.totalDistanceYards +=
+                    Number(club.totalDistanceYards) || 0;
+
+                if (
+                    club.minimumDistanceYards !== null &&
+                    club.minimumDistanceYards !== undefined &&
+                    (aggregateClub.minimumDistanceYards === null ||
+                        club.minimumDistanceYards <
+                            aggregateClub.minimumDistanceYards)
+                ) {
+                    aggregateClub.minimumDistanceYards =
+                        club.minimumDistanceYards;
+                }
+
+                if (
+                    club.maximumDistanceYards !== null &&
+                    club.maximumDistanceYards !== undefined &&
+                    (aggregateClub.maximumDistanceYards === null ||
+                        club.maximumDistanceYards >
+                            aggregateClub.maximumDistanceYards)
+                ) {
+                    aggregateClub.maximumDistanceYards =
+                        club.maximumDistanceYards;
+                }
+            });
+        }
+    });
+
+    Object.values(totals.clubs).forEach(function (club) {
+        club.averageDistanceYards =
+            club.measuredShots > 0
+                ? club.totalDistanceYards / club.measuredShots
+                : null;
+
+        club.distanceCoveragePercentage =
+            club.shots > 0 ? (club.measuredShots / club.shots) * 100 : null;
     });
 
     return {
@@ -795,7 +860,9 @@ function aggregateRounds(roundAnalyses) {
 
         penalties: {
             strokes: totals.penalties.strokes
-        }
+        },
+
+        clubs: totals.clubs
     };
 }
 
