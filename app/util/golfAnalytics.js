@@ -445,6 +445,11 @@ function calculateShotQuality(shots) {
             ? (result.shotsWithQuality / result.totalShots) * 100
             : null;
 
+    result.validInputPercentage =
+        shotsWithInput > 0
+            ? (result.shotsWithQuality / shotsWithInput) * 100
+            : null;
+
     return result;
 }
 
@@ -737,7 +742,8 @@ function aggregateRounds(roundAnalyses) {
             },
 
             inputCoveragePercentage: null,
-            validCoveragePercentage: null
+            validCoveragePercentage: null,
+            validInputPercentage: null
         },
 
         penalties: {
@@ -961,6 +967,12 @@ function aggregateRounds(roundAnalyses) {
 
     const shotsWithQualityInput =
         totals.shotQuality.shotsWithQuality + totals.shotQuality.invalidQuality;
+
+    totals.shotQuality.validInputPercentage =
+        shotsWithQualityInput > 0
+            ? (totals.shotQuality.shotsWithQuality / shotsWithQualityInput) *
+              100
+            : null;
 
     if (totals.shotQuality.totalShots > 0) {
         totals.shotQuality.inputCoveragePercentage =
