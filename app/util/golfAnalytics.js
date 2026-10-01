@@ -433,7 +433,14 @@ function calculateShotQuality(shots) {
             ? qualityTotal / result.shotsWithQuality
             : null;
 
-    result.coveragePercentage =
+    const shotsWithInput = result.shotsWithQuality + result.invalidQuality;
+
+    result.inputCoveragePercentage =
+        result.totalShots > 0
+            ? (shotsWithInput / result.totalShots) * 100
+            : null;
+
+    result.validCoveragePercentage =
         result.totalShots > 0
             ? (result.shotsWithQuality / result.totalShots) * 100
             : null;
