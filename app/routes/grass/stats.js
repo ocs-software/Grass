@@ -336,14 +336,39 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         res.send({
-            rounds: analyses.map(function (analysis) {
-                return {
-                    roundId: analysis.roundId,
-                    date: analysis.date,
-                    holesPlayed: analysis.holesPlayed,
-                    shotCountDiagnostic: analysis.shotCountDiagnostic
-                };
-            })
+            rounds: rounds
+                .map(function (round) {
+                    const roundAnalysis = analyseRound(round, analyticsContext);
+
+                    if (
+                        !roundAnalysis.shotCountDiagnostic ||
+                        roundAnalysis.shotCountDiagnostic.mismatchedHoles
+                            .length === 0
+                    ) {
+                        return null;
+                    }
+
+                    const mismatchedHoleNumbers =
+                        roundAnalysis.shotCountDiagnostic.mismatchedHoles.map(
+                            function (item) {
+                                return item.hole;
+                            }
+                        );
+
+                    return {
+                        roundId: round._id,
+                        date: round.created_at,
+
+                        mismatchedHoles: (round.hole_stats || []).filter(
+                            function (hole) {
+                                return mismatchedHoleNumbers.includes(
+                                    Number(hole.hole)
+                                );
+                            }
+                        )
+                    };
+                })
+                .filter(Boolean)
         });
     } catch (e) {
         return await sendError(res, 400, {
