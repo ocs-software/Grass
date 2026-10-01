@@ -335,8 +335,17 @@ router.post("/test-analytics", async (req, res) => {
             new ObjectID(data.user_id),
             analyticsContext,
             {
-                mode: "last_n",
-                count: 3
+                mode: "date_range",
+
+                current: {
+                    date_from: "2026-08-01",
+                    date_to: "2026-08-10"
+                },
+
+                previous: {
+                    date_from: "2026-06-23",
+                    date_to: "2026-06-30"
+                }
             }
         );
 
