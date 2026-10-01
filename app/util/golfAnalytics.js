@@ -72,6 +72,8 @@ function buildPlayerAnalyticsReport(aggregate, comparison) {
             dateRange: aggregate.dateRange
         },
 
+        metricDefinitions: getAnalyticsMetricDefinitions(),
+
         performance: {
             scoring: {
                 score: aggregate.scoring.score,
@@ -1265,5 +1267,6 @@ module.exports = {
     buildAnalyticsContext,
     getPlayerRounds,
     compareAggregates,
-    buildPlayerAnalyticsReport
+    buildPlayerAnalyticsReport,
+    getAnalyticsMetricDefinitions
 };
