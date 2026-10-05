@@ -220,60 +220,82 @@ async function getRound(
     analyticsContext,
     options
 ) {
-    options = options || {};
+    const round = await findPlayerRound(
+        thisDb,
+        collectionName,
+        userId,
+        options
+    );
 
-    const mode = options.mode || "latest";
-
-    const rounds = await getPlayerRounds(thisDb, collectionName, userId, {});
-
-    if (rounds.length === 0) {
+    if (!round) {
         return {
             available: false,
-            reason: "No rounds are available for this player."
+            reason: "The requested round was not found."
         };
-    }
-
-    let round = null;
-
-    if (mode === "latest") {
-        round = rounds[rounds.length - 1];
-    } else if (mode === "round_id") {
-        if (!options.round_id) {
-            throw new Error("round_id is required");
-        }
-
-        round = rounds.find(function (item) {
-            return String(item._id) === String(options.round_id);
-        });
-
-        if (!round) {
-            return {
-                available: false,
-                reason: "The requested round was not found."
-            };
-        }
-    } else {
-        throw new Error("Unsupported round mode");
     }
 
     const analysis = analyseRound(round, analyticsContext);
 
+    const compactHoles = analysis.holes.map(function (hole) {
+        return {
+            hole: hole.hole,
+
+            par: hole.par,
+
+            score: hole.score,
+
+            scoreToPar: hole.scoreToPar,
+
+            scoringCategory: hole.scoringCategory,
+
+            gir: hole.gir,
+
+            fairwayOpportunity: hole.fairwayOpportunity,
+
+            fairwayHit: hole.fairwayHit,
+
+            scramblingOpportunity: hole.scramblingOpportunity,
+
+            scramble: hole.scramble,
+
+            penaltyStrokes: hole.penaltyStrokes,
+
+            putts: hole.putts
+        };
+    });
+
     return {
-        available: true,
+        analysis: {
+            roundId: analysis.roundId,
 
-        round: {
-            id: String(round._id),
+            userId: analysis.userId,
 
-            created_at: round.created_at || null,
+            date: analysis.date,
 
-            course: round.course || null,
+            complete: analysis.complete,
 
             holesPlayed: analysis.holesPlayed,
 
-            complete18: analysis.holesPlayed === 18
-        },
+            scoring: analysis.scoring,
 
-        analysis: analysis
+            gir: analysis.gir,
+
+            putting: analysis.putting,
+
+            fairways: analysis.fairways,
+
+            scrambling: analysis.scrambling,
+
+            penalties: analysis.penalties,
+
+            clubs: analysis.clubs,
+
+            shotQuality: analysis.shotQuality,
+
+            shotDataQuality: analysis.shotDataQuality,
+
+            holes: compactHoles
+        }
     };
 }
 
@@ -292,23 +314,22 @@ async function getHole(
         throw new Error("hole must be an integer between 1 and 18");
     }
 
-    const roundResult = await getRound(
-        thisDb,
-        collectionName,
-        userId,
-        analyticsContext,
-        {
-            mode: options.round_id ? "round_id" : "latest",
+    const round = await findPlayerRound(thisDb, collectionName, userId, {
+        mode: options.round_id ? "round_id" : "latest",
 
-            round_id: options.round_id
-        }
-    );
+        round_id: options.round_id
+    });
 
-    if (!roundResult.available) {
-        return roundResult;
+    if (!round) {
+        return {
+            available: false,
+            reason: "The requested round was not found."
+        };
     }
 
-    const hole = roundResult.analysis.holes.find(function (item) {
+    const analysis = analyseRound(round, analyticsContext);
+
+    const hole = analysis.holes.find(function (item) {
         return Number(item.hole) === holeNumber;
     });
 
@@ -316,7 +337,7 @@ async function getHole(
         return {
             available: false,
             reason: "The requested hole was not found in this round.",
-            roundId: roundResult.round.id,
+            roundId: round.id,
             hole: holeNumber
         };
     }
@@ -325,12 +346,43 @@ async function getHole(
         available: true,
 
         round: {
-            id: roundResult.round.id,
-            created_at: roundResult.round.created_at
+            id: String(round._id),
+
+            created_at: round.created_at || null
         },
 
         hole: hole
     };
+}
+
+async function findPlayerRound(thisDb, collectionName, userId, options) {
+    options = options || {};
+
+    const mode = options.mode || "latest";
+
+    const rounds = await getPlayerRounds(thisDb, collectionName, userId, {});
+
+    if (rounds.length === 0) {
+        return null;
+    }
+
+    if (mode === "latest") {
+        return rounds[rounds.length - 1];
+    }
+
+    if (mode === "round_id") {
+        if (!options.round_id) {
+            throw new Error("round_id is required");
+        }
+
+        return (
+            rounds.find(function (round) {
+                return String(round._id) === String(options.round_id);
+            }) || null
+        );
+    }
+
+    throw new Error("Unsupported round mode");
 }
 
 module.exports = {

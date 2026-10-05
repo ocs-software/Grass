@@ -331,18 +331,18 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-        const hole = await getHole(
+        const round = await getRound(
             thisDb,
             "myrounds" + suffix,
             new ObjectID(data.user_id),
             analyticsContext,
             {
-                hole: 8
+                mode: "latest"
             }
         );
 
         res.send({
-            hole: hole
+            round: round
         });
     } catch (e) {
         return await sendError(res, 400, {
