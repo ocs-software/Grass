@@ -29,6 +29,7 @@
     "node-cron": "^4.2.1",
     "nodemon": "^2.0.9",
     "onesignal-node": "^3.4.0",
+    "openai": "^6.49.0",
     "postmark": "^4.0.5",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
