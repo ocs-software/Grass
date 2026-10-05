@@ -51,20 +51,72 @@ async function askGolfAI(question, serverContext) {
         }
     ];
 
-    const response = await openrouter.chat.completions.create({
-        model: "openrouter/free",
-        messages: messages,
-        tools: OPENROUTER_TOOLS,
-        tool_choice: "auto"
-    });
+    const toolHistory = [];
 
-    const message = response.choices[0].message;
+    const maxToolRounds = 5;
 
-    return {
-        model: response.model,
-        content: message.content || null,
-        toolCalls: message.tool_calls || []
-    };
+    for (let toolRound = 0; toolRound < maxToolRounds; toolRound++) {
+        const response = await openrouter.chat.completions.create({
+            model: "openrouter/free",
+            messages: messages,
+            tools: OPENROUTER_TOOLS,
+            tool_choice: "auto"
+        });
+
+        if (!response.choices || response.choices.length === 0) {
+            throw new Error("OpenRouter returned no response choices.");
+        }
+
+        const message = response.choices[0].message;
+
+        const toolCalls = Array.isArray(message.tool_calls)
+            ? message.tool_calls
+            : [];
+
+        if (toolCalls.length === 0) {
+            return {
+                model: response.model,
+                content: message.content || "",
+                toolHistory: toolHistory
+            };
+        }
+
+        messages.push({
+            role: "assistant",
+            content: message.content || null,
+            tool_calls: toolCalls
+        });
+
+        for (const toolCall of toolCalls) {
+            if (!toolCall.function || !toolCall.function.name) {
+                throw new Error("OpenRouter returned an invalid tool call.");
+            }
+
+            const internalToolCall = {
+                name: toolCall.function.name,
+                arguments: toolCall.function.arguments || "{}"
+            };
+
+            const toolResult = await executeGolfAITool(
+                internalToolCall,
+                serverContext
+            );
+
+            toolHistory.push({
+                name: internalToolCall.name,
+                arguments: JSON.parse(internalToolCall.arguments),
+                result: toolResult
+            });
+
+            messages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: JSON.stringify(toolResult)
+            });
+        }
+    }
+
+    throw new Error("Golf AI exceeded the maximum number of tool rounds.");
 }
 
 module.exports = {
