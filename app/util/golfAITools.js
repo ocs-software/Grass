@@ -299,6 +299,278 @@ async function getRound(
     };
 }
 
+function getShotQualityDescription(value) {
+    switch (Number(value)) {
+        case 1:
+            return "Very Bad";
+        case 2:
+            return "Bad";
+        case 3:
+            return "Average";
+        case 4:
+            return "Good";
+        case 5:
+            return "Perfect";
+        default:
+            return null;
+    }
+}
+
+function getLookupDescription(map, code) {
+    if (!map || !code) {
+        return null;
+    }
+
+    const item = map[String(code)];
+
+    if (!item) {
+        return null;
+    }
+
+    if (typeof item === "string") {
+        return item;
+    }
+
+    return item.description || item.desc || item.name || item.label || null;
+}
+
+function buildAIShot(shot, analyticsContext) {
+    const clubCode =
+        shot.shot_club !== undefined &&
+        shot.shot_club !== null &&
+        shot.shot_club !== ""
+            ? String(shot.shot_club)
+            : null;
+
+    const positionCode =
+        shot.position !== undefined &&
+        shot.position !== null &&
+        shot.position !== ""
+            ? String(shot.position)
+            : null;
+
+    const outcomeCode =
+        shot.outcome !== undefined &&
+        shot.outcome !== null &&
+        shot.outcome !== ""
+            ? String(shot.outcome)
+            : null;
+
+    const qualityValue = Number(shot.shot_qos);
+
+    const validQuality =
+        Number.isInteger(qualityValue) &&
+        qualityValue >= 1 &&
+        qualityValue <= 5;
+
+    const isPutter = clubCode === "075";
+
+    let travelDistance = null;
+
+    /*
+     * Non-putter distance is recorded in yards.
+     * Only positive values are meaningful.
+     */
+    if (!isPutter && Number(shot.shot_dist_y) > 0) {
+        travelDistance = {
+            value: Number(shot.shot_dist_y),
+            unit: "yards",
+            type: "recorded_travel"
+        };
+    }
+
+    /*
+     * Putter distance is recorded in feet.
+     * Never use putt_dist_* for non-putter shots.
+     */
+    if (isPutter && Number(shot.putt_dist_f) > 0) {
+        travelDistance = {
+            value: Number(shot.putt_dist_f),
+            unit: "feet",
+            type: "recorded_travel"
+        };
+    }
+
+    return {
+        stroke: Number(shot.strokes),
+
+        club: clubCode
+            ? {
+                  code: clubCode,
+                  description: getLookupDescription(
+                      analyticsContext.clubMap,
+                      clubCode
+                  )
+              }
+            : null,
+
+        position: positionCode
+            ? {
+                  code: positionCode,
+                  description: getLookupDescription(
+                      analyticsContext.positionMap,
+                      positionCode
+                  )
+              }
+            : null,
+
+        outcome: outcomeCode
+            ? {
+                  code: outcomeCode,
+                  description: getLookupDescription(
+                      analyticsContext.outcomeMap,
+                      outcomeCode
+                  )
+              }
+            : null,
+
+        quality: validQuality
+            ? {
+                  rating: qualityValue,
+                  description: getShotQualityDescription(qualityValue),
+                  subjective: true
+              }
+            : null,
+
+        travelDistance: travelDistance
+    };
+}
+
+function getShotQualityDescription(value) {
+    switch (Number(value)) {
+        case 1:
+            return "Very Bad";
+        case 2:
+            return "Bad";
+        case 3:
+            return "Average";
+        case 4:
+            return "Good";
+        case 5:
+            return "Perfect";
+        default:
+            return null;
+    }
+}
+
+function getLookupItem(map, code) {
+    if (!map || !code) {
+        return null;
+    }
+
+    return map[String(code)] || null;
+}
+
+function buildAIShot(shot, analyticsContext) {
+    const clubCode =
+        shot.shot_club !== undefined &&
+        shot.shot_club !== null &&
+        shot.shot_club !== ""
+            ? String(shot.shot_club)
+            : null;
+
+    const positionCode =
+        shot.position !== undefined &&
+        shot.position !== null &&
+        shot.position !== ""
+            ? String(shot.position)
+            : null;
+
+    const outcomeCode =
+        shot.outcome !== undefined &&
+        shot.outcome !== null &&
+        shot.outcome !== ""
+            ? String(shot.outcome)
+            : null;
+
+    const qualityValue = Number(shot.shot_qos);
+
+    const validQuality =
+        Number.isInteger(qualityValue) &&
+        qualityValue >= 1 &&
+        qualityValue <= 5;
+
+    const club = getLookupItem(analyticsContext.clubs, clubCode);
+
+    const position = getLookupItem(analyticsContext.positions, positionCode);
+
+    const outcome = getLookupItem(analyticsContext.outcomes, outcomeCode);
+
+    const isPutter = clubCode === "075";
+
+    let travelDistance = null;
+
+    /*
+     * For non-putter shots, shot_dist_y is recorded
+     * ball travel distance in yards.
+     */
+    if (!isPutter && Number(shot.shot_dist_y) > 0) {
+        travelDistance = {
+            value: Number(shot.shot_dist_y),
+            unit: "yards",
+            type: "recorded_travel"
+        };
+    }
+
+    /*
+     * putt_dist_f is meaningful only for an actual
+     * putter stroke. It represents travelled distance,
+     * not necessarily starting distance from the hole.
+     */
+    if (isPutter && Number(shot.putt_dist_f) > 0) {
+        travelDistance = {
+            value: Number(shot.putt_dist_f),
+            unit: "feet",
+            type: "recorded_travel"
+        };
+    }
+
+    return {
+        stroke: Number(shot.strokes),
+
+        club: clubCode
+            ? {
+                  code: clubCode,
+                  description:
+                      club && club.description ? club.description : null,
+                  abbreviation:
+                      club && club.abbreviation ? club.abbreviation : null
+              }
+            : null,
+
+        position: positionCode
+            ? {
+                  code: positionCode,
+                  description:
+                      position && position.description
+                          ? position.description
+                          : null
+              }
+            : null,
+
+        outcome: outcomeCode
+            ? {
+                  code: outcomeCode,
+                  description:
+                      outcome && outcome.description
+                          ? outcome.description
+                          : null,
+                  penalty: outcome ? outcome.penalty : false
+              }
+            : null,
+
+        quality: validQuality
+            ? {
+                  rating: qualityValue,
+                  description: getShotQualityDescription(qualityValue),
+                  subjective: true
+              }
+            : null,
+
+        travelDistance: travelDistance
+    };
+}
+
 async function getHole(
     thisDb,
     collectionName,
@@ -342,16 +614,45 @@ async function getHole(
         };
     }
 
+    const aiShots = Array.isArray(hole.shots)
+        ? hole.shots.map(function (shot) {
+              return buildAIShot(shot, analyticsContext);
+          })
+        : [];
+
     return {
         available: true,
 
         round: {
             id: String(round._id),
-
             created_at: round.created_at || null
         },
 
-        hole: hole
+        hole: {
+            hole: hole.hole,
+            par: hole.par,
+            score: hole.score,
+            scoreToPar: hole.scoreToPar,
+            scoringCategory: hole.scoringCategory,
+
+            gir: hole.gir,
+            girStroke: hole.girStroke,
+            girTarget: hole.girTarget,
+
+            fairwayOpportunity: hole.fairwayOpportunity,
+
+            fairwayHit: hole.fairwayHit,
+
+            scramblingOpportunity: hole.scramblingOpportunity,
+
+            scramble: hole.scramble,
+
+            penaltyStrokes: hole.penaltyStrokes,
+
+            putts: hole.putts,
+
+            shots: aiShots
+        }
     };
 }
 

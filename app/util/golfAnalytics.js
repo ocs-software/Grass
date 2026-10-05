@@ -384,6 +384,8 @@ function calculatePenalties(holeShots, codes) {
 function buildAnalyticsContext(table) {
     const outcomes = table && Array.isArray(table.as_oos) ? table.as_oos : [];
 
+    const positions = table && Array.isArray(table.as_pos) ? table.as_pos : [];
+
     const fairway = outcomes.find(function (item) {
         return item.type === "F";
     });
@@ -399,6 +401,34 @@ function buildAnalyticsContext(table) {
         .map(function (item) {
             return item.code;
         });
+
+    const outcomeMap = {};
+
+    outcomes.forEach(function (outcome) {
+        if (!outcome || !outcome.code) {
+            return;
+        }
+
+        outcomeMap[outcome.code] = {
+            code: outcome.code,
+            description: outcome.desc || null,
+            type: outcome.type || null,
+            penalty: outcome.pen === "Y"
+        };
+    });
+
+    const positionMap = {};
+
+    positions.forEach(function (position) {
+        if (!position || !position.code) {
+            return;
+        }
+
+        positionMap[position.code] = {
+            code: position.code,
+            description: position.desc || null
+        };
+    });
 
     const clubs = table && Array.isArray(table.as_clubs) ? table.as_clubs : [];
 
@@ -423,7 +453,9 @@ function buildAnalyticsContext(table) {
             penalties: penaltyCodes
         },
 
-        clubs: clubMap
+        clubs: clubMap,
+        outcomes: outcomeMap,
+        positions: positionMap
     };
 }
 
