@@ -328,15 +328,12 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-        const result = await askGolfAI(
-            "How did I play on hole 8 of my latest round?",
-            {
-                thisDb,
-                collectionName: "myrounds" + suffix,
-                userId: user._id,
-                analyticsContext
-            }
-        );
+        const result = await askGolfAI(data.question, {
+            thisDb,
+            collectionName: "myrounds" + suffix,
+            userId: user._id,
+            analyticsContext
+        });
 
         return res.json({
             result
