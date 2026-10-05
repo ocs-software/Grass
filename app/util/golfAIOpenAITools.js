@@ -203,44 +203,55 @@ async function executeGolfAITool(toolCall, serverContext) {
 
     const args = parseToolArguments(toolCall);
 
-    const baseOptions = {
-        thisDb: serverContext.thisDb,
-        collectionName: serverContext.collectionName,
-        userId: serverContext.userId,
-        analyticsContext: serverContext.analyticsContext
-    };
+    const thisDb = serverContext.thisDb;
+    const collectionName = serverContext.collectionName;
+    const userId = serverContext.userId;
+    const analyticsContext = serverContext.analyticsContext;
 
     switch (toolCall.name) {
         case "get_player_overview":
-            return getPlayerOverview({
-                ...baseOptions,
-                trendRoundCount:
-                    args.trend_round_count === null
-                        ? undefined
-                        : args.trend_round_count
-            });
+            return getPlayerOverview(
+                thisDb,
+                collectionName,
+                userId,
+                analyticsContext,
+                {
+                    trendRoundCount:
+                        args.trend_round_count === null
+                            ? undefined
+                            : args.trend_round_count
+                }
+            );
 
         case "compare_player_periods":
-            return comparePlayerPeriods({
-                ...baseOptions,
-                mode: args.mode,
-                count: args.count === null ? undefined : args.count,
-                current: args.current === null ? undefined : args.current,
-                previous: args.previous === null ? undefined : args.previous
-            });
+            return comparePlayerPeriods(
+                thisDb,
+                collectionName,
+                userId,
+                analyticsContext,
+                {
+                    mode: args.mode,
+
+                    count: args.count === null ? undefined : args.count,
+
+                    current: args.current === null ? undefined : args.current,
+
+                    previous: args.previous === null ? undefined : args.previous
+                }
+            );
 
         case "get_round":
-            return getRound({
-                ...baseOptions,
+            return getRound(thisDb, collectionName, userId, analyticsContext, {
                 mode: args.mode,
-                roundId: args.round_id === null ? undefined : args.round_id
+
+                round_id: args.round_id === null ? undefined : args.round_id
             });
 
         case "get_hole":
-            return getHole({
-                ...baseOptions,
+            return getHole(thisDb, collectionName, userId, analyticsContext, {
                 hole: args.hole,
-                roundId: args.round_id === null ? undefined : args.round_id
+
+                round_id: args.round_id === null ? undefined : args.round_id
             });
 
         default:
