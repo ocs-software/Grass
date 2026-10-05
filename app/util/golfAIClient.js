@@ -70,7 +70,7 @@ async function askGolfAI(question, serverContext) {
 
     for (let toolRound = 0; toolRound < maxToolRounds; toolRound++) {
         const response = await openrouter.chat.completions.create({
-            model: "openrouter/free",
+            model: "google/gemma-4-31b-it:free",
             messages: messages,
             tools: OPENROUTER_TOOLS,
             tool_choice: "auto"
