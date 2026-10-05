@@ -19,6 +19,8 @@ const {
 
 const { executeGolfAITool } = require("../../util/golfAIOpenAITools");
 
+const { askGolfAI } = require("../../util/golfAIClient");
+
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
@@ -326,24 +328,18 @@ router.post("/test-analytics", async (req, res) => {
         });
 
         const analyticsContext = buildAnalyticsContext(table);
-        const toolCall = {
-            name: "get_hole",
-            arguments: JSON.stringify({
-                hole: 8,
-                round_id: null
-            })
-        };
-
-        const result = await executeGolfAITool(toolCall, {
-            thisDb,
-            collectionName: "myrounds" + suffix,
-            userId: user._id,
-            analyticsContext
-        });
+        const result = await askGolfAI(
+            "How did I play on hole 8 of my latest round?",
+            {
+                thisDb,
+                collectionName: "myrounds" + suffix,
+                userId: user._id,
+                analyticsContext
+            }
+        );
 
         return res.json({
-            toolCall: toolCall,
-            result: result
+            result
         });
     } catch (e) {
         return await sendError(res, 400, {
