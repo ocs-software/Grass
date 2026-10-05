@@ -335,7 +335,7 @@ router.post("/test-analytics", async (req, res) => {
         };
 
         const result = await executeGolfAITool(toolCall, {
-            thisDb: db,
+            thisDb,
             collectionName: "myrounds" + suffix,
             userId: user._id,
             analyticsContext
