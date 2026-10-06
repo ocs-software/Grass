@@ -279,6 +279,29 @@ function buildGolfAIVisuals(toolHistory) {
             if (visual) {
                 overviewVisual = visual;
             }
+
+            if (tool.result.trend && tool.result.trend.comparison) {
+                const trendComparisonVisual = buildPeriodComparisonVisual({
+                    available: true,
+                    comparison: tool.result.trend.comparison
+                });
+
+                if (trendComparisonVisual) {
+                    comparisonVisual = trendComparisonVisual;
+
+                    comparisonVisual.title = "Recent performance";
+
+                    comparisonVisual.period = {
+                        roundsPerPeriod: tool.result.trend.roundsPerPeriod,
+
+                        requestedRoundsPerPeriod:
+                            tool.result.trend.requestedRoundsPerPeriod,
+
+                        adjustedForAvailableData:
+                            tool.result.trend.adjustedForAvailableData
+                    };
+                }
+            }
         }
 
         if (tool.name === "compare_player_periods") {
