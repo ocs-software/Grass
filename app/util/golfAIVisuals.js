@@ -307,6 +307,97 @@ function buildPeriodComparisonVisual(toolResult) {
     };
 }
 
+function buildRoundScorecardVisual(toolResult) {
+    if (
+        !toolResult ||
+        !toolResult.analysis ||
+        !Array.isArray(toolResult.analysis.holes)
+    ) {
+        return null;
+    }
+
+    const analysis = toolResult.analysis;
+
+    if (analysis.holes.length === 0) {
+        return null;
+    }
+
+    const holes = analysis.holes.map(function (hole) {
+        return {
+            hole: hole.hole,
+            par: hole.par,
+            score: hole.score,
+            scoreToPar: hole.scoreToPar,
+            scoringCategory: hole.scoringCategory,
+            gir: hole.gir,
+            fairwayOpportunity: hole.fairwayOpportunity,
+            fairwayHit: hole.fairwayHit,
+            scramblingOpportunity: hole.scramblingOpportunity,
+            scramble: hole.scramble,
+            penaltyStrokes: hole.penaltyStrokes,
+            putts: hole.putts
+        };
+    });
+
+    return {
+        type: "round_scorecard",
+        title: "Round scorecard",
+
+        round: {
+            roundId: analysis.roundId,
+            date: analysis.date,
+            complete: analysis.complete,
+            holesPlayed: analysis.holesPlayed
+        },
+
+        totals: {
+            score: analysis.scoring ? analysis.scoring.score : null,
+
+            par: analysis.scoring ? analysis.scoring.par : null,
+
+            scoreToPar: analysis.scoring ? analysis.scoring.toPar : null,
+
+            gir: analysis.gir
+                ? {
+                      made: analysis.gir.made,
+                      opportunities: analysis.gir.opportunities,
+                      percentage: roundNumber(analysis.gir.percentage, 1)
+                  }
+                : null,
+
+            putting: analysis.putting
+                ? {
+                      putts: analysis.putting.putts,
+                      puttsPerHole: roundNumber(
+                          analysis.putting.puttsPerHole,
+                          2
+                      )
+                  }
+                : null,
+
+            fairways: analysis.fairways
+                ? {
+                      hit: analysis.fairways.hit,
+                      opportunities: analysis.fairways.opportunities,
+                      percentage: roundNumber(analysis.fairways.percentage, 1)
+                  }
+                : null,
+
+            scrambling: analysis.scrambling
+                ? {
+                      made: analysis.scrambling.made,
+                      opportunities: analysis.scrambling.opportunities,
+                      percentage: roundNumber(analysis.scrambling.percentage, 1)
+                  }
+                : null,
+
+            penalties: analysis.penalties ? analysis.penalties.strokes : null
+        },
+
+        holes: holes
+    };
+}
+
 function buildGolfAIVisuals(toolHistory) {
     if (!Array.isArray(toolHistory)) {
         return [];
@@ -316,6 +407,7 @@ function buildGolfAIVisuals(toolHistory) {
 
     let overviewVisual = null;
     let comparisonVisual = null;
+    let roundScorecardVisual = null;
 
     for (const tool of toolHistory) {
         if (!tool || !tool.name || !tool.result) {
@@ -360,6 +452,14 @@ function buildGolfAIVisuals(toolHistory) {
                 comparisonVisual = visual;
             }
         }
+
+        if (tool.name === "get_round") {
+            const visual = buildRoundScorecardVisual(tool.result);
+
+            if (visual) {
+                roundScorecardVisual = visual;
+            }
+        }
     }
 
     if (overviewVisual) {
@@ -368,6 +468,10 @@ function buildGolfAIVisuals(toolHistory) {
 
     if (comparisonVisual) {
         visuals.push(comparisonVisual);
+    }
+
+    if (roundScorecardVisual) {
+        visuals.push(roundScorecardVisual);
     }
 
     return visuals;
