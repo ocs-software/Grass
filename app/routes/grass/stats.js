@@ -397,18 +397,35 @@ router.post("/ai/golf", async (req, res) => {
 
         const analyticsContext = buildAnalyticsContext(table);
 
-        const result = await askGolfAI(data.question.trim(), {
-            thisDb,
-            collectionName: "myrounds" + suffix,
+        const AI_REQUEST_TIMEOUT_MS = 90000;
 
-            /*
-             * Authoritative identity comes from the authenticated
-             * database record, not from an AI tool argument.
-             */
-            userId: user._id,
+        let timeoutId;
 
-            analyticsContext
+        const timeoutPromise = new Promise(function (_, reject) {
+            timeoutId = setTimeout(function () {
+                const error = new Error("Golf AI request timed out.");
+
+                error.code = "GOLF_AI_TIMEOUT";
+
+                reject(error);
+            }, AI_REQUEST_TIMEOUT_MS);
         });
+
+        let result;
+
+        try {
+            result = await Promise.race([
+                askGolfAI(data.question.trim(), {
+                    thisDb,
+                    collectionName: "myrounds" + suffix,
+                    userId: user._id,
+                    analyticsContext
+                }),
+                timeoutPromise
+            ]);
+        } finally {
+            clearTimeout(timeoutId);
+        }
 
         return res.json({
             answer: result.content || "",
@@ -416,6 +433,21 @@ router.post("/ai/golf", async (req, res) => {
             suggestions: []
         });
     } catch (e) {
+        if (e && e.code === "GOLF_AI_TIMEOUT") {
+            return await sendError(res, 504, {
+                thisDb,
+                errMess:
+                    "Golf AI is taking too long to respond. Please try again.",
+                type: "timeout",
+                action: "stats/ai/golf",
+                user: data.user_id,
+                payload: {
+                    user_id: data.user_id
+                },
+                functionName: "stats/ai/golf"
+            });
+        }
+
         return await sendError(res, 400, {
             thisDb,
             errMess: e.message || "Error processing golf AI request.",
