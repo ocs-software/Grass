@@ -7,6 +7,42 @@ function roundNumber(value, decimals) {
     return Math.round(value * factor) / factor;
 }
 
+function getChangeAssessment(change, better) {
+    if (typeof change !== "number" || !Number.isFinite(change)) {
+        return {
+            changeDirection: null,
+            assessment: null
+        };
+    }
+
+    if (change === 0) {
+        return {
+            changeDirection: "flat",
+            assessment: "flat"
+        };
+    }
+
+    const changeDirection = change > 0 ? "up" : "down";
+
+    if (better !== "higher" && better !== "lower") {
+        return {
+            changeDirection,
+            assessment: null
+        };
+    }
+
+    const assessment =
+        (better === "higher" && change > 0) ||
+        (better === "lower" && change < 0)
+            ? "better"
+            : "worse";
+
+    return {
+        changeDirection,
+        assessment
+    };
+}
+
 function buildMetric(options) {
     const { key, label, value, unit, better, decimals } = options;
 
@@ -23,14 +59,27 @@ function buildComparisonMetric(options) {
     const { key, label, current, previous, change, unit, better, decimals } =
         options;
 
+    const roundedCurrent = roundNumber(current, decimals);
+    const roundedPrevious = roundNumber(previous, decimals);
+    const roundedChange = roundNumber(change, decimals);
+
+    /*
+     * Assess the original canonical change rather than the rounded
+     * display value. A small non-zero change must not accidentally
+     * become "flat" just because it rounds to zero for presentation.
+     */
+    const changeAssessment = getChangeAssessment(change, better);
+
     return {
         key,
         label,
-        current: roundNumber(current, decimals),
-        previous: roundNumber(previous, decimals),
-        change: roundNumber(change, decimals),
+        current: roundedCurrent,
+        previous: roundedPrevious,
+        change: roundedChange,
         unit,
-        better
+        better,
+        changeDirection: changeAssessment.changeDirection,
+        assessment: changeAssessment.assessment
     };
 }
 
