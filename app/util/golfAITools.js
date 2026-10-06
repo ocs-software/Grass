@@ -18,9 +18,9 @@ async function getPlayerOverview(
 
     const criteria = options.criteria || {};
 
-    const trendRoundCount =
+    const requestedTrendRoundCount =
         Number(options.trendRoundCount) > 0
-            ? Number(options.trendRoundCount)
+            ? Math.floor(Number(options.trendRoundCount))
             : 3;
 
     const rounds = await getPlayerRounds(
@@ -39,40 +39,73 @@ async function getPlayerOverview(
     /*
      * Trend calculation.
      *
-     * getPlayerRounds() currently returns the rounds in
-     * chronological order, so the last N rounds are the
-     * current period and the N immediately before those
-     * are the comparison period.
+     * Use the requested number of rounds per period when enough
+     * rounds exist. Otherwise, reduce the comparison to the largest
+     * possible pair of equal periods.
+     *
+     * Example:
+     *   8 available rounds, requested 5
+     *   -> compare latest 4 with previous 4.
+     *
+     * At least one round is required in each period.
      */
-    const currentRounds = rounds.slice(-trendRoundCount);
+    const maximumTrendRoundCount = Math.floor(rounds.length / 2);
 
-    const previousRounds = rounds.slice(
-        -(trendRoundCount * 2),
-        -trendRoundCount
+    const effectiveTrendRoundCount = Math.min(
+        requestedTrendRoundCount,
+        maximumTrendRoundCount
     );
 
     let comparison = null;
 
-    if (
-        currentRounds.length === trendRoundCount &&
-        previousRounds.length === trendRoundCount
-    ) {
-        const currentAnalyses = currentRounds.map(function (round) {
-            return analyseRound(round, analyticsContext);
-        });
+    if (effectiveTrendRoundCount >= 1) {
+        const currentRounds = rounds.slice(-effectiveTrendRoundCount);
 
-        const previousAnalyses = previousRounds.map(function (round) {
-            return analyseRound(round, analyticsContext);
-        });
+        const previousRounds = rounds.slice(
+            -(effectiveTrendRoundCount * 2),
+            -effectiveTrendRoundCount
+        );
 
-        const currentAggregate = aggregateRounds(currentAnalyses);
+        if (
+            currentRounds.length === effectiveTrendRoundCount &&
+            previousRounds.length === effectiveTrendRoundCount
+        ) {
+            const currentAnalyses = currentRounds.map(function (round) {
+                return analyseRound(round, analyticsContext);
+            });
 
-        const previousAggregate = aggregateRounds(previousAnalyses);
+            const previousAnalyses = previousRounds.map(function (round) {
+                return analyseRound(round, analyticsContext);
+            });
 
-        comparison = compareAggregates(currentAggregate, previousAggregate);
+            const currentAggregate = aggregateRounds(currentAnalyses);
+
+            const previousAggregate = aggregateRounds(previousAnalyses);
+
+            comparison = compareAggregates(currentAggregate, previousAggregate);
+        }
     }
 
-    return buildPlayerAnalyticsReport(aggregate, comparison);
+    const report = buildPlayerAnalyticsReport(aggregate, comparison);
+
+    /*
+     * Preserve the canonical comparison produced by the analytics
+     * engine, while adding explicit metadata describing which rounds
+     * were actually used for the trend.
+     */
+    if (comparison) {
+        report.trend = {
+            requestedRoundsPerPeriod: requestedTrendRoundCount,
+            roundsPerPeriod: effectiveTrendRoundCount,
+            adjustedForAvailableData:
+                effectiveTrendRoundCount !== requestedTrendRoundCount,
+            comparison: comparison
+        };
+    } else {
+        report.trend = null;
+    }
+
+    return report;
 }
 
 async function comparePlayerPeriods(
