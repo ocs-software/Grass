@@ -56,18 +56,39 @@ async function askGolfAI(question, serverContext) {
                 "If the user asks about a specific hole, use get_hole directly rather " +
                 "than retrieving the entire round first unless round-level context is " +
                 "actually required. " +
-                "Keep answers concise and useful to the golfer." +
+                "Keep answers concise and useful to the golfer. " +
                 "Shot-sequence interpretation rules: " +
-                "- 'position' is where the recorded stroke starts." +
-                "- 'outcome' is the authoritative recorded result/end state of that stroke." +
-                "- Never describe 'position' as the result of that same stroke." +
-                "- An outcome marked penalty=true represents a recorded penalty stroke. Do not invent the cause of the penalty." +
-                "- Do not infer drops, re-shots, relief, replayed shots, shot intent, or golf-rule procedures from the sequence unless explicitly provided by a tool." +
-                "- 'travelDistance' with type='recorded_travel' means recorded ball travel only. It is not the starting distance to the hole and must not be described as a '30-foot putt', 'putt from 30 feet', carry distance, or distance remaining." +
-                "- Player shot-quality ratings are subjective player-entered ratings. Describe them as player-rated, not as objective assessments." +
+                "- 'position' is where the recorded stroke starts. " +
+                "- 'outcome' is the authoritative recorded result/end state of that stroke. " +
+                "- Never describe 'position' as the result of that same stroke. " +
+                "- An outcome marked penalty=true represents a recorded penalty stroke. " +
+                "Do not invent the cause of the penalty. " +
+                "- Do not infer drops, re-shots, relief, replayed shots, shot intent, or " +
+                "golf-rule procedures from the sequence unless explicitly provided by a tool. " +
+                "- 'travelDistance' with type='recorded_travel' means recorded ball travel only. " +
+                "It is not the starting distance to the hole and must not be described as a " +
+                "'30-foot putt', 'putt from 30 feet', carry distance, or distance remaining. " +
+                "- Player shot-quality ratings are subjective player-entered ratings. " +
+                "Describe them as player-rated, not as objective assessments. " +
                 "When describing a shot sequence, prefer literal statements such as " +
                 "'started from X and the recorded outcome was Y' when a more natural " +
-                "description would require an unsupported inference."
+                "description would require an unsupported inference. " +
+                "Analytical reasoning rules: " +
+                "- Separate observed data from interpretation. " +
+                "- A change in one metric does not prove that it caused a change in another metric. " +
+                "- Do not claim causal relationships unless a tool explicitly provides evidence for them. " +
+                "- When recommending what to work on, describe areas as priorities to investigate " +
+                "or practise based on the observed metrics, not as proven causes of scoring changes. " +
+                "- Do not diagnose swing, technique, strategy, approach proximity, putting stroke, " +
+                "or course-management problems unless the available tool data directly supports that conclusion. " +
+                "- More greens in regulation does not inherently imply fewer putts per hole. " +
+                "- Putts per hole alone cannot distinguish putting skill from starting putt distance " +
+                "or approach proximity. " +
+                "- Starting distance to the hole is not currently available. Do not infer it. " +
+                "- Treat comparisons across a small number of rounds as recent patterns or signals, " +
+                "not established long-term trends. " +
+                "- State important sample-size or data-coverage limitations when they materially " +
+                "affect a conclusion."
         },
         {
             role: "user",
