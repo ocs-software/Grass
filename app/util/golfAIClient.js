@@ -142,14 +142,29 @@ async function askGolfAI(question, serverContext) {
                 arguments: toolCall.function.arguments || "{}"
             };
 
-            const toolResult = await executeGolfAITool(
-                internalToolCall,
-                serverContext
-            );
+            let toolResult;
+            let parsedArguments;
+
+            try {
+                parsedArguments = JSON.parse(internalToolCall.arguments);
+
+                toolResult = await executeGolfAITool(
+                    internalToolCall,
+                    serverContext
+                );
+            } catch (error) {
+                toolResult = {
+                    available: false,
+                    error: "TOOL_CALL_FAILED",
+                    message: error.message
+                };
+
+                parsedArguments = parsedArguments || internalToolCall.arguments;
+            }
 
             toolHistory.push({
                 name: internalToolCall.name,
-                arguments: JSON.parse(internalToolCall.arguments),
+                arguments: parsedArguments,
                 result: toolResult
             });
 
