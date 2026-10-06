@@ -186,6 +186,77 @@ function parseToolArguments(toolCall) {
     return args;
 }
 
+function isPlainObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function validateDateRange(value, fieldName) {
+    if (!isPlainObject(value)) {
+        throw new Error(
+            fieldName + " must be an object containing date_from and date_to."
+        );
+    }
+
+    if (
+        typeof value.date_from !== "string" ||
+        value.date_from.trim() === "" ||
+        typeof value.date_to !== "string" ||
+        value.date_to.trim() === ""
+    ) {
+        throw new Error(
+            fieldName + " must contain string date_from and date_to values."
+        );
+    }
+
+    const dateFrom = new Date(value.date_from);
+    const dateTo = new Date(value.date_to);
+
+    if (Number.isNaN(dateFrom.getTime()) || Number.isNaN(dateTo.getTime())) {
+        throw new Error(fieldName + " contains an invalid date.");
+    }
+
+    if (dateFrom.getTime() > dateTo.getTime()) {
+        throw new Error(fieldName + ".date_from must not be after date_to.");
+    }
+}
+
+function validateComparePlayerPeriodsArguments(args) {
+    if (args.mode !== "last_n" && args.mode !== "date_range") {
+        throw new Error(
+            "compare_player_periods mode must be last_n or date_range."
+        );
+    }
+
+    if (args.mode === "last_n") {
+        if (
+            !Number.isInteger(args.count) ||
+            args.count < 1 ||
+            args.count > 50
+        ) {
+            throw new Error(
+                "compare_player_periods count must be an integer from 1 to 50 when mode is last_n."
+            );
+        }
+
+        if (args.current !== null || args.previous !== null) {
+            throw new Error(
+                "compare_player_periods current and previous must be null when mode is last_n."
+            );
+        }
+
+        return;
+    }
+
+    if (args.count !== null) {
+        throw new Error(
+            "compare_player_periods count must be null when mode is date_range."
+        );
+    }
+
+    validateDateRange(args.current, "current");
+    validateDateRange(args.previous, "previous");
+}
+
 async function executeGolfAITool(toolCall, serverContext) {
     if (!toolCall || typeof toolCall.name !== "string") {
         throw new Error("Invalid AI tool call.");
@@ -224,6 +295,8 @@ async function executeGolfAITool(toolCall, serverContext) {
             );
 
         case "compare_player_periods":
+            validateComparePlayerPeriodsArguments(args);
+
             return comparePlayerPeriods(
                 thisDb,
                 collectionName,
