@@ -269,6 +269,173 @@ router.post("/average", async (req, res) => {
     }
 });
 
+router.post("/ai/golf", async (req, res) => {
+    db = req.db;
+
+    const thisDb = db.db("grass");
+    const appConfig = getAppConfig();
+    const suffix = appConfig.suffix;
+    const data = req.body;
+
+    try {
+        if (!data.user_id) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "User ID not sent.",
+                type: "validation",
+                action: "stats/ai/golf",
+                payload: data,
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        if (!data.token) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Token not sent.",
+                type: "validation",
+                action: "stats/ai/golf",
+                payload: data,
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        if (
+            typeof data.question !== "string" ||
+            data.question.trim().length === 0
+        ) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Question not sent.",
+                type: "validation",
+                action: "stats/ai/golf",
+                payload: data,
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        /*
+         * Keep the first production limit deliberately conservative.
+         * This prevents accidental or abusive very large prompts.
+         */
+        if (data.question.trim().length > 1000) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Question is too long.",
+                type: "validation",
+                action: "stats/ai/golf",
+                payload: {
+                    user_id: data.user_id
+                },
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        let userObjectId;
+
+        try {
+            userObjectId = new ObjectID(data.user_id);
+        } catch (error) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Invalid User ID.",
+                type: "validation",
+                action: "stats/ai/golf",
+                payload: {
+                    user_id: data.user_id
+                },
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        const user = await thisDb.collection("users" + suffix).findOne({
+            _id: userObjectId
+        });
+
+        if (!user) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "User not found.",
+                type: "validation",
+                action: "stats/ai/golf",
+                user: data.user_id,
+                payload: {
+                    user_id: data.user_id
+                },
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        if (data.token != user.token) {
+            return await sendError(res, 200, {
+                thisDb,
+                errMess: "Token sent does not match with user.",
+                type: "validation",
+                action: "stats/ai/golf",
+                user: data.user_id,
+                payload: {
+                    user_id: data.user_id
+                },
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        const table = await thisDb.collection("table").findOne({
+            as_oos: { $exists: true }
+        });
+
+        if (!table) {
+            return await sendError(res, 400, {
+                thisDb,
+                errMess: "Golf analytics options table not found.",
+                type: "other",
+                action: "stats/ai/golf",
+                user: data.user_id,
+                functionName: "stats/ai/golf"
+            });
+        }
+
+        const analyticsContext = buildAnalyticsContext(table);
+
+        const result = await askGolfAI(data.question.trim(), {
+            thisDb,
+            collectionName: "myrounds" + suffix,
+
+            /*
+             * Authoritative identity comes from the authenticated
+             * database record, not from an AI tool argument.
+             */
+            userId: user._id,
+
+            analyticsContext
+        });
+
+        return res.json({
+            answer: result.content || "",
+            visuals: Array.isArray(result.visuals) ? result.visuals : [],
+            suggestions: []
+        });
+    } catch (e) {
+        return await sendError(res, 400, {
+            thisDb,
+            errMess: e.message || "Error processing golf AI request.",
+            type: "other",
+            action: "stats/ai/golf",
+            error: e,
+
+            /*
+             * Do not put the token or full question into error
+             * logging through the request payload.
+             */
+            payload: {
+                user_id: data.user_id
+            },
+
+            functionName: "stats/ai/golf"
+        });
+    }
+});
+
 router.post("/test-analytics", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
