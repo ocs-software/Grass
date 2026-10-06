@@ -398,6 +398,92 @@ function buildRoundScorecardVisual(toolResult) {
     };
 }
 
+function buildHoleShotSequenceVisual(toolResult) {
+    if (!toolResult || toolResult.available !== true || !toolResult.hole) {
+        return null;
+    }
+
+    const hole = toolResult.hole;
+
+    const shots = Array.isArray(hole.shots)
+        ? hole.shots.map(function (shot) {
+              return {
+                  stroke: shot.stroke,
+
+                  club: shot.club
+                      ? {
+                            code: shot.club.code || null,
+                            description: shot.club.description || null,
+                            abbreviation: shot.club.abbreviation || null
+                        }
+                      : null,
+
+                  position: shot.position
+                      ? {
+                            code: shot.position.code || null,
+                            description: shot.position.description || null
+                        }
+                      : null,
+
+                  outcome: shot.outcome
+                      ? {
+                            code: shot.outcome.code || null,
+                            description: shot.outcome.description || null,
+                            penalty: shot.outcome.penalty === true
+                        }
+                      : null,
+
+                  quality: shot.quality
+                      ? {
+                            rating: shot.quality.rating,
+                            description: shot.quality.description || null,
+                            subjective: shot.quality.subjective === true
+                        }
+                      : null,
+
+                  travelDistance: shot.travelDistance
+                      ? {
+                            value: shot.travelDistance.value,
+                            unit: shot.travelDistance.unit,
+                            type: shot.travelDistance.type
+                        }
+                      : null
+              };
+          })
+        : [];
+
+    return {
+        type: "hole_shot_sequence",
+        title: "Hole " + hole.hole + " shot sequence",
+
+        round: toolResult.round
+            ? {
+                  roundId: toolResult.round.id || null,
+                  date: toolResult.round.created_at || null
+              }
+            : null,
+
+        hole: {
+            number: hole.hole,
+            par: hole.par,
+            score: hole.score,
+            scoreToPar: hole.scoreToPar,
+            scoringCategory: hole.scoringCategory || null,
+
+            gir: hole.gir === true,
+
+            scramblingOpportunity: hole.scramblingOpportunity === true,
+
+            scramble: hole.scramble === true,
+
+            penaltyStrokes: hole.penaltyStrokes,
+            putts: hole.putts
+        },
+
+        shots
+    };
+}
+
 function buildGolfAIVisuals(toolHistory) {
     if (!Array.isArray(toolHistory)) {
         return [];
@@ -408,6 +494,7 @@ function buildGolfAIVisuals(toolHistory) {
     let overviewVisual = null;
     let comparisonVisual = null;
     let roundScorecardVisual = null;
+    let holeVisual = null;
 
     for (const tool of toolHistory) {
         if (!tool || !tool.name || !tool.result) {
@@ -460,6 +547,14 @@ function buildGolfAIVisuals(toolHistory) {
                 roundScorecardVisual = visual;
             }
         }
+
+        if (tool.name === "get_hole") {
+            const visual = buildHoleShotSequenceVisual(tool.result);
+
+            if (visual) {
+                holeVisual = visual;
+            }
+        }
     }
 
     if (overviewVisual) {
@@ -470,7 +565,13 @@ function buildGolfAIVisuals(toolHistory) {
         visuals.push(comparisonVisual);
     }
 
-    if (roundScorecardVisual) {
+    /*
+     * Hole detail is more specific than the complete round scorecard.
+     * If both tools were used, show only the hole visual.
+     */
+    if (holeVisual) {
+        visuals.push(holeVisual);
+    } else if (roundScorecardVisual) {
         visuals.push(roundScorecardVisual);
     }
 
