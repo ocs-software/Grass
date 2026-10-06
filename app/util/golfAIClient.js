@@ -1,6 +1,7 @@
 const OpenAI = require("openai");
 
 const { GOLF_AI_TOOLS, executeGolfAITool } = require("./golfAIOpenAITools");
+const { buildGolfAIVisuals } = require("./golfAIVisuals");
 
 const openrouter = new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
@@ -122,6 +123,7 @@ async function askGolfAI(question, serverContext) {
             return {
                 model: response.model,
                 content: message.content || "",
+                visuals: buildGolfAIVisuals(toolHistory),
                 toolHistory: toolHistory
             };
         }

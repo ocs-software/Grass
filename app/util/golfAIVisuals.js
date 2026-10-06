@@ -1,0 +1,166 @@
+function roundNumber(value, decimals) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return null;
+    }
+
+    const factor = Math.pow(10, decimals);
+    return Math.round(value * factor) / factor;
+}
+
+function buildComparisonMetric(options) {
+    const { key, label, current, previous, change, unit, better, decimals } =
+        options;
+
+    return {
+        key,
+        label,
+        current: roundNumber(current, decimals),
+        previous: roundNumber(previous, decimals),
+        change: roundNumber(change, decimals),
+        unit,
+        better
+    };
+}
+
+function buildPeriodComparisonVisual(toolResult) {
+    if (
+        !toolResult ||
+        toolResult.available !== true ||
+        !toolResult.comparison
+    ) {
+        return null;
+    }
+
+    const comparison = toolResult.comparison;
+
+    const metrics = [];
+
+    if (comparison.scoring && comparison.scoring.toParPerHole) {
+        metrics.push(
+            buildComparisonMetric({
+                key: "scoringToParPerHole",
+                label: "Score to par / hole",
+                current: comparison.scoring.toParPerHole.current,
+                previous: comparison.scoring.toParPerHole.previous,
+                change: comparison.scoring.toParPerHole.change,
+                unit: "strokes",
+                better: "lower",
+                decimals: 2
+            })
+        );
+    }
+
+    if (comparison.gir) {
+        metrics.push(
+            buildComparisonMetric({
+                key: "girPercentage",
+                label: "GIR",
+                current: comparison.gir.current,
+                previous: comparison.gir.previous,
+                change: comparison.gir.change,
+                unit: "percentage",
+                better: "higher",
+                decimals: 1
+            })
+        );
+    }
+
+    if (comparison.putting && comparison.putting.puttsPerHole) {
+        metrics.push(
+            buildComparisonMetric({
+                key: "puttsPerHole",
+                label: "Putts / hole",
+                current: comparison.putting.puttsPerHole.current,
+                previous: comparison.putting.puttsPerHole.previous,
+                change: comparison.putting.puttsPerHole.change,
+                unit: "putts",
+                better: "lower",
+                decimals: 2
+            })
+        );
+    }
+
+    if (comparison.fairways) {
+        metrics.push(
+            buildComparisonMetric({
+                key: "fairwayPercentage",
+                label: "Fairways",
+                current: comparison.fairways.current,
+                previous: comparison.fairways.previous,
+                change: comparison.fairways.change,
+                unit: "percentage",
+                better: "higher",
+                decimals: 1
+            })
+        );
+    }
+
+    if (comparison.scrambling) {
+        metrics.push(
+            buildComparisonMetric({
+                key: "scramblingPercentage",
+                label: "Scrambling",
+                current: comparison.scrambling.current,
+                previous: comparison.scrambling.previous,
+                change: comparison.scrambling.change,
+                unit: "percentage",
+                better: "higher",
+                decimals: 1
+            })
+        );
+    }
+
+    if (comparison.penaltiesPerHole) {
+        metrics.push(
+            buildComparisonMetric({
+                key: "penaltiesPerHole",
+                label: "Penalties / hole",
+                current: comparison.penaltiesPerHole.current,
+                previous: comparison.penaltiesPerHole.previous,
+                change: comparison.penaltiesPerHole.change,
+                unit: "strokes",
+                better: "lower",
+                decimals: 3
+            })
+        );
+    }
+
+    if (metrics.length === 0) {
+        return null;
+    }
+
+    return {
+        type: "period_comparison",
+        title: "Recent performance",
+        sample: comparison.sample || null,
+        metrics
+    };
+}
+
+function buildGolfAIVisuals(toolHistory) {
+    if (!Array.isArray(toolHistory)) {
+        return [];
+    }
+
+    const visuals = [];
+
+    for (let i = toolHistory.length - 1; i >= 0; i--) {
+        const tool = toolHistory[i];
+
+        if (tool && tool.name === "compare_player_periods" && tool.result) {
+            const visual = buildPeriodComparisonVisual(tool.result);
+
+            if (visual) {
+                visuals.push(visual);
+            }
+
+            break;
+        }
+    }
+
+    return visuals;
+}
+
+module.exports = {
+    buildGolfAIVisuals
+};
