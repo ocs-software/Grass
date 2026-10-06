@@ -7,6 +7,18 @@ function roundNumber(value, decimals) {
     return Math.round(value * factor) / factor;
 }
 
+function buildMetric(options) {
+    const { key, label, value, unit, better, decimals } = options;
+
+    return {
+        key,
+        label,
+        value: roundNumber(value, decimals),
+        unit,
+        better
+    };
+}
+
 function buildComparisonMetric(options) {
     const { key, label, current, previous, change, unit, better, decimals } =
         options;
@@ -22,6 +34,108 @@ function buildComparisonMetric(options) {
     };
 }
 
+function buildPerformanceSummaryVisual(toolResult) {
+    if (!toolResult || !toolResult.performance) {
+        return null;
+    }
+
+    const performance = toolResult.performance;
+    const metrics = [];
+
+    if (performance.scoring) {
+        metrics.push(
+            buildMetric({
+                key: "scoringToParPerHole",
+                label: "Score to par / hole",
+                value: performance.scoring.toParPerHole,
+                unit: "strokes",
+                better: "lower",
+                decimals: 2
+            })
+        );
+    }
+
+    if (performance.gir) {
+        metrics.push(
+            buildMetric({
+                key: "girPercentage",
+                label: "GIR",
+                value: performance.gir.percentage,
+                unit: "percentage",
+                better: "higher",
+                decimals: 1
+            })
+        );
+    }
+
+    if (performance.putting) {
+        metrics.push(
+            buildMetric({
+                key: "puttsPerHole",
+                label: "Putts / hole",
+                value: performance.putting.puttsPerHole,
+                unit: "putts",
+                better: "lower",
+                decimals: 2
+            })
+        );
+    }
+
+    if (performance.fairways) {
+        metrics.push(
+            buildMetric({
+                key: "fairwayPercentage",
+                label: "Fairways",
+                value: performance.fairways.percentage,
+                unit: "percentage",
+                better: "higher",
+                decimals: 1
+            })
+        );
+    }
+
+    if (performance.scrambling) {
+        metrics.push(
+            buildMetric({
+                key: "scramblingPercentage",
+                label: "Scrambling",
+                value: performance.scrambling.percentage,
+                unit: "percentage",
+                better: "higher",
+                decimals: 1
+            })
+        );
+    }
+
+    if (performance.penalties) {
+        metrics.push(
+            buildMetric({
+                key: "penaltiesPerHole",
+                label: "Penalties / hole",
+                value: performance.penalties.perHole,
+                unit: "strokes",
+                better: "lower",
+                decimals: 3
+            })
+        );
+    }
+
+    const validMetrics = metrics.filter(function (metric) {
+        return metric.value !== null;
+    });
+
+    if (validMetrics.length === 0) {
+        return null;
+    }
+
+    return {
+        type: "performance_summary",
+        title: "Performance overview",
+        sample: toolResult.sample || null,
+        metrics: validMetrics
+    };
+}
+
 function buildPeriodComparisonVisual(toolResult) {
     if (
         !toolResult ||
@@ -32,7 +146,6 @@ function buildPeriodComparisonVisual(toolResult) {
     }
 
     const comparison = toolResult.comparison;
-
     const metrics = [];
 
     if (comparison.scoring && comparison.scoring.toParPerHole) {
@@ -125,7 +238,15 @@ function buildPeriodComparisonVisual(toolResult) {
         );
     }
 
-    if (metrics.length === 0) {
+    const validMetrics = metrics.filter(function (metric) {
+        return (
+            metric.current !== null &&
+            metric.previous !== null &&
+            metric.change !== null
+        );
+    });
+
+    if (validMetrics.length === 0) {
         return null;
     }
 
@@ -133,7 +254,7 @@ function buildPeriodComparisonVisual(toolResult) {
         type: "period_comparison",
         title: "Recent performance",
         sample: comparison.sample || null,
-        metrics
+        metrics: validMetrics
     };
 }
 
@@ -144,18 +265,37 @@ function buildGolfAIVisuals(toolHistory) {
 
     const visuals = [];
 
-    for (let i = toolHistory.length - 1; i >= 0; i--) {
-        const tool = toolHistory[i];
+    let overviewVisual = null;
+    let comparisonVisual = null;
 
-        if (tool && tool.name === "compare_player_periods" && tool.result) {
+    for (const tool of toolHistory) {
+        if (!tool || !tool.name || !tool.result) {
+            continue;
+        }
+
+        if (tool.name === "get_player_overview") {
+            const visual = buildPerformanceSummaryVisual(tool.result);
+
+            if (visual) {
+                overviewVisual = visual;
+            }
+        }
+
+        if (tool.name === "compare_player_periods") {
             const visual = buildPeriodComparisonVisual(tool.result);
 
             if (visual) {
-                visuals.push(visual);
+                comparisonVisual = visual;
             }
-
-            break;
         }
+    }
+
+    if (overviewVisual) {
+        visuals.push(overviewVisual);
+    }
+
+    if (comparisonVisual) {
+        visuals.push(comparisonVisual);
     }
 
     return visuals;
