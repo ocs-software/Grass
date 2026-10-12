@@ -20,13 +20,27 @@ const OPENROUTER_TOOLS = GOLF_AI_TOOLS.map(function (tool) {
     };
 });
 
+const MAX_QUESTION_LENGTH = 1000;
+const MAX_TOOL_ROUNDS = 5;
+const MAX_TOOL_CALLS = 8;
+
 async function askGolfAI(question, serverContext) {
     if (!process.env.OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not configured.");
     }
 
-    if (!question || typeof question !== "string") {
-        throw new Error("Golf AI question is required.");
+    if (typeof question !== "string" || question.trim().length === 0) {
+        const error = new Error("Golf AI question is required.");
+        error.code = "GOLF_AI_VALIDATION";
+        throw error;
+    }
+
+    const normalizedQuestion = question.trim();
+
+    if (normalizedQuestion.length > MAX_QUESTION_LENGTH) {
+        const error = new Error("Golf AI question is too long.");
+        error.code = "GOLF_AI_VALIDATION";
+        throw error;
     }
 
     const messages = [
@@ -93,15 +107,14 @@ async function askGolfAI(question, serverContext) {
         },
         {
             role: "user",
-            content: question
+            content: normalizedQuestion
         }
     ];
 
     const toolHistory = [];
+    let toolCallCount = 0;
 
-    const maxToolRounds = 5;
-
-    for (let toolRound = 0; toolRound < maxToolRounds; toolRound++) {
+    for (let toolRound = 0; toolRound < MAX_TOOL_ROUNDS; toolRound++) {
         const response = await openrouter.chat.completions.create({
             model: "openrouter/free",
             messages: messages,
@@ -119,12 +132,37 @@ async function askGolfAI(question, serverContext) {
             ? message.tool_calls
             : [];
 
+        if (toolCallCount + toolCalls.length > MAX_TOOL_CALLS) {
+            const error = new Error(
+                "Golf AI exceeded the maximum number of tool calls."
+            );
+
+            error.code = "GOLF_AI_TOOL_LIMIT";
+
+            throw error;
+        }
+
+        toolCallCount += toolCalls.length;
+
         if (toolCalls.length === 0) {
+            const content =
+                typeof message.content === "string"
+                    ? message.content.trim()
+                    : "";
+
+            if (!content) {
+                const error = new Error("Golf AI returned an empty response.");
+
+                error.code = "GOLF_AI_EMPTY_RESPONSE";
+
+                throw error;
+            }
+
             return {
-                model: response.model,
-                content: message.content || "",
+                model: response.model || null,
+                content,
                 visuals: buildGolfAIVisuals(toolHistory),
-                toolHistory: toolHistory
+                toolHistory
             };
         }
 
@@ -158,7 +196,9 @@ async function askGolfAI(question, serverContext) {
                 toolResult = {
                     available: false,
                     error: "TOOL_CALL_FAILED",
-                    message: error.message
+                    message:
+                        "The requested golf analytics tool call could not be completed. " +
+                        "Check the tool name and arguments and try again if appropriate."
                 };
 
                 parsedArguments = parsedArguments || internalToolCall.arguments;
@@ -178,7 +218,13 @@ async function askGolfAI(question, serverContext) {
         }
     }
 
-    throw new Error("Golf AI exceeded the maximum number of tool rounds.");
+    const error = new Error(
+        "Golf AI exceeded the maximum number of tool rounds."
+    );
+
+    error.code = "GOLF_AI_TOOL_LIMIT";
+
+    throw error;
 }
 
 module.exports = {
