@@ -1,3 +1,8 @@
+/**
+ * Returns metadata for the canonical metrics exposed by the analytics layer.
+ * Direction metadata is kept with each metric so consumers can determine
+ * whether a higher or lower value represents improvement without guessing.
+ */
 function getAnalyticsMetricDefinitions() {
     return {
         scoringToParPerHole: {
@@ -58,6 +63,12 @@ function getAnalyticsMetricDefinitions() {
     };
 }
 
+/**
+ * Converts aggregate analytics into the stable report contract consumed by
+ * the AI/tool layer. The report includes sample sizes and data-quality
+ * coverage alongside performance values so downstream interpretation can
+ * account for incomplete telemetry.
+ */
 function buildPlayerAnalyticsReport(aggregate, comparison) {
     if (!aggregate) {
         return null;
@@ -120,6 +131,12 @@ function buildPlayerAnalyticsReport(aggregate, comparison) {
     };
 }
 
+/**
+ * Aggregates club usage and recorded travel distance from eligible shots.
+ * Putter distances are deliberately excluded here because putt distance is
+ * stored using separate fields/units. Recorded distance represents observed
+ * ball travel and must not be interpreted as carry or expected club distance.
+ */
 function calculateClubs(shots, context) {
     const clubMap = context && context.clubs ? context.clubs : {};
 
@@ -191,6 +208,11 @@ function calculateClubs(shots, context) {
     return clubs;
 }
 
+/**
+ * Returns the raw arithmetic change between two comparable metric values.
+ * Whether that change is favourable is intentionally determined elsewhere
+ * using the metric's direction metadata.
+ */
 function calculateChange(currentValue, previousValue) {
     if (
         currentValue === null ||
@@ -204,6 +226,11 @@ function calculateChange(currentValue, previousValue) {
     return currentValue - previousValue;
 }
 
+/**
+ * Builds a deterministic comparison between two aggregate samples.
+ * Values are kept separate from interpretation so callers can combine the
+ * calculated changes with metric direction and sample-size information.
+ */
 function compareAggregates(current, previous) {
     if (!current || !previous) {
         return null;
@@ -306,6 +333,11 @@ function compareAggregates(current, previous) {
     };
 }
 
+/**
+ * Loads one player's rounds for analytics. Date criteria are applied at round
+ * level. When last_n is supplied the newest N rounds are selected first and
+ * then returned in chronological order for consistent downstream processing.
+ */
 async function getPlayerRounds(thisDb, collectionName, userId, criteria) {
     criteria = criteria || {};
 
@@ -360,6 +392,10 @@ async function getPlayerRounds(thisDb, collectionName, userId, criteria) {
     return rounds;
 }
 
+/**
+ * Maps a hole's score-to-par value to the scoring buckets used throughout the
+ * round and aggregate reports.
+ */
 function getScoringCategory(scoreToPar) {
     if (scoreToPar <= -2) return "eagleOrBetter";
     if (scoreToPar === -1) return "birdie";
@@ -369,6 +405,10 @@ function getScoringCategory(scoreToPar) {
     return "doubleOrWorse";
 }
 
+/**
+ * Counts recorded penalty strokes using authoritative outcome codes supplied
+ * by the lookup-derived analytics context. No penalty cause is inferred.
+ */
 function calculatePenalties(holeShots, codes) {
     const penaltyCodes = Array.isArray(codes.penalties) ? codes.penalties : [];
 
@@ -381,6 +421,12 @@ function calculatePenalties(holeShots, codes) {
     };
 }
 
+/**
+ * Builds reusable semantic lookup maps from the OPTIONS table. The analytics
+ * engine works with stored codes, while these maps identify fairway, green,
+ * penalty, club, outcome and position semantics without hard-coding the full
+ * lookup table into each calculation.
+ */
 function buildAnalyticsContext(table) {
     const outcomes = table && Array.isArray(table.as_oos) ? table.as_oos : [];
 
@@ -459,6 +505,11 @@ function buildAnalyticsContext(table) {
     };
 }
 
+/**
+ * Calculates green in regulation from the stroke whose recorded outcome first
+ * reaches the green. A GIR is made when that stroke number is at or below
+ * par - 2.
+ */
 function calculateGir(holeShots, par, codes) {
     const greenCode = codes.green || "030";
 
@@ -476,6 +527,11 @@ function calculateGir(holeShots, par, codes) {
     };
 }
 
+/**
+ * Counts putts by the position from which each recorded stroke starts. This is
+ * intentionally based on Green position rather than the selected club, because
+ * putting statistics describe strokes played from the green.
+ */
 function calculatePutting(holeShots, codes) {
     const greenCode = codes.green || "030";
 
@@ -486,6 +542,10 @@ function calculatePutting(holeShots, codes) {
     };
 }
 
+/**
+ * Calculates fairway opportunities for par-4/par-5 holes and evaluates the
+ * first stroke's authoritative outcome against the fairway lookup code.
+ */
 function calculateFairway(holeShots, par, codes) {
     const fairwayCode = codes.fairway || "001";
     const opportunity = par > 3;
@@ -500,6 +560,10 @@ function calculateFairway(holeShots, par, codes) {
     };
 }
 
+/**
+ * Treats every missed GIR as a scrambling opportunity and records a successful
+ * scramble when the hole is completed in par or better.
+ */
 function calculateScrambling(gir, score, par) {
     const opportunity = !gir;
 
@@ -510,6 +574,11 @@ function calculateScrambling(gir, score, par) {
     };
 }
 
+/**
+ * Summarises player-entered shot-quality ratings. Only values 1-5 are valid;
+ * missing and invalid values are tracked separately so subjective QoS coverage
+ * is visible rather than silently treating bad input as performance data.
+ */
 function calculateShotQuality(shots) {
     const result = {
         totalShots: shots.length,
@@ -607,6 +676,16 @@ function calculateShotQuality(shots) {
     return result;
 }
 
+/**
+ * Produces the canonical deterministic analysis for a single round. Hole-level
+ * scoring, GIR, putting, fairway, scrambling and penalty metrics are calculated
+ * from recorded data before club/QoS telemetry is considered.
+ *
+ * Shot-level telemetry is only eligible when a played hole has a positive score
+ * and the number of stored shot records exactly matches that score. This keeps
+ * incomplete/misaligned shot histories from contaminating club and QoS metrics
+ * while still allowing valid hole-level scoring statistics to be reported.
+ */
 function analyseRound(round, context) {
     context = context || {};
     const codes = context.codes || {};
@@ -854,6 +933,11 @@ function analyseRound(round, context) {
     };
 }
 
+/**
+ * Combines analysed rounds into a player-level sample. Counts are accumulated
+ * first and percentages/averages are derived from their real opportunities,
+ * preserving sample size and telemetry coverage for later reporting and AI use.
+ */
 function aggregateRounds(roundAnalyses) {
     const analyses = Array.isArray(roundAnalyses)
         ? roundAnalyses.filter(Boolean)
