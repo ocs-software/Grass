@@ -3,6 +3,12 @@ let ObjectID = require("mongodb").ObjectID;
 const { getAppConfig } = require("../config/app_config");
 const specialFilters = ["date_from", "date_to", "qos", "distance"];
 
+/**
+ * Normalises public report criteria into the two MongoDB match scopes used by
+ * the ranking/report pipelines: round-level fields and embedded hole_stats
+ * fields. The normalised representation is also used when hashing criteria so
+ * equivalent requests share the same cache/job identity.
+ */
 function normalizeCriteria(criteria = {}) {
     const { rootMatch, holeStatsMatch } = buildMatch(criteria);
 
@@ -39,6 +45,10 @@ function stableStringify(obj) {
     return JSON.stringify(sorted);
 }
 
+/**
+ * Creates a deterministic SHA-1 identifier for a normalised criteria object.
+ * The hash is used as the logical key for cached rankings and queued rebuilds.
+ */
 function buildFilterHash(criteria) {
     return crypto
         .createHash("sha1")
@@ -97,6 +107,11 @@ function buildMatch(criteria = {}) {
     return { rootMatch, holeStatsMatch };
 }
 
+/**
+ * Resolves the public statistic name through STAT_MAP. This keeps collection
+ * field names and metric behaviour server-controlled rather than accepting
+ * arbitrary MongoDB fields from API callers.
+ */
 function getStatConfig(stat) {
     const config = getAppConfig().STAT_MAP[stat];
 
@@ -111,6 +126,10 @@ function getStatConfig(stat) {
     return config;
 }
 
+/**
+ * Resolves an allowed report criterion through CRITERIA_MAP. Unknown criteria
+ * are rejected instead of being converted directly into MongoDB field names.
+ */
 function getCriteriaConfig(key) {
     const config = getAppConfig().CRITERIA_MAP[key];
 
@@ -121,6 +140,11 @@ function getCriteriaConfig(key) {
     return config;
 }
 
+/**
+ * Converts supported peer/cohort criteria into MongoDB conditions against the
+ * user document joined into the analytics pipeline. Unsupported peer fields
+ * are ignored rather than becoming arbitrary database predicates.
+ */
 function buildPeerMatch(peerCriteria = {}) {
     const match = {};
 
@@ -152,6 +176,11 @@ function buildPeerMatch(peerCriteria = {}) {
     return match;
 }
 
+/**
+ * Builds the optional aggregation stages required for peer filtering. When no
+ * peer criteria are supplied the caller receives an empty stage list, avoiding
+ * an unnecessary users collection lookup.
+ */
 function getPeerLookupStages({ suffix = "", peerCriteria = {} }) {
     const peerMatch = buildPeerMatch(peerCriteria);
 
@@ -500,6 +529,11 @@ async function getPlayerReport({
     };
 }
 
+/**
+ * Builds the configured Last-N report for each club in the OPTIONS lookup
+ * table. QoS and record-count defaults come from the selected stat definition
+ * when the caller does not supply explicit values.
+ */
 async function getPlayerLastNReports({
     thisDb,
     suffix,
@@ -524,6 +558,10 @@ async function getPlayerLastNReports({
     }
 }
 
+/**
+ * Loads the club definitions from the environment-specific OPTIONS table.
+ * These definitions are used to generate per-club analytics criteria.
+ */
 async function getClubTableRecords({ thisDb, suffix }) {
     let tableClubs = [];
 
@@ -538,6 +576,10 @@ async function getClubTableRecords({ thisDb, suffix }) {
     return tableClubs;
 }
 
+/**
+ * Converts one club lookup entry into the public criteria shape expected by
+ * the reporting functions. No database query is performed here.
+ */
 function createCriteriaClubs({ club = {}, qos }) {
     const criteria = {};
     const tableConfig = {};
@@ -553,6 +595,12 @@ function createCriteriaClubs({ club = {}, qos }) {
     return { criteria, tableConfig };
 }
 
+/**
+ * Calculates a player's metric over the most recent N matching records. The
+ * criteria are normalised first, the selected metric is projected to the common
+ * "score" field, and the pipeline then sorts and limits before aggregation.
+ * A result is returned only when the requested sample size is available.
+ */
 async function getPlayerLastNReport({
     thisDb,
     suffix = "",
@@ -996,6 +1044,11 @@ async function getPlayerReportOnTheFly({
     };
 }
 
+/**
+ * Records how frequently a criteria/stat combination is requested. Popular
+ * criteria can later be precomputed by the ranking worker instead of rebuilding
+ * every possible filter combination proactively.
+ */
 async function recordCriteriaUsage({
     thisDb,
     suffix = "",
@@ -1028,6 +1081,11 @@ async function recordCriteriaUsage({
     return filterHash;
 }
 
+/**
+ * Dispatch point for metrics that must be calculated rather than read from a
+ * stored field. No derived calculators are currently implemented; unsupported
+ * calculator names fail explicitly.
+ */
 function getDerivedMetricProjectionStages(statConfig, holeStatsMatch) {
     switch (statConfig.calculator) {
         default:
@@ -1037,6 +1095,11 @@ function getDerivedMetricProjectionStages(statConfig, holeStatsMatch) {
     }
 }
 
+/**
+ * Produces aggregation stages that expose the configured metric consistently as
+ * "score". Hole-level metrics unwind hole_stats first; round-level metrics are
+ * projected directly. Null/zero/empty/false values are excluded from reports.
+ */
 function getScoreProjectionStages(statConfig, holeStatsMatch = {}) {
     if (statConfig.type === "derived") {
         return getDerivedMetricProjectionStages(statConfig, holeStatsMatch);
