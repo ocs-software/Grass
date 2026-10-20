@@ -1,4 +1,5 @@
 const { getAppConfig } = require("../config/app_config");
+const { sanitizeLogValue } = require("./logSanitizer");
 
 async function logError({
     thisDb,
@@ -34,12 +35,29 @@ async function logError({
         errorDoc.stack = error.stack || null;
     }
 
-    if (query !== undefined) errorDoc.query = query;
-    if (payload !== undefined) errorDoc.payload = payload;
-    if (user !== undefined) errorDoc.user = user;
-    if (extra !== undefined) errorDoc.extra = extra;
-    if (table !== undefined) errorDoc.table = table;
-    if (functionName !== undefined) errorDoc.functionName = functionName;
+    if (query !== undefined) {
+        errorDoc.query = sanitizeLogValue(query);
+    }
+
+    if (payload !== undefined) {
+        errorDoc.payload = sanitizeLogValue(payload);
+    }
+
+    if (user !== undefined) {
+        errorDoc.user = sanitizeLogValue(user);
+    }
+
+    if (extra !== undefined) {
+        errorDoc.extra = sanitizeLogValue(extra);
+    }
+
+    if (table !== undefined) {
+        errorDoc.table = table;
+    }
+
+    if (functionName !== undefined) {
+        errorDoc.functionName = functionName;
+    }
 
     await thisDb.collection("error_logs" + suffix).insertOne(errorDoc);
 }

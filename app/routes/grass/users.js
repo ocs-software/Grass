@@ -333,7 +333,6 @@ router.post("/delete", async (req, res) => {
         let message = "";
         let templatemodel = "";
         let client = "";
-        // let serverToken = "d42a8a18-8d6f-45d2-9d3e-c84488456ca4";
         let serverToken = process.env.POSTMARK;
 
         if (email === null || email === "") {
