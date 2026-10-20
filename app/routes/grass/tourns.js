@@ -1,9 +1,20 @@
+/**
+ * Tournament and tournament-entry routes.
+ *
+ * Maintains tournament metadata in the tourns collection and the player entry
+ * array embedded in each tournament document. Update operations support both
+ * single objects and batches and write audit records asynchronously.
+ */
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
 
+/**
+ * Returns tournaments for a required season, optionally restricted to a
+ * tournament code. This route reads tournament metadata only.
+ */
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass")
@@ -57,6 +68,11 @@ router.post("/get", async (req, res) => {
 
 });
 
+/**
+ * Deletes a tournament identified by season and tournament code after
+ * validating the required request identifiers. Successful deletions are sent
+ * to the change logger for audit history.
+ */
 router.post("/delete", async (req, res) => {
     // delete tournament record.
     const db = req.db;
@@ -135,6 +151,12 @@ router.post("/delete", async (req, res) => {
     }
 });
 
+/**
+ * Inserts or updates tournament metadata. The endpoint accepts either one
+ * tournament object or a tourns array and reports processed/failed counts for
+ * the batch. processData() only copies scalar fields into the tournament
+ * document and avoids unnecessary writes when no values have changed.
+ */
 router.post("/update", async (req, res) => {
     // insert/update Tournament record.
     const db = req.db;
@@ -168,6 +190,15 @@ router.post("/update", async (req, res) => {
         });
     }
 
+    /**
+     * Normalises and upserts one tournament from the update request. Existing
+     * values are compared field-by-field so only changed fields are written.
+     */
+    /**
+     * Processes one tournament entry. Scalar entry fields are normalised, the
+     * player id is resolved, and the existing embedded entry is updated only
+     * when a value changed; otherwise a new entry is appended.
+     */
     async function processData(data, res, thisDb, suffix, query, table) {
         let obj_keys = [];
         
@@ -318,6 +349,11 @@ router.post("/update", async (req, res) => {
         return res;
     }
 
+    /**
+     * Writes the tournament change audit asynchronously after the main update
+     * has completed. Audit failure is reported to the runtime log and does not
+     * change the API result of the tournament operation.
+     */
     function endImport(thisDb, old_obj, new_obj, changed) {
         Promise.resolve()
             .then(async () => {
@@ -347,6 +383,11 @@ router.post("/update", async (req, res) => {
     }
 });
 
+/**
+ * Adds or updates player entries embedded in a tournament. The endpoint accepts
+ * either one entry or an entries array and resolves the application player id
+ * from the tour/email mapping before updating the tournament document.
+ */
 router.post("/entry", async (req, res) => {
     const db = req.db;
     const appConfig = getAppConfig();
@@ -527,6 +568,10 @@ router.post("/entry", async (req, res) => {
         return res;
     }
 
+    /**
+     * Writes an audit record for a tournament-entry change without altering the
+     * already-completed entry update if audit logging fails.
+     */
     function endImport(thisDb, old_obj, new_obj, changed, tourncode, tour_code, season) {
         Promise.resolve()
             .then(async () => {
@@ -557,6 +602,10 @@ router.post("/entry", async (req, res) => {
     }
 });
 
+/**
+ * Resolves a tour/email pair to the application's user id. If no mapping is
+ * present, the normalised email is retained as the fallback identifier.
+ */
 async function getPlayerId(tour_code, user_email, thisDb, suffix) {
     const toursDb = thisDb.collection("tours" + suffix);
 
@@ -568,6 +617,11 @@ async function getPlayerId(tour_code, user_email, thisDb, suffix) {
 }
 
 
+/**
+ * Resolves the MongoDB tournament document id used by audit logging. When the
+ * document cannot be found, the existing season+tournament-code fallback is
+ * returned.
+ */
 async function getTournId(tour_id, season, tourncode, thisDb, table) {
     const tournsDb = thisDb.collection(table);
 

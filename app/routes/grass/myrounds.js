@@ -1,3 +1,10 @@
+/**
+ * Player round routes.
+ *
+ * Handles retrieval, deletion and upsert of player round documents. Round
+ * updates also maintain the legacy per-hole stats collection and trigger the
+ * ranking/report refresh when a completed round is saved.
+ */
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 let ObjectID = require('mongodb').ObjectID;
@@ -6,6 +13,11 @@ const { sendError } = require("../../util/commonFunctions");
 const { logDocumentChange } = require("../../logs/changeLogger");
 const { enqueueRankingRebuild, rebuildRankingDocuments, getPlayerLastNReports } = require("../../util/rankingRound");
 
+/**
+ * Returns rounds belonging to the authenticated player. Optional request
+ * fields narrow the query to a round, course/tee combination or hole.
+ * Authentication is performed against the token stored on the user record.
+ */
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass")
@@ -116,6 +128,11 @@ router.post("/get", async (req, res) => {
 
 });
 
+/**
+ * Deletes one player-owned round. Both the round id and user id are included
+ * in the MongoDB query so a valid user cannot delete another player's round.
+ * Associated legacy stats records are removed after a successful deletion.
+ */
 router.post("/delete", async (req, res) => {
     // delete rounds record.
     const db = req.db;
@@ -252,6 +269,11 @@ router.post("/delete", async (req, res) => {
         });
     }
 
+    /**
+     * Removes legacy stats documents associated with a deleted round. If the
+     * caller marks the round as completed, player reports/rankings are also
+     * rebuilt. The current delete route does not pass that flag.
+     */
     async function deleteStats(user_id, round_id, thisDb, suffix, completed) {
         const table = "stats" + suffix;
 
@@ -270,6 +292,14 @@ router.post("/delete", async (req, res) => {
     }
 });
 
+/**
+ * Inserts or updates a player's round using the application round id plus the
+ * authenticated user id as the logical key. Request fields reserved for
+ * identity/authentication are not copied into the stored round document.
+ *
+ * After the round is persisted, updateStats() mirrors its hole telemetry into
+ * the legacy stats collection used by existing reporting/ranking code.
+ */
 router.post("/update", async (req, res) => {
     // insert/update MyRounds record.
     const db = req.db;
@@ -408,6 +438,11 @@ router.post("/update", async (req, res) => {
         });
     }
 
+    /**
+     * Groups the round's hole_stats records by hole and mirrors each group to
+     * the stats collection. saveStat() performs the actual upsert and handles
+     * completed-round ranking/report maintenance.
+     */
     async function updateStats(data, thisDb, suffix) {
         const table = "stats" + suffix;
 
@@ -451,6 +486,11 @@ router.post("/update", async (req, res) => {
         }
     }
 
+    /**
+     * Upserts one hole's legacy stats document. Query fields are kept as the
+     * document identity and removed from the mutable $set payload. Completing
+     * a round refreshes the player's Last-N report and ranking documents.
+     */
     async function saveStat(thisDb, suffix, setFields, query, user_id, completed) {
         const statsDB = thisDb.collection("stats" + suffix);
 
@@ -483,6 +523,10 @@ router.post("/update", async (req, res) => {
     }
 });
 
+/**
+ * Stores the generated player report on the table collection for the supplied
+ * user id. This helper is called after completed-round report generation.
+ */
 async function playerStatUpdate({
     thisDb,
     suffix,
