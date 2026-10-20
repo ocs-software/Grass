@@ -1,6 +1,17 @@
+/**
+ * Persists structured application errors to the environment-specific
+ * error_logs collection. Potentially sensitive contextual objects are
+ * sanitised before they are stored.
+ */
 const { getAppConfig } = require("../config/app_config");
 const { sanitizeLogValue } = require("./logSanitizer");
 
+/**
+ * Writes an application error and optional diagnostic context to MongoDB.
+ *
+ * `thisDb` is supplied by the calling route so the logger uses the same
+ * database context as the failed operation.
+ */
 async function logError({
     thisDb,
     errMess,

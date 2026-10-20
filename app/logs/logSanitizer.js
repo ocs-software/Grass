@@ -1,3 +1,9 @@
+/**
+ * Shared sanitisation helpers for data written to application logs.
+ *
+ * This module protects logging destinations only; it never changes the live
+ * request or application data used by business logic.
+ */
 const REDACTED_VALUE = "[REDACTED]";
 
 /*
@@ -23,12 +29,14 @@ const SENSITIVE_FIELDS = new Set([
     "setcookie"
 ]);
 
+/** Normalises field names so common credential-name variations match. */
 function normaliseFieldName(fieldName) {
     return String(fieldName)
         .toLowerCase()
         .replace(/[-_\s]/g, "");
 }
 
+/** Returns true when a field name is configured as sensitive. */
 function isSensitiveField(fieldName) {
     return SENSITIVE_FIELDS.has(normaliseFieldName(fieldName));
 }

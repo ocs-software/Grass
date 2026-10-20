@@ -1,7 +1,15 @@
+/**
+ * Token-usage middleware for TV/subdomain traffic.
+ *
+ * IMPORTANT: the current implementation intentionally returns `next()` near
+ * the start of the handler. The token/subdomain lookup and usage-recording
+ * code below that return is therefore currently inactive.
+ */
 const InitiateMongoServer = require("../config/db");
 InitiateMongoServer();
 const { ObjectId } = require("mongodb");
 
+/** Continues the request immediately; legacy token-usage logic follows. */
 module.exports = async function (req, res, next) {
     try {
         const { dbid, tourid, id } = req.params;

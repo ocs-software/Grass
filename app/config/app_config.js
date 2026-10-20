@@ -1,3 +1,16 @@
+/**
+ * Builds the runtime configuration used by the Grass backend.
+ *
+ * Environment-specific values are read when this function is called rather
+ * than when the module is loaded. Development uses the `_dev` collection
+ * suffix; staging and production use the unsuffixed collections.
+ *
+ * The metric and criteria maps describe fields that may be used by the
+ * statistics/ranking layer. Secrets themselves are not stored here; only
+ * environment-variable references are exposed through the returned config.
+ *
+ * @returns {Object} Current application configuration.
+ */
 function getAppConfig() {
     const appEnv = process.env.APP_ENV || "production";
 
@@ -16,6 +29,7 @@ function getAppConfig() {
         stripe: {
             skey: process.env.STRIPE_KEY
         },
+        // Canonical metadata for statistics exposed by the ranking/analytics layer.
         STAT_MAP: {
             total_score: {
                 source: "root",
@@ -66,6 +80,7 @@ function getAppConfig() {
                 minimumRecords: 1
             }
         },
+        // Maps supported report filters to their MongoDB document locations.
         CRITERIA_MAP: {
             tour: { source: "root", field: "tour" },
             season: { source: "root", field: "season" },
@@ -78,6 +93,7 @@ function getAppConfig() {
             qos: { source: "hole_stats", field: "qos" },
             club_used: { source: "hole_stats", field: "club_used" }
         },
+        // Defines supported player-cohort filters and any required operators/types.
         PEER_CRITERIA_MAP: {
             playerType: { field: "player_type" },
             gender: { field: "gender" },

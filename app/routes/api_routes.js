@@ -1,8 +1,16 @@
-// routes/note_routes.js
+/**
+ * Registers the public route prefixes used by the Grass backend.
+ *
+ * The supplied MongoDB client is attached to each request as `req.db`, which
+ * allows individual routers to select the database/collections they require.
+ * This module also applies the API's current CORS response headers.
+ */
 
+// Historical signature retained for reference:
 // module.exports = function (app, db, io) {
 module.exports = function (app, db) {
 
+  // Make the shared MongoDB client available to all downstream route handlers.
   app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -10,10 +18,12 @@ module.exports = function (app, db) {
     next();
   })
 
+  // Lightweight endpoint used to confirm that the Grass API is responding.
   app.get("/", (req, res) => {
     res.json({ message: "TheGrass App API Working" });
   });
 
+  // Mount the feature routers under their API prefixes.
   const pinusers = require('./grass/users');
   app.use("/users", pinusers);
 

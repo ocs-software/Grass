@@ -1,3 +1,9 @@
+/**
+ * Validation rules for required Upgame webhook identifiers.
+ *
+ * This middleware defines field-presence checks only; the webhook route is
+ * responsible for reading validation results and processing the request.
+ */
 const { check, oneOf, validationResult } = require("express-validator");
 const moment = require('moment');
 module.exports = [

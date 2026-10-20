@@ -1,3 +1,10 @@
+/**
+ * Document change/audit logger.
+ *
+ * Computes field-level differences between an existing document and updated
+ * data, then stores only changed values in the environment-specific logs
+ * collection. Sensitive values are sanitised immediately before persistence.
+ */
 const { getAppConfig } = require("../config/app_config");
 const { sanitizeLogValue } = require("./logSanitizer");
 
@@ -24,6 +31,10 @@ function shouldIgnore(path, ignoredFields) {
     );
 }
 
+/**
+ * Recursively compares two values and flattens differences into dotted paths.
+ * Arrays are treated as complete values rather than diffed element-by-element.
+ */
 function diffValues(
     oldValue,
     newValue,
@@ -70,12 +81,19 @@ function diffValues(
     return { old_values, new_values };
 }
 
+/**
+ * Returns the old/new values for fields that changed between two documents.
+ */
 function getChangedFields(oldDoc = {}, newData = {}, options = {}) {
     const ignoredFields = options.ignoredFields || DEFAULT_IGNORED_FIELDS;
 
     return diffValues(oldDoc, newData, "", ignoredFields);
 }
 
+/**
+ * Persists an audit entry when at least one non-ignored field has changed.
+ * Logging failures are contained so they do not fail the primary operation.
+ */
 async function logDocumentChange({
     thisDb,
     table,

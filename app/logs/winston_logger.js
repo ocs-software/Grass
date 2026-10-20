@@ -1,3 +1,10 @@
+/**
+ * Winston logger configuration for Grass application/request logs.
+ *
+ * Production logs are written to MongoDB using WINSTON_MONGODB_URL. A console
+ * transport is additionally enabled outside production for development
+ * visibility.
+ */
 const winston = require('winston');
 require('winston-mongodb');
 const winston_mongo_options = {
