@@ -4,10 +4,10 @@ const express = require("express");
 const { check, oneOf, validationResult } = require("express-validator");
 const router = express.Router({ mergeParams: true });
 const mongodb = require("mongodb");
-let ObjectID = require('mongodb').ObjectID
-const axios = require('axios');
+let ObjectID = require("mongodb").ObjectID;
+const axios = require("axios");
 
-const check_post_data = require('../../middleware/upgame_webhook_middleware');
+const check_post_data = require("../../middleware/upgame_webhook_middleware");
 
 // Validate the endpoint round scores for this player
 // 'scores' should be a hole-by-hole array of each holes score. We will validate this against what is in OCS and return true if it matches what we have for each hole
@@ -29,25 +29,27 @@ router.post("/validate-score", async (req, res) => {
         }
         if (errMess !== "") {
             let res_json = {
-                status: "FAILED",
-            }
+                status: "FAILED"
+            };
             res_json.message = errMess;
             res.send({ res_json });
-        }
-        else {
+        } else {
             let res_json = {
-                status: "OK",
-            }
+                status: "OK"
+            };
             res_json.message = "User Data OK";
             res.send({ res_json });
         }
     } catch (e) {
-        console.log(e)
+        console.error(
+            "Validate-score webhook failed:",
+            e && e.message ? e.message : "Unknown error"
+        );
         let res_json = {
-            status: "FAILED",
-        }
+            status: "FAILED"
+        };
         res_json.message = "Error in Fetching data.";
-        res.status(400).send({ message: "Error in Fetching data.", data: e });
+        res.status(400).send({ message: "Error in Fetching data." });
     }
 });
 
