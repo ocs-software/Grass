@@ -551,11 +551,27 @@ async function getPlayerLastNReports({
         lastRecords = statConfig.lastRecords;
     }
 
-    const tableClubs = await getClubTableRecords(thisDb, suffix);
+    const tableClubs = await getClubTableRecords({ thisDb, suffix });
+    const reports = [];
+
     for (const club of tableClubs) {
         const { criteria } = createCriteriaClubs({ club, qos });
-        await getPlayerLastNReport({ thisDb, suffix, userId, criteria });
+        const report = await getPlayerLastNReport({
+            thisDb,
+            suffix,
+            userId,
+            criteria,
+            stat,
+            lastRecords
+        });
+
+        reports.push({
+            club: club.code,
+            ...report
+        });
     }
+
+    return reports;
 }
 
 /**

@@ -21,7 +21,7 @@ router.post("/get", async (req, res) => {
     const suffix = appConfig.suffix;
 
     try {
-        const { table_id } = req.body;
+        let { table_id } = req.body;
         result.data = req.body;
 
         if (table_id === null || table_id === "") {
@@ -74,7 +74,8 @@ router.post("/update", async (req, res) => {
     const suffix = appConfig.suffix;
 
     try {
-        const { code, table_id, data } = req.body;
+        const { code, data } = req.body;
+        let { table_id } = req.body;
         response.data = req.body;
 
         if (code === null || code === "") {
@@ -151,7 +152,7 @@ router.post("/update", async (req, res) => {
         }
         options = { upsert: true };
 
-        await thisDb.collection("table").updateOne(query, newvalues, options);
+        await thisDb.collection(table).updateOne(query, newvalues, options);
         let res_json = {
             status: "OK",
         }

@@ -239,7 +239,13 @@ router.post("/delete", async (req, res) => {
         const query = {id: data.my_round.id, user_id: new ObjectID(data.user_id) };
 
         const resp = await thisDb.collection(table).findOneAndDelete(query);
-        if (resp) {
+        // MongoDB driver versions differ here: older versions wrap the deleted
+        // document in `value`, while newer versions return the document directly.
+        const deletedRound = resp && Object.prototype.hasOwnProperty.call(resp, "value")
+            ? resp.value
+            : resp;
+
+        if (deletedRound) {
             logDocumentChange({
                 thisDb,
                 table: table,
@@ -251,10 +257,16 @@ router.post("/delete", async (req, res) => {
             }).catch(err => {
                 console.error("Change log failed:", err)
             });
-            await deleteStats(data.user_id, data.my_round.id, thisDb, suffix);
+            await deleteStats(
+                data.user_id,
+                data.my_round.id,
+                thisDb,
+                suffix,
+                deletedRound.complete
+            );
         }
 
-        res.status(200).send({status: "OK", message: resp ? "Record deleted." : "No record found to delete."});
+        res.status(200).send({status: "OK", message: deletedRound ? "Record deleted." : "No record found to delete."});
     } catch (e) {
         return await sendError(res, 400, {
             thisDb,
@@ -271,8 +283,8 @@ router.post("/delete", async (req, res) => {
 
     /**
      * Removes legacy stats documents associated with a deleted round. If the
-     * caller marks the round as completed, player reports/rankings are also
-     * rebuilt. The current delete route does not pass that flag.
+     * deleted round was completed, rankings are rebuilt so the removed round
+     * no longer contributes to the persisted ranking documents.
      */
     async function deleteStats(user_id, round_id, thisDb, suffix, completed) {
         const table = "stats" + suffix;
@@ -282,8 +294,6 @@ router.post("/delete", async (req, res) => {
         await thisDb.collection(table).deleteMany(query);
 
         if (completed) {
-            const stats = await getPlayerLastNReports({thisDb, suffix});
-            await playerStatUpdate({thisDb, suffix, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
             // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
@@ -513,8 +523,13 @@ router.post("/update", async (req, res) => {
         );
 
         if (completed) {
-            const stats = await getPlayerLastNReports({thisDb, suffix, user_id, stat: "distance"});
-            await playerStatUpdate({thisDb, suffix, user_id, stats});
+            const stats = await getPlayerLastNReports({
+                thisDb,
+                suffix,
+                userId: user_id,
+                stat: "distance"
+            });
+            await playerStatUpdate({thisDb, suffix, userId: user_id, stats});
             // TODO: use this when we are going to escalate and have more than one instance.
             //       It needs a worker(cron job) so only runs in one of the instances and keeps the ranking daily.
             // await enqueueRankingRebuild({thisDb, suffix, criteria: {}}); 
@@ -533,8 +548,7 @@ async function playerStatUpdate({
     userId,
     stats
 }) {
-    thisDb.collection("users" + suffix);
-    const tablesDB = thisDb.collection("table");
+    const tablesDB = thisDb.collection("table" + suffix);
 
     await tablesDB.updateOne({user_id: userId}, {$set: {stats: stats}});
 }
