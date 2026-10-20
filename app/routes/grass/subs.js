@@ -1,9 +1,21 @@
+/**
+ * Grass subscription routes.
+ *
+ * Synchronises billing-provider events with the application's subscription
+ * collection and exposes endpoints for retrieving/searching subscription state.
+ */
+
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 const Stripe = require("stripe");
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 
+/**
+ * Processes subscription billing events and synchronises them with Grass user
+ * subscription records. Invoice lines are inspected individually because one
+ * invoice can contain multiple subscription adjustments.
+ */
 router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     let event;
     const db = req.db;
@@ -106,6 +118,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         });
     }
 
+    /**
+     * Interprets one invoice line. Stripe price metadata determines whether the
+     * line belongs to Grass and supplies the application plan/type; positive
+     * amounts grant/renew access while negative adjustments revoke access.
+     */
     async function check_line(line, customer, basic, period_end) { 
         if (line.parent?.type === "subscription_item_details" || line.type === "subscription") {
             const stripe = Stripe(appConfig.stripe.skey);
@@ -143,6 +160,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         }
     }
 
+    /**
+     * Creates, renews or replaces the active subscription for the Stripe
+     * customer. Historical subscriptions are retained by ending the previous
+     * active record before a different plan is inserted.
+     */
     async function grantAccess(user, plan) {
         // Update/create subscription record.
         try {
@@ -235,6 +257,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         }
     }
 
+    /**
+     * Ends the customer's current paid subscription. When createBasic is true,
+     * a new Basic subscription record is created so the account retains the
+     * application's fallback access level.
+     */
     async function revokeAccess(user, plan, createBasic) {
         try {
             query = { cust_id: user };
@@ -322,6 +349,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         }
     }
 
+    /**
+     * Associates a billing-provider customer id with an existing Grass user.
+     * The email is normalised before lookup so subsequent webhook events can
+     * resolve the billing customer back to the application account.
+     */
     async function updateCustID(email, cust_id) {
         try {
             table = "users" + suffix;
@@ -373,6 +405,11 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     }
 });
 
+/**
+ * Returns the authenticated user's currently active subscription. Accounts
+ * without an active subscription document are reported as Basic, preserving
+ * the application's default-access behaviour.
+ */
 router.get("/user/active", async (req, res) => {
     try {
         const db = req.db;
@@ -474,6 +511,10 @@ router.get("/user/active", async (req, res) => {
     }
 });
 
+/**
+ * Searches subscription records using optional plan/status/period filters and
+ * joins each result to its user record for administrative/reporting use.
+ */
 router.get("/search", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");

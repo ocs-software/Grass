@@ -1,5 +1,14 @@
 "use strict";
 
+/**
+ * Grass user/account routes.
+ *
+ * Covers account validation, registration, logon/logout, verification, profile
+ * and golf-bag updates, account/tour removal and bulk player import. Most
+ * protected operations validate the token stored on the user document within
+ * the route itself.
+ */
+
 const { response } = require("express");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
@@ -201,6 +210,12 @@ const missingmessage =
     "</html>" +
     "";
 
+/**
+ * Checks an existing account by email and returns the account information used
+ * by the client to determine ownership/sub-account state. Email addresses are
+ * normalised before lookup and the route validates the supplied user token
+ * before returning protected account data.
+ */
 router.post("/check", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
@@ -315,6 +330,11 @@ router.post("/check", async (req, res) => {
     }
 });
 
+/**
+ * Deletes a Grass user account or sub-account after validating the email and
+ * token supplied by the client. The route also performs the related account
+ * cleanup/notification work defined below before returning the result.
+ */
 router.post("/delete", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
@@ -587,6 +607,11 @@ router.post("/delete", async (req, res) => {
     }
 });
 
+/**
+ * Authenticates a Grass user using the email/token pair stored on the user
+ * record. Successful logons update the account's logon metadata and return the
+ * user/account data required by the client.
+ */
 router.post("/logon", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
@@ -726,6 +751,11 @@ router.post("/logon", async (req, res) => {
     }
 });
 
+/**
+ * Records a user logout after validating the supplied account credentials.
+ * This route updates the persisted account/session metadata rather than
+ * invalidating authentication globally at middleware level.
+ */
 router.post("/logout", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
@@ -832,6 +862,11 @@ router.post("/logout", async (req, res) => {
     }
 });
 
+/**
+ * Handles the browser-facing email-verification link. The route extracts the
+ * registration token from the encoded path value, marks a matching account as
+ * verified and renders one of the static verification result pages above.
+ */
 router.get("/verify/:useremail", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
@@ -901,6 +936,11 @@ router.get("/verify/:useremail", async (req, res) => {
     }
 });
 
+/**
+ * Creates a new Grass user after validating the supplied registration data.
+ * The route prepares the initial account fields and registration token and
+ * performs the associated verification-email workflow.
+ */
 router.post("/new", async (req, res) => {
     const db = req.db;
     const thisDb = db.db("grass");
@@ -1150,6 +1190,11 @@ router.post("/new", async (req, res) => {
     }
 });
 
+/**
+ * Updates editable player profile/preferences for an authenticated user. Only
+ * the fields explicitly handled by this route are written to the user record;
+ * document changes are also passed to the audit/change logger.
+ */
 router.post("/update", async (req, res) => {
     const db = req.db;
 
@@ -1323,6 +1368,11 @@ router.post("/update", async (req, res) => {
     }
 });
 
+/**
+ * Replaces the authenticated player's stored golf-bag configuration. The
+ * email/token pair identifies and authorises the user before the supplied club
+ * data is persisted and the change is audit logged.
+ */
 router.post("/golfbag", async (req, res) => {
     const db = req.db;
 
@@ -1443,6 +1493,11 @@ router.post("/golfbag", async (req, res) => {
     }
 });
 
+/**
+ * Removes a tour association for the authenticated player. This is part of the
+ * user-management API even though the underlying document is stored in the
+ * tour collection.
+ */
 router.post("/deleteTour", async (req, res) => {
     const db = req.db;
     const appConfig = getAppConfig();
@@ -1517,6 +1572,11 @@ router.post("/deleteTour", async (req, res) => {
     }
 });
 
+/**
+ * Bulk-imports player records. Each supplied player is processed independently
+ * so the response can report processed/failed counts and per-record messages
+ * instead of failing the complete import on the first invalid entry.
+ */
 router.post("/import", async (req, res) => {
     const db = req.db;
     const appConfig = getAppConfig();
@@ -1576,6 +1636,11 @@ router.post("/import", async (req, res) => {
         });
     }
 
+    /**
+     * Converts and persists one player from the bulk-import payload. User and
+     * tour fields are separated before storage and processing results are
+     * accumulated into the import response object.
+     */
     async function processData(data, res, thisDb, query, table) {
         let obj_keys = [];
         // let token = "";
@@ -1921,6 +1986,11 @@ router.post("/import", async (req, res) => {
             });
     }
 
+    /**
+     * Resolves an imported player's MongoDB user id by email. If no matching
+     * user exists, the email is returned so the caller can retain a meaningful
+     * identifier while reporting the failed/incomplete import.
+     */
     async function getUserId(user_email, thisDb, table) {
         const usersDb = thisDb.collection(table);
 
@@ -1937,6 +2007,12 @@ function validateEmail(email) {
     return re.test(email);
 }
 
+/**
+ * Shared user lookup used by the account routes. Type "A" enriches the user
+ * with related tour data through an aggregation; other types perform a direct
+ * email lookup. The MongoDB query/aggregation is returned alongside the data
+ * so callers can include useful diagnostic context when handling failures.
+ */
 async function getUserData(table, thisDb, suffix, type, user_email) {
     const response = {};
 
