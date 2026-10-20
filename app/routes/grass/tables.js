@@ -4,6 +4,13 @@ const router = express.Router({ mergeParams: true });
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 
+/**
+ * Retrieves an application lookup-table document by `table_id`.
+ *
+ * Lookup data contains shared definitions used throughout Grass, including
+ * positions, lies, clubs, outcomes and other option lists. The environment
+ * suffix selects the collection used by the current deployment.
+ */
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass")
@@ -50,6 +57,14 @@ router.post("/get", async (req, res) => {
 
 });
 
+/**
+ * Updates one section of the shared OPTIONS lookup table.
+ *
+ * `code` identifies which lookup array is replaced (for example positions,
+ * lies, clubs or outcomes). The operation uses an upsert so the table can be
+ * created when it does not already exist, while update timestamps are refreshed
+ * on every write.
+ */
 router.post("/update", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass")
@@ -94,6 +109,10 @@ router.post("/update", async (req, res) => {
         var options = {};
         var newvalues = {};
 
+        /*
+         * Translate the API's numeric table code into the corresponding field
+         * in the OPTIONS document. Only the selected lookup section is replaced.
+         */
         const updateFields = {
             updated: new Date(),
             unix_timestamp: new Date().getTime()

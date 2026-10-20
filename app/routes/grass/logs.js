@@ -3,6 +3,14 @@ const router = express.Router({ mergeParams: true });
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 
+/**
+ * Returns application audit/history records associated with a user identifier.
+ *
+ * Existing log documents are matched against either `user_email` or `owner` to
+ * support the two identifiers used by historical logging code. Results are
+ * returned in ascending timestamp order so callers receive the audit trail
+ * chronologically.
+ */
 router.get("/user", async (req, res) => {
     let query;
     let table;

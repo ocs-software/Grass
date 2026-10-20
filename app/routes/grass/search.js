@@ -3,6 +3,14 @@ const router = express.Router({ mergeParams: true });
 const { getAppConfig } = require("../../config/app_config");
 const { sendError } = require("../../util/commonFunctions");
 
+/**
+ * Searches the configured course collection using MongoDB text search.
+ *
+ * The search term is supplied through the `q` query-string parameter. The
+ * response intentionally excludes internal course metadata and converts each
+ * course's persisted `hole_data` JSON string back into an object before it is
+ * returned to the caller.
+ */
 router.get("/", async (req, res) => {
 
     db = req.db;
@@ -66,6 +74,13 @@ router.get("/", async (req, res) => {
 
 });
 
+/**
+ * Returns all user documents from the environment-specific users collection.
+ *
+ * This is a legacy search endpoint: it does not apply an additional filter in
+ * this route and therefore relies on the surrounding API/middleware controls
+ * to determine who may call it.
+ */
 router.get("/users", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
@@ -98,6 +113,12 @@ router.get("/users", async (req, res) => {
     }
 });
 
+/**
+ * POST variant of the legacy user-list search endpoint.
+ *
+ * Its current behaviour mirrors GET /users and returns the complete users
+ * collection; the request body is not currently used to narrow the query.
+ */
 router.post("/users", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
