@@ -105,6 +105,10 @@ async function askGolfAI(question, serverContext) {
                 "- 'position' is where the recorded stroke starts. " +
                 "- 'outcome' is the authoritative recorded result/end state of that stroke. " +
                 "- Never describe 'position' as the result of that same stroke. " +
+                "- A later stroke's position may differ from the previous stroke's outcome. " +
+                "The data does not explain how the player moved between those states. " +
+                "State the new recorded starting position literally and do not infer a drop, " +
+                "re-tee, lost ball, relief, penalty procedure, or other intervening event. " +
                 "- An outcome marked penalty=true represents a recorded penalty stroke. " +
                 "Do not invent the cause of the penalty. " +
                 "- Do not infer drops, re-shots, relief, replayed shots, shot intent, or " +
@@ -117,6 +121,10 @@ async function askGolfAI(question, serverContext) {
                 "When describing a shot sequence, prefer literal statements such as " +
                 "'started from X and the recorded outcome was Y' when a more natural " +
                 "description would require an unsupported inference. " +
+                "- 'scoringCategory' values such as 'doubleOrWorse' are analytical buckets, " +
+                "not exact golf score labels. Never translate 'doubleOrWorse' into 'double bogey'. " +
+                "When describing an individual hole, use the supplied scoreToPar value directly " +
+                "(for example '+4') unless an exact score label is explicitly supplied by the tool. " +
                 "Analytical reasoning rules: " +
                 "- Separate observed data from interpretation. " +
                 "- A change in one metric does not prove that it caused a change in another metric. " +
