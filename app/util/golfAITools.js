@@ -1,3 +1,12 @@
+/**
+ * AI-facing golf analytics tools.
+ *
+ * These functions are the controlled bridge between the language model and
+ * the deterministic analytics engine. The model never receives direct MongoDB
+ * access and never chooses the authenticated player id; both are supplied by
+ * trusted server context. Tool results therefore expose calculated evidence
+ * that the model can interpret without becoming the source of golf metrics.
+ */
 const {
     analyseRound,
     aggregateRounds,
@@ -7,6 +16,11 @@ const {
     buildPlayerAnalyticsReport
 } = require("./golfAnalytics");
 
+/**
+ * Builds the player's overall analytics report and, where possible, an
+ * equal-sized recent-period comparison. If fewer rounds are available than
+ * requested, the trend window is reduced to the largest valid pair.
+ */
 async function getPlayerOverview(
     thisDb,
     collectionName,
@@ -108,6 +122,11 @@ async function getPlayerOverview(
     return report;
 }
 
+/**
+ * Performs an explicit deterministic comparison between two periods. Unlike
+ * the overview trend, this tool keeps the requested comparison strict so an
+ * invalid or undersized period is reported rather than silently redefined.
+ */
 async function comparePlayerPeriods(
     thisDb,
     collectionName,
@@ -246,6 +265,11 @@ async function comparePlayerPeriods(
     throw new Error("Unsupported comparison mode");
 }
 
+/**
+ * Returns one player-owned round together with its canonical analysis and a
+ * compact hole summary. Raw shot arrays are intentionally omitted here; the
+ * model should request getHole() when shot-level detail is actually needed.
+ */
 async function getRound(
     thisDb,
     collectionName,
@@ -367,6 +391,11 @@ function getLookupDescription(map, code) {
     return item.description || item.desc || item.name || item.label || null;
 }
 
+/**
+ * Converts a stored shot into the restricted semantic representation exposed
+ * to the model. Distances are labelled as recorded ball travel, QoS remains a
+ * subjective player rating, and outcome data remains authoritative.
+ */
 function buildAIShot(shot, analyticsContext) {
     const clubCode =
         shot.shot_club !== undefined &&
@@ -486,6 +515,11 @@ function getShotQualityDescription(value) {
     }
 }
 
+/*
+ * Lookup helpers below translate stored codes into semantic descriptions for
+ * the AI-facing shot representation. Unknown codes remain identifiable rather
+ * than being guessed or silently converted to a different meaning.
+ */
 function getLookupItem(map, code) {
     if (!map || !code) {
         return null;
@@ -604,6 +638,11 @@ function buildAIShot(shot, analyticsContext) {
     };
 }
 
+/**
+ * Returns detailed information for one hole from a player-owned round. This is
+ * the most specific tool for shot-sequence questions and exposes only the
+ * AI-safe shot representation rather than the raw MongoDB shot document.
+ */
 async function getHole(
     thisDb,
     collectionName,
@@ -689,6 +728,10 @@ async function getHole(
     };
 }
 
+/**
+ * Resolves either the latest round or a requested round while always scoping
+ * the database query to the authenticated player's server-supplied id.
+ */
 async function findPlayerRound(thisDb, collectionName, userId, options) {
     options = options || {};
 

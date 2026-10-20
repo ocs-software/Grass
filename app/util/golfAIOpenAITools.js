@@ -1,3 +1,11 @@
+/**
+ * Tool schemas and dispatcher used by the golf AI client.
+ *
+ * The schemas define the only analytics operations the model may request.
+ * Database handles, collection names and player identity are deliberately not
+ * model arguments; executeGolfAITool() injects those values from trusted
+ * server context after validating the model-supplied analytical arguments.
+ */
 const {
     getPlayerOverview,
     comparePlayerPeriods,
@@ -5,6 +13,11 @@ const {
     getHole
 } = require("./golfAITools");
 
+/*
+ * Keep tool schemas narrow and explicit. Structured arguments reduce ambiguous
+ * model output, but runtime validation is still required because providers may
+ * not always enforce a declared strict schema perfectly.
+ */
 const GOLF_AI_TOOLS = [
     {
         type: "function",
@@ -166,6 +179,10 @@ const GOLF_AI_TOOLS = [
     }
 ];
 
+/**
+ * Parses the provider's JSON argument string and rejects values that are not a
+ * plain argument object before they can reach application analytics code.
+ */
 function parseToolArguments(toolCall) {
     if (!toolCall || typeof toolCall.arguments !== "string") {
         throw new Error("Invalid AI tool call arguments.");
@@ -220,6 +237,11 @@ function validateDateRange(value, fieldName) {
     }
 }
 
+/**
+ * Enforces the mutually exclusive argument contract for Last-N and explicit
+ * date-range comparisons. This protects deterministic comparison semantics
+ * even when a model returns malformed tool arguments.
+ */
 function validateComparePlayerPeriodsArguments(args) {
     if (args.mode !== "last_n" && args.mode !== "date_range") {
         throw new Error(
@@ -257,6 +279,11 @@ function validateComparePlayerPeriodsArguments(args) {
     validateDateRange(args.previous, "previous");
 }
 
+/**
+ * Dispatches an approved model tool request using server-controlled database,
+ * collection and user context. Unknown tools are rejected rather than mapped
+ * to aliases, keeping the model's capabilities explicit and auditable.
+ */
 async function executeGolfAITool(toolCall, serverContext) {
     if (!toolCall || typeof toolCall.name !== "string") {
         throw new Error("Invalid AI tool call.");

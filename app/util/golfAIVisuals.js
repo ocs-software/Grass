@@ -1,3 +1,11 @@
+/**
+ * Deterministic visual-payload builders for the golf AI interface.
+ *
+ * The language model may decide which analytics tools are useful, but it does
+ * not manufacture chart values. These builders transform authoritative tool
+ * results into stable frontend contracts such as metric summaries, period
+ * comparisons, scorecards and shot sequences.
+ */
 function roundNumber(value, decimals) {
     if (typeof value !== "number" || !Number.isFinite(value)) {
         return null;
@@ -7,6 +15,11 @@ function roundNumber(value, decimals) {
     return Math.round(value * factor) / factor;
 }
 
+/**
+ * Interprets a canonical metric change using its declared directionality.
+ * Positive is not universally better: for example GIR is higher-is-better,
+ * while scoring-to-par, putts and penalties are lower-is-better.
+ */
 function getChangeAssessment(change, better) {
     if (typeof change !== "number" || !Number.isFinite(change)) {
         return {
@@ -83,6 +96,7 @@ function buildComparisonMetric(options) {
     };
 }
 
+/** Builds KPI-style performance data from a successful overview result. */
 function buildPerformanceSummaryVisual(toolResult) {
     if (!toolResult || !toolResult.performance) {
         return null;
@@ -185,6 +199,7 @@ function buildPerformanceSummaryVisual(toolResult) {
     };
 }
 
+/** Builds current-versus-previous metric data for a period comparison. */
 function buildPeriodComparisonVisual(toolResult) {
     if (
         !toolResult ||
@@ -307,6 +322,7 @@ function buildPeriodComparisonVisual(toolResult) {
     };
 }
 
+/** Builds an 18-hole/partial-round scorecard from canonical round analysis. */
 function buildRoundScorecardVisual(toolResult) {
     if (
         !toolResult ||
@@ -398,6 +414,11 @@ function buildRoundScorecardVisual(toolResult) {
     };
 }
 
+/**
+ * Builds the detailed hole visual from the AI-safe semantic shot sequence.
+ * Recorded travel distances retain their explicit meaning and are not treated
+ * as starting distance, carry distance or distance remaining.
+ */
 function buildHoleShotSequenceVisual(toolResult) {
     if (!toolResult || toolResult.available !== true || !toolResult.hole) {
         return null;
@@ -484,6 +505,11 @@ function buildHoleShotSequenceVisual(toolResult) {
     };
 }
 
+/**
+ * Selects visuals from successful tool results. Hole detail takes precedence
+ * over a round scorecard when both were fetched because it is the more specific
+ * representation; overview and comparison visuals may coexist.
+ */
 function buildGolfAIVisuals(toolHistory) {
     if (!Array.isArray(toolHistory)) {
         return [];
