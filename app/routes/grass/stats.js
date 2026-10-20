@@ -1,3 +1,11 @@
+/**
+ * Player statistics and golf AI routes.
+ *
+ * Provides the legacy statistics/reporting endpoints used by Grass together
+ * with the production and diagnostic endpoints for the newer golf analytics
+ * AI layer. Player identity is resolved and authenticated by this route before
+ * any analytics or AI operation is allowed to use that player's data.
+ */
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 let ObjectID = require("mongodb").ObjectID;
@@ -21,6 +29,13 @@ const { executeGolfAITool } = require("../../util/golfAIOpenAITools");
 
 const { askGolfAI } = require("../../util/golfAIClient");
 
+/**
+ * Builds an on-demand player statistics report for the requested metric.
+ *
+ * The caller supplies player-specific criteria and optional peer criteria.
+ * Authentication is performed against the token stored on the user document,
+ * then rankingRound builds the canonical report from the requested filters.
+ */
 router.post("/get", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
@@ -132,6 +147,13 @@ router.post("/get", async (req, res) => {
     }
 });
 
+/**
+ * Returns a Last-N report for one club and statistic.
+ *
+ * The club code is first checked against the OPTIONS lookup table. Defaults are
+ * applied for the statistic, subjective quality threshold and record count when
+ * those values are omitted by the caller.
+ */
 router.post("/average", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
@@ -269,6 +291,16 @@ router.post("/average", async (req, res) => {
     }
 });
 
+/**
+ * Production golf-AI endpoint.
+ *
+ * The route authenticates the player, constructs the deterministic analytics
+ * lookup context, and passes only the authenticated server-side player id to
+ * the AI client. The model therefore cannot select an arbitrary player through
+ * its tool arguments. The public response deliberately excludes provider/model
+ * details and internal tool history; the frontend receives only the answer and
+ * deterministic visual payloads.
+ */
 router.post("/ai/golf", async (req, res) => {
     db = req.db;
 
@@ -395,8 +427,17 @@ router.post("/ai/golf", async (req, res) => {
             });
         }
 
+        /*
+         * Convert the OPTIONS document into the semantic lookup maps consumed
+         * by the analytics/tool layer (clubs, positions, outcomes, etc.).
+         */
         const analyticsContext = buildAnalyticsContext(table);
 
+        /*
+         * Bound the complete AI operation, including any model-requested tool
+         * rounds. Promise.race protects the HTTP request from waiting forever;
+         * it does not itself cancel an already-running provider request.
+         */
         const AI_REQUEST_TIMEOUT_MS = 90000;
 
         let timeoutId;
@@ -414,6 +455,11 @@ router.post("/ai/golf", async (req, res) => {
         let result;
 
         try {
+            /*
+             * user._id is supplied from the authenticated database record, not
+             * from model-controlled tool arguments. This is the security
+             * boundary that scopes all AI analytics to the current player.
+             */
             result = await Promise.race([
                 askGolfAI(data.question.trim(), {
                     thisDb,
@@ -427,6 +473,11 @@ router.post("/ai/golf", async (req, res) => {
             clearTimeout(timeoutId);
         }
 
+        /*
+         * Keep the production contract intentionally small. Internal model and
+         * tool diagnostics remain server-side and are exposed only by the
+         * dedicated development endpoint below.
+         */
         return res.json({
             answer: result.content || "",
             visuals: Array.isArray(result.visuals) ? result.visuals : [],
@@ -468,6 +519,14 @@ router.post("/ai/golf", async (req, res) => {
     }
 });
 
+/**
+ * Development/diagnostic golf-AI endpoint.
+ *
+ * Unlike /ai/golf, this returns the complete AI-client result, including tool
+ * history used while developing and validating the analytics/tool loop. It is
+ * retained separately from the production response contract so debugging data
+ * is not accidentally exposed to the normal frontend.
+ */
 router.post("/test-analytics", async (req, res) => {
     db = req.db;
     const thisDb = db.db("grass");
