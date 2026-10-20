@@ -342,7 +342,14 @@ async function getPlayerRounds(thisDb, collectionName, userId, criteria) {
     criteria = criteria || {};
 
     const roundQuery = {
-        user_id: userId
+        user_id: userId,
+
+        // Only documents with an application round id represent actual rounds.
+        // This excludes incomplete/test documents that contain user metadata but
+        // have never been initialised as a golf round.
+        id: {
+            $nin: [null, ""]
+        }
     };
 
     if (criteria.date_from) {
