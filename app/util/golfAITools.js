@@ -12,7 +12,6 @@ const {
     aggregateRounds,
     compareAggregates,
     getPlayerRounds,
-    buildAnalyticsContext,
     buildPlayerAnalyticsReport
 } = require("./golfAnalytics");
 
@@ -373,153 +372,6 @@ function getShotQualityDescription(value) {
     }
 }
 
-function getLookupDescription(map, code) {
-    if (!map || !code) {
-        return null;
-    }
-
-    const item = map[String(code)];
-
-    if (!item) {
-        return null;
-    }
-
-    if (typeof item === "string") {
-        return item;
-    }
-
-    return item.description || item.desc || item.name || item.label || null;
-}
-
-/**
- * Converts a stored shot into the restricted semantic representation exposed
- * to the model. Distances are labelled as recorded ball travel, QoS remains a
- * subjective player rating, and outcome data remains authoritative.
- */
-function buildAIShot(shot, analyticsContext) {
-    const clubCode =
-        shot.shot_club !== undefined &&
-        shot.shot_club !== null &&
-        shot.shot_club !== ""
-            ? String(shot.shot_club)
-            : null;
-
-    const positionCode =
-        shot.position !== undefined &&
-        shot.position !== null &&
-        shot.position !== ""
-            ? String(shot.position)
-            : null;
-
-    const outcomeCode =
-        shot.outcome !== undefined &&
-        shot.outcome !== null &&
-        shot.outcome !== ""
-            ? String(shot.outcome)
-            : null;
-
-    const qualityValue = Number(shot.shot_qos);
-
-    const validQuality =
-        Number.isInteger(qualityValue) &&
-        qualityValue >= 1 &&
-        qualityValue <= 5;
-
-    const isPutter = clubCode === "075";
-
-    let travelDistance = null;
-
-    /*
-     * Non-putter distance is recorded in yards.
-     * Only positive values are meaningful.
-     */
-    if (!isPutter && Number(shot.shot_dist_y) > 0) {
-        travelDistance = {
-            value: Number(shot.shot_dist_y),
-            unit: "yards",
-            type: "recorded_travel"
-        };
-    }
-
-    /*
-     * Putter distance is recorded in feet.
-     * Never use putt_dist_* for non-putter shots.
-     */
-    if (isPutter && Number(shot.putt_dist_f) > 0) {
-        travelDistance = {
-            value: Number(shot.putt_dist_f),
-            unit: "feet",
-            type: "recorded_travel"
-        };
-    }
-
-    return {
-        stroke: Number(shot.strokes),
-
-        club: clubCode
-            ? {
-                  code: clubCode,
-                  description: getLookupDescription(
-                      analyticsContext.clubMap,
-                      clubCode
-                  )
-              }
-            : null,
-
-        position: positionCode
-            ? {
-                  code: positionCode,
-                  description: getLookupDescription(
-                      analyticsContext.positionMap,
-                      positionCode
-                  )
-              }
-            : null,
-
-        outcome: outcomeCode
-            ? {
-                  code: outcomeCode,
-                  description: getLookupDescription(
-                      analyticsContext.outcomeMap,
-                      outcomeCode
-                  )
-              }
-            : null,
-
-        quality: validQuality
-            ? {
-                  rating: qualityValue,
-                  description: getShotQualityDescription(qualityValue),
-                  subjective: true
-              }
-            : null,
-
-        travelDistance: travelDistance
-    };
-}
-
-function getShotQualityDescription(value) {
-    switch (Number(value)) {
-        case 1:
-            return "Very Bad";
-        case 2:
-            return "Bad";
-        case 3:
-            return "Average";
-        case 4:
-            return "Good";
-        case 5:
-            return "Perfect";
-        default:
-            return null;
-    }
-}
-
-/*
- * Lookup helpers below translate stored codes into semantic descriptions for
- * the AI-facing shot representation. Unknown codes remain identifiable rather
- * than being guessed or silently converted to a different meaning.
- */
 function getLookupItem(map, code) {
     if (!map || !code) {
         return null;
@@ -528,6 +380,11 @@ function getLookupItem(map, code) {
     return map[String(code)] || null;
 }
 
+/**
+ * Converts a stored shot into the restricted semantic representation exposed
+ * to the model. Distances are labelled as recorded ball travel, QoS remains a
+ * subjective player rating, and outcome data remains authoritative.
+ */
 function buildAIShot(shot, analyticsContext) {
     const clubCode =
         shot.shot_club !== undefined &&
