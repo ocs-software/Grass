@@ -424,9 +424,7 @@ router.post("/ai/golf", async (req, res) => {
         const conversationsCollection = thisDb.collection(
             "ai_conversations" + suffix
         );
-        const messagesCollection = thisDb.collection(
-            "ai_messages" + suffix
-        );
+        const messagesCollection = thisDb.collection("ai_messages" + suffix);
 
         let conversation;
 
@@ -547,13 +545,27 @@ router.post("/ai/golf", async (req, res) => {
 
         const messageCreatedAt = new Date();
 
-        await messagesCollection.insertOne({
-            conversation_id: conversation._id,
-            user_id: user._id,
-            role: "user",
-            content: data.question.trim(),
-            created_at: messageCreatedAt
-        });
+        /*
+         * Persist the complete successful turn together. Failed/timed-out AI
+         * requests therefore do not leave a user message without a matching
+         * assistant response.
+         */
+        await messagesCollection.insertMany([
+            {
+                conversation_id: conversation._id,
+                user_id: user._id,
+                role: "user",
+                content: data.question.trim(),
+                created_at: messageCreatedAt
+            },
+            {
+                conversation_id: conversation._id,
+                user_id: user._id,
+                role: "assistant",
+                content: result.content || "",
+                created_at: messageCreatedAt
+            }
+        ]);
 
         await conversationsCollection.updateOne(
             {
