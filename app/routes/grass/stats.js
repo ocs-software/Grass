@@ -510,6 +510,37 @@ router.post("/ai/golf", async (req, res) => {
          */
         const AI_REQUEST_TIMEOUT_MS = 90000;
 
+        /*
+         * Load only a bounded amount of conversation history. The query remains
+         * scoped to both the verified conversation and authenticated user so that
+         * messages from another user can never enter the AI context.
+         *
+         * Fetch newest first so MongoDB can apply the limit efficiently, then
+         * reverse the result to restore chronological order for the AI provider.
+         */
+        const conversationHistory = await messagesCollection
+            .find({
+                conversation_id: conversation._id,
+                user_id: user._id
+            })
+            .sort({
+                created_at: -1,
+                _id: -1
+            })
+            .limit(10)
+            .toArray();
+
+        conversationHistory.reverse();
+
+        const conversationMessages = conversationHistory.map(
+            function (message) {
+                return {
+                    role: message.role,
+                    content: message.content
+                };
+            }
+        );
+
         let timeoutId;
 
         const timeoutPromise = new Promise(function (_, reject) {
@@ -535,7 +566,8 @@ router.post("/ai/golf", async (req, res) => {
                     thisDb,
                     collectionName: "myrounds" + suffix,
                     userId: user._id,
-                    analyticsContext
+                    analyticsContext,
+                    conversationMessages
                 }),
                 timeoutPromise
             ]);
