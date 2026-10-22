@@ -43,6 +43,16 @@ const MAX_QUESTION_LENGTH = 1000;
 const MAX_TOOL_ROUNDS = 5;
 const MAX_TOOL_CALLS = 8;
 
+/*
+ * Provider configuration is environment-driven so production models can be
+ * changed without modifying application code. OpenRouter remains the active
+ * provider while native Anthropic support is introduced separately.
+ */
+const GOLF_AI_PROVIDER = process.env.GOLF_AI_PROVIDER || "openrouter";
+
+const OPENROUTER_MODEL =
+    process.env.GOLF_AI_OPENROUTER_MODEL || "openrouter/free";
+
 /**
  * Sends a golfer question to the configured model and services any requested
  * analytics tools until the model returns a final textual answer. Failed tool
@@ -54,6 +64,16 @@ const MAX_TOOL_CALLS = 8;
  * intentionally strips debug fields before returning data to the frontend.
  */
 async function askGolfAI(question, serverContext) {
+    if (GOLF_AI_PROVIDER !== "openrouter") {
+        const error = new Error(
+            "Unsupported golf AI provider: " + GOLF_AI_PROVIDER
+        );
+
+        error.code = "GOLF_AI_PROVIDER";
+
+        throw error;
+    }
+
     if (!process.env.OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not configured.");
     }
@@ -153,7 +173,7 @@ async function askGolfAI(question, serverContext) {
 
     for (let toolRound = 0; toolRound < MAX_TOOL_ROUNDS; toolRound++) {
         const response = await openrouter.chat.completions.create({
-            model: "openrouter/free",
+            model: OPENROUTER_MODEL,
             messages: messages,
             tools: OPENROUTER_TOOLS,
             tool_choice: "auto"
