@@ -412,6 +412,78 @@ router.post("/ai/golf", async (req, res) => {
             });
         }
 
+        /*
+         * Conversation ownership is always derived from the authenticated
+         * player. A supplied conversation id is accepted only when that
+         * conversation belongs to the current user.
+         *
+         * This first persistence step deliberately does not send stored
+         * conversation history to the model yet. It establishes and tests the
+         * storage/ownership boundary independently from multi-turn prompting.
+         */
+        const conversationsCollection = thisDb.collection(
+            "ai_conversations" + suffix
+        );
+        const messagesCollection = thisDb.collection(
+            "ai_messages" + suffix
+        );
+
+        let conversation;
+
+        if (data.conversation_id) {
+            let conversationObjectId;
+
+            try {
+                conversationObjectId = new ObjectID(data.conversation_id);
+            } catch (error) {
+                return await sendError(res, 200, {
+                    thisDb,
+                    errMess: "Invalid Conversation ID.",
+                    type: "validation",
+                    action: "stats/ai/golf",
+                    user: data.user_id,
+                    payload: {
+                        user_id: data.user_id
+                    },
+                    functionName: "stats/ai/golf"
+                });
+            }
+
+            conversation = await conversationsCollection.findOne({
+                _id: conversationObjectId,
+                user_id: user._id,
+                status: "active"
+            });
+
+            if (!conversation) {
+                return await sendError(res, 200, {
+                    thisDb,
+                    errMess: "Conversation not found.",
+                    type: "validation",
+                    action: "stats/ai/golf",
+                    user: data.user_id,
+                    payload: {
+                        user_id: data.user_id
+                    },
+                    functionName: "stats/ai/golf"
+                });
+            }
+        } else {
+            const now = new Date();
+            const conversationResult = await conversationsCollection.insertOne({
+                user_id: user._id,
+                title: data.question.trim().substring(0, 120),
+                status: "active",
+                created_at: now,
+                updated_at: now
+            });
+
+            conversation = {
+                _id: conversationResult.insertedId,
+                user_id: user._id
+            };
+        }
+
         const table = await thisDb.collection("table").findOne({
             as_oos: { $exists: true }
         });
@@ -473,12 +545,35 @@ router.post("/ai/golf", async (req, res) => {
             clearTimeout(timeoutId);
         }
 
+        const messageCreatedAt = new Date();
+
+        await messagesCollection.insertOne({
+            conversation_id: conversation._id,
+            user_id: user._id,
+            role: "user",
+            content: data.question.trim(),
+            created_at: messageCreatedAt
+        });
+
+        await conversationsCollection.updateOne(
+            {
+                _id: conversation._id,
+                user_id: user._id
+            },
+            {
+                $set: {
+                    updated_at: messageCreatedAt
+                }
+            }
+        );
+
         /*
          * Keep the production contract intentionally small. Internal model and
          * tool diagnostics remain server-side and are exposed only by the
          * dedicated development endpoint below.
          */
         return res.json({
+            conversation_id: conversation._id.toString(),
             answer: result.content || "",
             visuals: Array.isArray(result.visuals) ? result.visuals : [],
             suggestions: []
