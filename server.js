@@ -25,6 +25,8 @@ async function initializeIndexes(database, suffix) {
     const rankingDb = dbConn.collection("ranking_cache" + suffix);
     const criteriaDb = dbConn.collection("stats_criteria_usage" + suffix);
     const usersDb = dbConn.collection("users" + suffix);
+    const aiConversationsDb = dbConn.collection("ai_conversations" + suffix);
+    const aiMessagesDb = dbConn.collection("ai_messages" + suffix);
 
     await usersDb.createIndex(
         { user_email: 1 },
@@ -62,11 +64,28 @@ async function initializeIndexes(database, suffix) {
 
     await rankingDb.createIndex({ status: 1, updated_at: 1 });
 
-    await rankingDb.createIndex({ status: 1, updated_at: 1 });
-
     await criteriaDb.createIndex({ filter_hash: 1 }, { unique: true });
 
     await criteriaDb.createIndex({ usage_count: -1, last_used_at: -1 });
+
+    /*
+     * Support authenticated conversation lookup/listing and bounded message
+     * history retrieval for the golf AI conversation layer.
+     */
+    await aiConversationsDb.createIndex(
+        { user_id: 1, status: 1, updated_at: -1 },
+        { name: "ai_conversations_user_status_updated" }
+    );
+
+    await aiMessagesDb.createIndex(
+        {
+            conversation_id: 1,
+            user_id: 1,
+            created_at: -1,
+            _id: -1
+        },
+        { name: "ai_messages_conversation_history" }
+    );
 
     console.log("Indexes initialized");
 }

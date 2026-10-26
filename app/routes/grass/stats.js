@@ -417,9 +417,10 @@ router.post("/ai/golf", async (req, res) => {
          * player. A supplied conversation id is accepted only when that
          * conversation belongs to the current user.
          *
-         * This first persistence step deliberately does not send stored
-         * conversation history to the model yet. It establishes and tests the
-         * storage/ownership boundary independently from multi-turn prompting.
+         * For a new conversation, reserve an ObjectID in memory but do not
+         * persist the conversation yet. The conversation is inserted only
+         * after the first AI request succeeds, preventing failed or timed-out
+         * first turns from leaving empty conversation records behind.
          */
         const conversationsCollection = thisDb.collection(
             "ai_conversations" + suffix
@@ -427,6 +428,7 @@ router.post("/ai/golf", async (req, res) => {
         const messagesCollection = thisDb.collection("ai_messages" + suffix);
 
         let conversation;
+        let isNewConversation = false;
 
         if (data.conversation_id) {
             let conversationObjectId;
@@ -467,18 +469,13 @@ router.post("/ai/golf", async (req, res) => {
                 });
             }
         } else {
-            const now = new Date();
-            const conversationResult = await conversationsCollection.insertOne({
-                user_id: user._id,
-                title: data.question.trim().substring(0, 120),
-                status: "active",
-                created_at: now,
-                updated_at: now
-            });
+            isNewConversation = true;
 
             conversation = {
-                _id: conversationResult.insertedId,
-                user_id: user._id
+                _id: new ObjectID(),
+                user_id: user._id,
+                title: data.question.trim().substring(0, 120),
+                status: "active"
             };
         }
 
@@ -578,6 +575,22 @@ router.post("/ai/golf", async (req, res) => {
         const messageCreatedAt = new Date();
 
         /*
+         * A new conversation becomes persistent only after its first AI
+         * response succeeds. Existing conversations were already ownership-
+         * checked above and only need their updated_at timestamp refreshed.
+         */
+        if (isNewConversation) {
+            await conversationsCollection.insertOne({
+                _id: conversation._id,
+                user_id: user._id,
+                title: conversation.title,
+                status: conversation.status,
+                created_at: messageCreatedAt,
+                updated_at: messageCreatedAt
+            });
+        }
+
+        /*
          * Persist the complete successful turn together. Failed/timed-out AI
          * requests therefore do not leave a user message without a matching
          * assistant response.
@@ -654,96 +667,6 @@ router.post("/ai/golf", async (req, res) => {
             },
 
             functionName: "stats/ai/golf"
-        });
-    }
-});
-
-/**
- * Development/diagnostic golf-AI endpoint.
- *
- * Unlike /ai/golf, this returns the complete AI-client result, including tool
- * history used while developing and validating the analytics/tool loop. It is
- * retained separately from the production response contract so debugging data
- * is not accidentally exposed to the normal frontend.
- */
-router.post("/test-analytics", async (req, res) => {
-    db = req.db;
-    const thisDb = db.db("grass");
-    const appConfig = getAppConfig();
-    const suffix = appConfig.suffix;
-    const data = req.body;
-
-    try {
-        if (!data.user_id) {
-            return await sendError(res, 200, {
-                thisDb,
-                errMess: "User ID not sent.",
-                type: "validation",
-                action: "stats/test-analytics",
-                payload: data
-            });
-        }
-
-        if (!data.token) {
-            return await sendError(res, 200, {
-                thisDb,
-                errMess: "Token not sent.",
-                type: "validation",
-                action: "stats/test-analytics",
-                payload: data
-            });
-        }
-
-        const user = await thisDb.collection("users" + suffix).findOne({
-            _id: new ObjectID(data.user_id)
-        });
-
-        if (!user) {
-            return await sendError(res, 200, {
-                thisDb,
-                errMess: "User not found.",
-                type: "validation",
-                action: "stats/test-analytics",
-                user: data.user_id,
-                payload: data
-            });
-        }
-
-        if (data.token != user.token) {
-            return await sendError(res, 200, {
-                thisDb,
-                errMess: "Token sent does not match with user.",
-                type: "validation",
-                action: "stats/test-analytics",
-                user: data.user_id,
-                payload: data
-            });
-        }
-
-        const table = await thisDb.collection("table").findOne({
-            as_oos: { $exists: true }
-        });
-
-        const analyticsContext = buildAnalyticsContext(table);
-        const result = await askGolfAI(data.question, {
-            thisDb,
-            collectionName: "myrounds" + suffix,
-            userId: user._id,
-            analyticsContext
-        });
-
-        return res.json({
-            result
-        });
-    } catch (e) {
-        return await sendError(res, 400, {
-            thisDb,
-            errMess: e.message || "Error testing golf analytics.",
-            type: "other",
-            action: "stats/test-analytics",
-            error: e,
-            payload: data,
-            functionName: "stats/test-analytics"
         });
     }
 });
