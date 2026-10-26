@@ -11,14 +11,11 @@ const { rebuildOverallRanking } = require("./app/workers/rebuildRankings");
  */
 function startRankingScheduler(
     thisDb,
-    {
-        schedule = "0 3 * * *",
-        timezone = "Europe/London"
-    } = {}
+    { schedule = "0 3 * * *", timezone = "Europe/London" } = {}
 ) {
-    if (!thisDb) {
+    if (!thisDb || typeof thisDb.collection !== "function") {
         throw new Error(
-            "Cannot start ranking scheduler without a database connection."
+            "Cannot start ranking scheduler without a valid MongoDB database connection."
         );
     }
 
@@ -32,10 +29,7 @@ function startRankingScheduler(
             try {
                 await rebuildOverallRanking(thisDb);
             } catch (error) {
-                console.error(
-                    "[ranking] Scheduled rebuild failed:",
-                    error
-                );
+                console.error("[ranking] Scheduled rebuild failed:", error);
             }
         },
         {
@@ -45,9 +39,7 @@ function startRankingScheduler(
         }
     );
 
-    console.log(
-        `[ranking] Scheduler enabled: "${schedule}" (${timezone})`
-    );
+    console.log(`[ranking] Scheduler enabled: "${schedule}" (${timezone})`);
 
     return task;
 }
