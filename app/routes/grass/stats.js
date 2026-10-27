@@ -2,9 +2,9 @@
  * Player statistics and golf AI routes.
  *
  * Provides the legacy statistics/reporting endpoints used by Grass together
- * with the production and diagnostic endpoints for the newer golf analytics
- * AI layer. Player identity is resolved and authenticated by this route before
- * any analytics or AI operation is allowed to use that player's data.
+ * with the production endpoint for the newer golf analytics AI layer. Player
+ * identity is resolved and authenticated by this route before any analytics
+ * or AI operation is allowed to use that player's data.
  */
 const express = require("express");
 const router = express.Router({ mergeParams: true });
@@ -16,16 +16,7 @@ const {
     getPlayerLastNReport
 } = require("../../util/rankingRound");
 const { sendError } = require("../../util/commonFunctions");
-const {
-    analyseRound,
-    aggregateRounds,
-    buildAnalyticsContext,
-    getPlayerRounds,
-    compareAggregates,
-    buildPlayerAnalyticsReport
-} = require("../../util/golfAnalytics");
-
-const { executeGolfAITool } = require("../../util/golfAIOpenAITools");
+const { buildAnalyticsContext } = require("../../util/golfAnalytics");
 
 const { askGolfAI } = require("../../util/golfAIClient");
 
