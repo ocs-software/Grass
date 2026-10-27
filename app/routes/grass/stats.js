@@ -626,8 +626,7 @@ router.post("/ai/golf", async (req, res) => {
 
         /*
          * Keep the production contract intentionally small. Internal model and
-         * tool diagnostics remain server-side and are exposed only by the
-         * dedicated development endpoint below.
+         * tool diagnostics remain server-side and are not exposed to the frontend.
          */
         return res.json({
             conversation_id: conversation._id.toString(),
