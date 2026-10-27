@@ -356,9 +356,7 @@ router.post("/ai/golf", async (req, res) => {
                 errMess: "Question is too long.",
                 type: "validation",
                 action: "stats/ai/golf",
-                payload: {
-                    user_id: data.user_id
-                },
+                payload: data,
                 functionName: "stats/ai/golf"
             });
         }
@@ -373,9 +371,7 @@ router.post("/ai/golf", async (req, res) => {
                 errMess: "Invalid User ID.",
                 type: "validation",
                 action: "stats/ai/golf",
-                payload: {
-                    user_id: data.user_id
-                },
+                payload: data,
                 functionName: "stats/ai/golf"
             });
         }
@@ -391,9 +387,7 @@ router.post("/ai/golf", async (req, res) => {
                 type: "validation",
                 action: "stats/ai/golf",
                 user: data.user_id,
-                payload: {
-                    user_id: data.user_id
-                },
+                payload: data,
                 functionName: "stats/ai/golf"
             });
         }
@@ -405,9 +399,7 @@ router.post("/ai/golf", async (req, res) => {
                 type: "validation",
                 action: "stats/ai/golf",
                 user: data.user_id,
-                payload: {
-                    user_id: data.user_id
-                },
+                payload: data,
                 functionName: "stats/ai/golf"
             });
         }
@@ -442,9 +434,7 @@ router.post("/ai/golf", async (req, res) => {
                     type: "validation",
                     action: "stats/ai/golf",
                     user: data.user_id,
-                    payload: {
-                        user_id: data.user_id
-                    },
+                    payload: data,
                     functionName: "stats/ai/golf"
                 });
             }
@@ -462,9 +452,7 @@ router.post("/ai/golf", async (req, res) => {
                     type: "validation",
                     action: "stats/ai/golf",
                     user: data.user_id,
-                    payload: {
-                        user_id: data.user_id
-                    },
+                    payload: data,
                     functionName: "stats/ai/golf"
                 });
             }
